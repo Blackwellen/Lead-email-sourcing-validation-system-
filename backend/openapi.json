@@ -11238,6 +11238,12 @@
             "title": "Dead Jobs",
             "type": "integer"
           },
+          "dns_resolver": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Dns Resolver",
+            "type": "object"
+          },
           "dns_sample_size": {
             "title": "Dns Sample Size",
             "type": "integer"

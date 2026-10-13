@@ -156,7 +156,7 @@ export function ContactDetailPage({ id }: { id: string }) {
       <PageHeader
         breadcrumbs={[{ label: 'Contacts', href: '/contacts' }, { label: d.email }]}
         title={<span className="break-all">{d.email}</span>}
-        meta={<><StatusBadge kind="origin" status={d.origin} /><Badge variant={d.published_or_inferred === 'Published' ? 'success' : 'info'}>{d.published_or_inferred}</Badge></>}
+        meta={<StatusBadge kind="origin" status={d.origin} />}
         description={d.email_original !== d.email ? `Originally recorded as ${d.email_original}` : undefined}
         actions={
           <Can role="operator">

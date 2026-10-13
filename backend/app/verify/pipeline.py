@@ -376,11 +376,14 @@ async def _verify_email(
                 mail_status = "unknown"
                 notes.append(f"resolver_unreliable:{health.status}")
         ttl = timedelta(seconds=mail_info.ttl)
-        v2 = ("nxdomain" if mail_info.reason_code == "domain_nxdomain" else "temporary_failure" if mail_status in ("temporary_dns_failure", "unknown")
+        # V02 describes the DNS lookup itself (from the resolver's answer), V03 the mail-routing conclusion.
+        raw_status = mail_info.mail_status
+        v2 = ("nxdomain" if mail_info.reason_code == "domain_nxdomain" else "temporary_failure" if raw_status in ("temporary_dns_failure", "unknown")
               else "no_records" if mail_info.reason_code == "no_mx_no_address" else "resolves")
+        v3_reason = "resolver_unreliable" if mail_status != raw_status else mail_info.reason_code
         await _record(session, email.id, "V02_domain", v2, mail_info.reason_code, ttl=ttl,
                       detail={"domain": domain, "error": mail_info.error, "dnssec": mail_info.dnssec})
-        await _record(session, email.id, "V03_mx", mail_status, mail_info.reason_code, ttl=ttl,
+        await _record(session, email.id, "V03_mx", mail_status, v3_reason, ttl=ttl,
                       provider=mail_info.provider if o.provider else None,
                       detail={"mx": mail_info.mx_dicts(), "implicit_mx": mail_info.implicit_mx, "diagnostics": mail_info.diagnostics})
         ran += ["V02_domain", "V03_mx"]

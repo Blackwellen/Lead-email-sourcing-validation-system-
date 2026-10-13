@@ -189,6 +189,7 @@ function Diagnostics({ h }: { h: Health }) {
   });
   const bw = h.browser_workers as { playwright_installed: boolean; available: boolean; note: string | null };
   const dns = h.dns_timeout_rate;
+  const resolver = (h.dns_resolver ?? null) as { status?: string; note?: string | null } | null;
   const live = egress.data;
   const status = live?.status ?? h.smtp.egress_port_25;
   const detail = live?.detail;
@@ -201,6 +202,11 @@ function Diagnostics({ h }: { h: Health }) {
           <p className="text-2xl font-semibold tabular">{dns === null ? '—' : formatPercent(dns * 100, 1)}</p>
           <p className="text-xs text-muted-foreground">{dns === null ? 'No lookups recorded yet.' : `Based on the latest ${formatNumber(h.dns_sample_size)} lookups.`}</p>
           {dns !== null && dns > 0.1 && <p className="mt-2 flex gap-1.5 text-xs text-warning-foreground"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />High. Verification results may be marked unknown; check the resolver and outbound DNS.</p>}
+          <p className="mt-3 flex flex-wrap items-center gap-2 text-sm" data-testid="dns-resolver">MX self-test:
+            <Badge variant={resolver?.status === 'ok' ? 'success' : resolver?.status ? 'danger' : 'neutral'}>
+              {resolver?.status === 'ok' ? 'Answers MX' : resolver?.status === 'no_mx_answers' ? 'No MX answers' : resolver?.status === 'failing' ? 'Failing' : 'Not checked'}
+            </Badge></p>
+          {resolver?.note && <p className="mt-1 flex gap-1.5 text-xs text-warning-foreground"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />{resolver.note}</p>}
         </CardContent>
       </Card>
 

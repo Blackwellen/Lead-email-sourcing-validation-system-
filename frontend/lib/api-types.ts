@@ -1154,7 +1154,12 @@ export interface paths {
         delete: operations["delete_draft"];
         options?: never;
         head?: never;
-        /** Autosave Draft */
+        /**
+         * Autosave Draft
+         * @description Save a (possibly incomplete) draft. The full safety validation (paths, URLs, source permissions) runs on every
+         *     save: an invalid draft is stored but flagged (``valid=false`` + errors) and cannot be started; a *scheduled* run must
+         *     stay valid, so an invalid change to it is refused.
+         */
         patch: operations["autosave_draft"];
         trace?: never;
     };
@@ -1216,7 +1221,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Run Events */
+        /**
+         * Run Events
+         * @description Live run progress. Authenticated with a short-lived DB session; every snapshot uses its own short session, so an
+         *     open stream holds no database connection between snapshots. At most ``sse_max_streams_per_user`` streams per user and
+         *     ``sse_max_streams`` per API process; the viewer's session is re-validated every few snapshots (revoked => stream ends).
+         */
         get: operations["run_events"];
         put?: never;
         post?: never;
@@ -1682,7 +1692,8 @@ export interface paths {
         put?: never;
         /**
          * Import Source File
-         * @description Upload a dataset file for a file-based adapter; its stored path becomes the adapter's ``path`` configuration.
+         * @description Upload a dataset file for a file-based adapter. Operators may upload (the returned ``path`` can be used as run
+         *     ``source_params``); only an administrator's upload also becomes the adapter's stored ``path`` configuration.
          */
         post: operations["import_source_file"];
         delete?: never;
@@ -2367,7 +2378,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Readyz */
+        /**
+         * Readyz
+         * @description Readiness. In production an anonymous caller only learns ``ready``; details need a signed-in session.
+         */
         get: operations["readyz"];
         put?: never;
         post?: never;
@@ -5238,19 +5252,16 @@ export interface components {
         /** ReadyOut */
         ReadyOut: {
             /** Database */
-            database: boolean;
-            /**
-             * Maintenance
-             * @default false
-             */
-            maintenance: boolean;
+            database?: boolean | null;
+            /** Maintenance */
+            maintenance?: boolean | null;
             /** Migration */
-            migration: {
+            migration?: {
                 [key: string]: unknown;
-            };
+            } | null;
             /** Ready */
             ready: boolean;
-            workers: components["schemas"]["WorkerSummary"];
+            workers?: components["schemas"]["WorkerSummary"] | null;
         };
         /** RecentExport */
         RecentExport: {
@@ -6276,6 +6287,13 @@ export interface components {
             };
             /** Dead Jobs */
             dead_jobs: number;
+            /**
+             * Dns Resolver
+             * @default {}
+             */
+            dns_resolver: {
+                [key: string]: unknown;
+            };
             /** Dns Sample Size */
             dns_sample_size: number;
             /** Dns Timeout Rate */
@@ -6769,6 +6787,12 @@ export interface components {
              * @default path
              */
             config_key: string;
+            /**
+             * Configured
+             * @description true when the file was set as the source's 'path' (admins only; operators pass the path as run source_params)
+             * @default false
+             */
+            configured: boolean;
             /** Kind */
             kind: string;
             /** Path */

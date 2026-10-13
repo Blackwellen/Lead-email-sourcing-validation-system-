@@ -241,7 +241,10 @@ async def _idle_in_tx() -> int:
     try:
         async with eng.connect() as conn:
             return int((await conn.execute(text(
-                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state = 'idle in transaction' AND pid <> pg_backend_pid()"))).scalar_one())
+                # a stream between two statements of its (short) snapshot transaction is fine; one HELD open across
+                # snapshot intervals is the bug this guards against
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state = 'idle in transaction' "
+                "AND pid <> pg_backend_pid() AND now() - xact_start > interval '400 milliseconds'"))).scalar_one())
     finally:
         await eng.dispose()
 

@@ -12,6 +12,7 @@ PY
 ARG WITH_BROWSER=0
 RUN if [ "$WITH_BROWSER" = "1" ]; then pip install playwright && playwright install --with-deps chromium; fi
 RUN pip install osmium || echo "osmium wheel unavailable: OSM pbf parsing disabled (XML/GeoJSON still work)"
+RUN pip install pyarrow || echo "pyarrow unavailable: offline Common Crawl columnar index disabled (CDX API still works)"
 COPY . .
 RUN useradd -r -u 10001 lead && mkdir -p /data && chown -R lead /data /app
 USER lead

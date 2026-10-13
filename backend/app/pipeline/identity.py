@@ -611,6 +611,7 @@ async def resolve_organisation_domain(
     robots: RobotsCache | None = None,
     max_candidates: int = 5,
     stop_when_confirmed: bool = True,
+    release_during_io: bool = False,
     now: datetime | None = None,
 ) -> ResolutionResult:
     """Lightly crawl candidate sites, score the evidence and upsert ``OrganisationDomain`` rows.
@@ -655,6 +656,9 @@ async def resolve_organisation_domain(
             row = await _upsert_domain(session, org_id, cand, match, website_url=None, parked=False, now=now, crawled=False)
             out.rows.append((row, match))
             continue
+        if release_during_io and session.in_transaction():
+            # never hold a transaction (and a pool connection's snapshot) open across a multi-second crawl
+            await session.commit()
         crawl = await crawl_domain(fetcher, cand.domain, options=opts, limiter=limiter, robots=robots)
         out.crawls[cand.domain] = crawl
         site = crawl.site_evidence(source_kind=cand.source)

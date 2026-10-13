@@ -433,10 +433,13 @@ def explain(e: EmailAddress, org: Organisation, contact: Contact | None, sources
         failing = [v for v in latest if v.result in ("fail", "invalid", "rejected", "error")]
         if failing:
             out.append("Checks that did not pass: " + ", ".join(f"{v.check_type} ({v.reason_code or v.result})" for v in failing[:5]) + ".")
-    if stale:
-        out.append("The last validation is older than the freshness window, so the status may have changed; re-validate before use.")
+    if latest and any(v.reason_code == "resolver_unreliable" for v in latest):
+        out.append("Mail routing could not be determined: the DNS resolver this server uses did not return MX records for "
+                   "known mail domains, so the A-record fallback cannot be trusted. Fix DNS (System page) and re-validate.")
     if e.last_validated_at is None:
-        out.append("This address has never been validated.")
+        out.append("This address has never been validated (for example, it was found after the run reached its target).")
+    elif stale:
+        out.append("The last validation is older than the freshness window, so the status may have changed; re-validate before use.")
     if delivery_counts.get("hard_bounce"):
         out.append(f"It hard-bounced {delivery_counts['hard_bounce']} time(s) in imported delivery feedback.")
     if delivery_counts.get("complaint"):

@@ -1,0 +1,41 @@
+Metadata-Version: 2.4
+Name: lead-intel
+Version: 0.1.0
+Requires-Python: >=3.12
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic>=2
+Requires-Dist: pydantic-settings
+Requires-Dist: sqlalchemy[asyncio]>=2
+Requires-Dist: asyncpg
+Requires-Dist: alembic
+Requires-Dist: httpx
+Requires-Dist: selectolax
+Requires-Dist: lxml
+Requires-Dist: dnspython
+Requires-Dist: email-validator
+Requires-Dist: tldextract
+Requires-Dist: pypdf
+Requires-Dist: prometheus-client
+Requires-Dist: argon2-cffi
+Requires-Dist: pyotp
+Requires-Dist: openpyxl
+Requires-Dist: python-multipart
+Requires-Dist: psutil
+Requires-Dist: itsdangerous
+Requires-Dist: aiosmtplib
+Requires-Dist: pycountry
+Requires-Dist: cryptography
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: aiosmtpd; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Provides-Extra: browser
+Requires-Dist: playwright; extra == "browser"
+Provides-Extra: osm
+Requires-Dist: osmium; extra == "osm"
+Provides-Extra: commoncrawl
+Requires-Dist: pyarrow; extra == "commoncrawl"

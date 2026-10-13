@@ -341,6 +341,7 @@ async def resolve_domain(ctx: JobContext) -> None:
             return
         max_c = int(rp.plan.stage("official_domain_discovery").params.get("max_candidates", 5)) if (not rp.legacy and rp.plan.stage("official_domain_discovery")) else 5
         res = await resolve_organisation_domain(ctx.session, fetcher, org_id, cands, crawl_options=_crawl_options(cfg, org, rp), limiter=limiter,
+                                                release_during_io=True,
                                                 robots=robots, max_candidates=max_c)
         m.add(http_requests=sum(c.stats.pages_attempted for c in res.crawls.values()))
         best = res.best
@@ -382,6 +383,7 @@ async def crawl(ctx: JobContext) -> None:
             return
         net = await runtime.get_net(cfg.performance.per_host_concurrency)
         fetcher, limiter, robots = net
+        await ctx.session.commit()  # don't hold a transaction open across the crawl
         result = await crawl_domain(fetcher, dom_row.website_url or dom_row.domain, options=_crawl_options(cfg, org, rp), limiter=limiter, robots=robots)
         m.add(http_requests=result.stats.pages_attempted)
         if result.health and getattr(result.health, "error_code", None) in ("dns_failure", "tls_failure") and not result.observations:
@@ -398,7 +400,7 @@ async def verify(ctx: JobContext) -> None:
     email_id = payload["email_id"]
     run_id = ctx.job.run_id
     mode, options = payload.get("mode"), None
-    if run_id is not None:
+    if run_id is not None and not payload.get("no_yield"):
         cfg, _ = await _cfg(ctx)
         mode = mode or cfg.verification.mode
         if mode == "custom" and cfg.verification.custom:
@@ -407,7 +409,7 @@ async def verify(ctx: JobContext) -> None:
     if payload.get("options"):
         options = VerifyOptions(**payload["options"])
     out = await verify_email(ctx.session, email_id, mode=mode, options=options, settings=get_settings(), resolver=VERIFY_RESOLVER)
-    if run_id is not None:
+    if run_id is not None and not payload.get("no_yield"):
         counted = await runs.record_yield(ctx.session, run_id, email_id)
         org_id = (await ctx.session.execute(text("SELECT organisation_id FROM email_addresses WHERE id=:e"), {"e": email_id})).scalar_one_or_none()
         if counted:

@@ -256,7 +256,35 @@ async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
         ),
         {"r": run_id, "k": key, "e": email_id, "o": row["organisation_id"]},
     )
-    return (res.rowcount or 0) > 0
+    counted = (res.rowcount or 0) > 0
+    if counted and run.target_definition not in ("distinct_companies", "companies_with_domains"):
+        # stop at the target from inside the counting transaction: waiting for the next supervisor tick let a single crawl's
+        # burst of verify jobs overshoot the target several times over. In-flight jobs still finish (nothing is discarded).
+        n = (await s.execute(text("SELECT count(*) FROM run_yield WHERE run_id=:r"), {"r": run_id})).scalar_one()
+        if n >= run.target_count:
+            flipped = await s.execute(
+                text("UPDATE sourcing_runs SET status='stopping', stop_reason='target_reached' WHERE id=:r AND status='running'"), {"r": run_id})
+            if flipped.rowcount:
+                await cancel_queued(s, run_id)
+    return counted
+
+
+async def verify_leftovers(s: AsyncSession, run_id: int, limit: int = 100_000) -> int:
+    """After a run completes, addresses it discovered but never verified (found after the target was reached, or whose verify
+    jobs were cancelled by the stop) get a FAST verification under the hidden ``system-verification`` run. They are kept, never
+    counted toward the finished run, and exports then show real evidence instead of 'unchecked'."""
+    from .system_runs import ensure_system_run
+
+    ids = (await s.execute(text(
+        """SELECT DISTINCT e.id FROM contact_evidence ce JOIN email_addresses e ON e.id = ce.email_id
+           WHERE ce.run_id = :r AND e.last_validated_at IS NULL LIMIT :n"""), {"r": run_id, "n": limit})).scalars().all()
+    if not ids:
+        return 0
+    sys_run = await ensure_system_run(s, "system-verification")
+    for eid in ids:
+        await jq.enqueue(s, run_id=sys_run, stage="verify", dedupe_key=f"leftover:{eid}",
+                         payload={"email_id": eid, "mode": "fast", "no_yield": True, "after_run": run_id}, priority=80)
+    return len(ids)
 
 
 async def compute_counters(s: AsyncSession, run_id: int) -> dict[str, Any]:
@@ -323,12 +351,14 @@ async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
             run.status, run.finished_at = "completed", now
             run.stop_reason = "sources_exhausted" if c["progress"] < run.target_count else "target_reached"
             changed = "completed"
+            await verify_leftovers(s, run_id)
     if run.status == "stopping" and c["q_leased"] == 0:
         # children enqueued by jobs that were still in flight when the run stopped are cancelled too (jq.enqueue already refuses
         # new work for a stopping run; this sweeps anything that raced the status change)
         await cancel_queued(s, run_id)
         run.status, run.finished_at = "completed", now
         changed = "completed"
+        await verify_leftovers(s, run_id)
     return changed
 
 

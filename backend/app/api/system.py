@@ -66,6 +66,7 @@ class SystemHealth(BaseModel):
     dns_sample_size: int
     smtp: SmtpBrief
     browser_workers: dict[str, Any]
+    dns_resolver: dict[str, Any] = {}
     resources: ResourceInfo
     maintenance: dict[str, Any]
     paused_by_pause_all: list[int]
@@ -131,6 +132,12 @@ async def system_health(request: Request, session: AsyncSession = Depends(get_se
     paused = (await get_setting(session, "pause_all", None) or {}).get("run_ids", [])
     by_state = {(r[0], r[1]): r[2] for r in q}
     pw = importlib.util.find_spec("playwright") is not None
+    from ..verify.dns_health import check_resolver
+
+    rh = await check_resolver()  # cached 10 min; 3 MX queries at most
+    dns_resolver = {**rh.as_dict(), "note": None if rh.ok else (
+        "The DNS resolver did not return MX records for well-known mail domains. Mail-routing checks report 'unknown' "
+        "instead of trusting the A-record fallback until DNS is fixed (configure a working resolver in /etc/resolv.conf).")}
     return SystemHealth(
         api={"status": "ok", "version": request.app.version, "env": settings.env}, database={"status": "ok", "latency_ms": db_ms},
         workers=workers, workers_healthy=sum(1 for w in workers if w.healthy), queue=[QueueRow(stage=r[0], state=r[1], count=r[2]) for r in q],
@@ -138,6 +145,7 @@ async def system_health(request: Request, session: AsyncSession = Depends(get_se
         retrying_jobs=sum(n for a, n in attempts if a > 1), jobs_by_attempts={str(a): n for a, n in attempts},
         dns_timeout_rate=round(int(d[0]) / sample, 4) if sample else None, dns_sample_size=sample,
         smtp=SmtpBrief(diagnostics_enabled=settings.smtp_diagnostics_enabled, helo_host=settings.smtp_helo_host or None, egress_port_25=egress.get("status", "unknown"), egress_checked_at=egress.get("checked_at")),
+        dns_resolver=dns_resolver,
         browser_workers={"playwright_installed": pw, "available": pw, "note": None if pw else "Playwright is not installed; JavaScript-rendered pages cannot be crawled."},
         resources=ResourceInfo(cpu_percent=psutil.cpu_percent(interval=None), cpu_count=psutil.cpu_count(), ram_total_mb=round(vm.total / 1e6), ram_available_mb=round(vm.available / 1e6),
                                ram_percent=vm.percent, disk_total_gb=round(du.total / 1e9, 1), disk_free_gb=round(du.free / 1e9, 1), disk_percent=du.percent),
