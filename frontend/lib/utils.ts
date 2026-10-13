@@ -17,7 +17,6 @@ export function sleep(ms: number) {
  */
 export function safeNext(next: string | null | undefined, fallback = '/dashboard') {
   if (!next || typeof next !== 'string' || next.length > 2048) return fallback;
-  // eslint-disable-next-line no-control-regex
   if (!next.startsWith('/') || next.startsWith('//') || /[\\\u0000-\u0020\u007f-\u009f]/.test(next)) return fallback;
   const origin = typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null' ? window.location.origin : 'http://localhost';
   let url: URL;
