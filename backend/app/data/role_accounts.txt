@@ -1,0 +1,18 @@
+# role_type<TAB>comma separated local parts. Operator-editable role dictionary (matching is on the local part,
+# lowercased, with '.', '_' and '-' variants normalised; plural/singular handled by listing both).
+generic	info,information,contact,contactus,contact-us,hello,hi,enquiries,enquiry,inquiries,inquiry,mail,email,office,general,team,help
+sales	sales,sale,business,newbusiness,orders,order,quotes,quotations
+support	support,customerservice,customer-service,customercare,service,services,helpdesk,care,feedback,complaints
+admin	admin,administrator,administration,root,hostmaster,sysadmin,it,webadmin
+bookings	bookings,booking,reservations,reservation,reserve,appointments,appointment,tickets
+accounts	accounts,accounting,billing,finance,invoices,invoice,payments,payroll,credit,purchasing,procurement
+suppliers	suppliers,supplier,vendors,vendor,trade,buying,buyer
+partnerships	partnerships,partnership,partners,partner,affiliates,affiliate,collaborations
+operations	operations,ops,logistics,dispatch,fleet,production,facilities
+management	management,manager,director,directors,executive,ceo,md,owner,boss
+reception	reception,receptionist,frontdesk,front-desk,frontoffice,secretary,pa
+hr	careers,career,jobs,job,recruitment,recruiting,recruit,hr,humanresources,people,talent,vacancies,apply
+marketing	marketing,press,media,pr,news,newsletter,events,advertising,advertise,promotions
+legal	legal,compliance,privacy,dpo,gdpr,data-protection,dataprotection,security,abuse
+noreply	noreply,no-reply,no_reply,donotreply,do-not-reply,do_not_reply,mailer-daemon,mailerdaemon,bounce,bounces,notifications,notification,alerts,daemon
+postmaster	postmaster,webmaster,hostmaster,www,ftp,usenet,uucp,news
