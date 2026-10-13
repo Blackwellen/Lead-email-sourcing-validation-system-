@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import Preset, User
 from ..security import ApiError, audit, require_role
+from ..sources.secret_config import is_secret_key
 from .common import Ok
 
 router = APIRouter(prefix="/api/presets", tags=["presets"], dependencies=[Depends(require_role("viewer"))])
@@ -43,7 +44,17 @@ class PresetUpdateIn(BaseModel):
 
 
 def _out(p: Preset) -> PresetOut:
-    return PresetOut(id=p.id, kind=p.kind, name=p.name, config=p.config or {}, created_by=p.created_by, created_at=p.created_at, updated_at=p.updated_at)
+    return PresetOut(id=p.id, kind=p.kind, name=p.name, config=_strip_secrets(p.config or {}), created_by=p.created_by, created_at=p.created_at, updated_at=p.updated_at)
+
+
+def _strip_secrets(obj: Any) -> Any:
+    """Presets are readable by every role, so credentials never belong in them (they live in source settings,
+    sealed). Secret-looking keys are dropped at any depth before storing."""
+    if isinstance(obj, dict):
+        return {k: _strip_secrets(v) for k, v in obj.items() if not is_secret_key(k)}
+    if isinstance(obj, list):
+        return [_strip_secrets(v) for v in obj]
+    return obj
 
 
 def _check_size(cfg: dict[str, Any]) -> None:
@@ -62,7 +73,7 @@ async def list_presets(kind: Kind | None = None, limit: int = Query(200, ge=1, l
 @router.post("", response_model=PresetOut, status_code=201)
 async def create_preset(body: PresetIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> PresetOut:
     _check_size(body.config)
-    p = Preset(kind=body.kind, name=body.name.strip(), config=body.config, created_by=user.id)
+    p = Preset(kind=body.kind, name=body.name.strip(), config=_strip_secrets(body.config), created_by=user.id)
     session.add(p)
     try:
         await session.flush()
@@ -97,7 +108,7 @@ async def update_preset(preset_id: int, body: PresetUpdateIn, user: User = Depen
     p = await _get_owned(session, preset_id, user)
     if body.config is not None:
         _check_size(body.config)
-        p.config = body.config
+        p.config = _strip_secrets(body.config)
     if body.name:
         p.name = body.name.strip()
     try:

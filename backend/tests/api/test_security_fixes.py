@@ -393,3 +393,13 @@ def test_development_generates_and_persists_a_secret_key(tmp_path):
     assert s2.secret_key == s1.secret_key  # stable across restarts
     t = ensure_secret_key(Settings(env="test", secret_key="change-me-in-production-please-use-32+chars"))
     assert t.secret_key.startswith("change-me")  # tests keep their deterministic key
+
+
+async def test_presets_never_store_or_return_source_secrets(operator_client, viewer_client):
+    cfg = {"name": "p", "sources": ["brave_search"], "source_params": {"brave_search": {"api_key": "sk-live-SECRET", "max_requests": 5}}}
+    r = await operator_client.post("/api/presets", json={"kind": "run", "name": "with secret", "config": cfg})
+    assert r.status_code in (200, 201), r.text
+    assert "SECRET" not in r.text
+    r = await viewer_client.get("/api/presets")
+    assert r.status_code == 200 and "sk-live" not in r.text
+    assert r.json()[0]["config"]["source_params"]["brave_search"] == {"max_requests": 5}
