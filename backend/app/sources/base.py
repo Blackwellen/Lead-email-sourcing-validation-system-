@@ -272,6 +272,18 @@ def list_adapters() -> list[SourceAdapter]:
     return sorted(inst, key=lambda a: (a.info.default_priority, a.info.adapter_id))
 
 
+_prio_cache: tuple[int, dict[str, int]] | None = None
+
+
+def runnable_priority_map() -> dict[str, int]:
+    """adapter_id -> default priority for non-info-only adapters (cached; used by persist for merge ranking)."""
+    global _prio_cache
+    ensure_loaded()
+    if _prio_cache is None or _prio_cache[0] != len(_REGISTRY):
+        _prio_cache = (len(_REGISTRY), {a: c.info.default_priority for a, c in _REGISTRY.items() if not c.info.info_only})
+    return _prio_cache[1]
+
+
 def adapter_infos() -> list[AdapterInfo]:
     return [a.info for a in list_adapters()]
 

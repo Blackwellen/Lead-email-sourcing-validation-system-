@@ -29,7 +29,7 @@ PATTERNS: dict[str, Callable[[str, str], str]] = {
 # Rough prior order of prevalence in business mail (used only when no evidence exists).
 DEFAULT_PATTERN_ORDER = ("first.last", "first", "flast", "firstlast", "f.last", "firstl", "first_last", "first-last", "last", "last.first", "lastf")
 DEFAULT_NAMED_LIMIT = 3
-HARD_NAMED_LIMIT = 8
+HARD_NAMED_LIMIT = 15
 HARD_ROLE_LIMIT = 10
 
 _SPECIAL = str.maketrans({"ß": "ss", "ø": "o", "Ø": "O", "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "đ": "d", "Đ": "D", "ł": "l", "Ł": "L", "þ": "th", "ð": "d", "ı": "i"})

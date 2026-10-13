@@ -50,7 +50,7 @@ class RobotsRules:
             for a in g.agents:
                 if a == "*":
                     continue
-                if a in agent or agent in a and a == agent:
+                if a in agent:
                     if len(a) > best_len:
                         best_len, matched = len(a), [g]
                     elif len(a) == best_len and g not in matched:

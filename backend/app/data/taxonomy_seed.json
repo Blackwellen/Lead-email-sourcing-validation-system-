@@ -1,0 +1,3022 @@
+{
+ "version": 1,
+ "description": "Seed taxonomy. UK SIC 2007 codes are 5-digit; review before relying on SIC alone.",
+ "categories": [
+  {
+   "slug": "property",
+   "name": "Property",
+   "level": "category",
+   "keywords": [
+    "property",
+    "real estate",
+    "lettings",
+    "housing"
+   ],
+   "synonyms": [],
+   "excluded_keywords": [],
+   "sic_codes": [],
+   "osm_tags": [],
+   "default_sources": [],
+   "children": [
+    {
+     "slug": "property.sales-and-lettings-agents",
+     "name": "Sales and lettings agents",
+     "level": "subcategory",
+     "keywords": [
+      "estate agent",
+      "letting agent",
+      "lettings",
+      "property sales"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "68310"
+     ],
+     "osm_tags": [
+      "office=estate_agent",
+      "shop=estate_agent"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.sales-and-lettings-agents.estate-agencies",
+       "name": "Estate agencies",
+       "level": "specialism",
+       "keywords": [
+        "estate agents",
+        "estate agency",
+        "property sales",
+        "chartered surveyors and estate agents"
+       ],
+       "synonyms": [
+        "real estate agents",
+        "house sales",
+        "residential sales",
+        "property agents"
+       ],
+       "excluded_keywords": [
+        "estate agent software",
+        "estate planning"
+       ],
+       "sic_codes": [
+        "68310"
+       ],
+       "osm_tags": [
+        "office=estate_agent",
+        "shop=estate_agent"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.sales-and-lettings-agents.letting-agencies",
+       "name": "Letting agencies",
+       "level": "specialism",
+       "keywords": [
+        "letting agents",
+        "lettings agency",
+        "property lettings",
+        "rental agents",
+        "property rentals"
+       ],
+       "synonyms": [
+        "lettings",
+        "rental properties",
+        "tenant find",
+        "let only",
+        "fully managed lettings"
+       ],
+       "excluded_keywords": [
+        "letting go",
+        "let's go"
+       ],
+       "sic_codes": [
+        "68310"
+       ],
+       "osm_tags": [
+        "office=estate_agent"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.sales-and-lettings-agents.commercial-property-agents",
+       "name": "Commercial property agents",
+       "level": "specialism",
+       "keywords": [
+        "commercial property",
+        "commercial agents",
+        "commercial estate agents",
+        "business premises"
+       ],
+       "synonyms": [
+        "commercial real estate",
+        "office lettings",
+        "industrial property agents"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68310"
+       ],
+       "osm_tags": [
+        "office=estate_agent"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.sales-and-lettings-agents.auction-houses-property",
+       "name": "Auction houses (property)",
+       "level": "specialism",
+       "keywords": [
+        "property auctioneers",
+        "property auction"
+       ],
+       "synonyms": [
+        "land auctions"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68310"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "property.property-and-block-management",
+     "name": "Property and block management",
+     "level": "subcategory",
+     "keywords": [
+      "property management",
+      "block management",
+      "managing agents"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "68320"
+     ],
+     "osm_tags": [
+      "office=property_management"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.property-and-block-management.block-managers",
+       "name": "Block managers",
+       "level": "specialism",
+       "keywords": [
+        "block management",
+        "block managers",
+        "residential block management",
+        "freehold management"
+       ],
+       "synonyms": [
+        "leasehold management",
+        "service charge management",
+        "managing agent residential blocks",
+        "estate management"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68320"
+       ],
+       "osm_tags": [
+        "office=property_management"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-and-block-management.property-managers",
+       "name": "Property managers",
+       "level": "specialism",
+       "keywords": [
+        "property management",
+        "property managers",
+        "managing agents",
+        "lettings management"
+       ],
+       "synonyms": [
+        "property management company",
+        "asset management property",
+        "estate management"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68320"
+       ],
+       "osm_tags": [
+        "office=property_management"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-and-block-management.facilities-managers",
+       "name": "Facilities managers",
+       "level": "specialism",
+       "keywords": [
+        "facilities management",
+        "facilities managers",
+        "integrated facilities management",
+        "soft services",
+        "hard services"
+       ],
+       "synonyms": [
+        "fm services",
+        "building services management",
+        "workplace management",
+        "ifm"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "81100"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-and-block-management.estate-and-service-charge-administrators",
+       "name": "Estate and service-charge administrators",
+       "level": "specialism",
+       "keywords": [
+        "service charge",
+        "residents management company",
+        "rtm company"
+       ],
+       "synonyms": [
+        "right to manage"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68320"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "property.short-stay-accommodation-operators",
+     "name": "Short-stay accommodation operators",
+     "level": "subcategory",
+     "keywords": [
+      "serviced apartments",
+      "short stay",
+      "holiday lets",
+      "short let"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "55209",
+      "55900",
+      "68209"
+     ],
+     "osm_tags": [
+      "tourism=apartment",
+      "tourism=guest_house"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.short-stay-accommodation-operators.serviced-apartment-operators",
+       "name": "Serviced apartment operators",
+       "level": "specialism",
+       "keywords": [
+        "serviced apartments",
+        "corporate housing",
+        "aparthotel"
+       ],
+       "synonyms": [
+        "short stay apartments",
+        "corporate lets"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "55209",
+        "55900"
+       ],
+       "osm_tags": [
+        "tourism=apartment"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.short-stay-accommodation-operators.holiday-let-managers",
+       "name": "Holiday let managers",
+       "level": "specialism",
+       "keywords": [
+        "holiday lets",
+        "holiday cottages",
+        "holiday home management",
+        "airbnb management"
+       ],
+       "synonyms": [
+        "vacation rentals",
+        "short term lets",
+        "holiday rental management"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "55209",
+        "68209",
+        "68320"
+       ],
+       "osm_tags": [
+        "tourism=chalet"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "property.landlords-and-property-owners-registered-businesses",
+     "name": "Landlords and property owners (registered businesses)",
+     "level": "subcategory",
+     "keywords": [
+      "property investments",
+      "property holdings",
+      "property company",
+      "lettings portfolio"
+     ],
+     "synonyms": [
+      "buy to let company",
+      "property investment company",
+      "landlord company",
+      "housing association"
+     ],
+     "excluded_keywords": [
+      "property agent"
+     ],
+     "sic_codes": [
+      "68100",
+      "68201",
+      "68209"
+     ],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk"
+     ],
+     "children": []
+    },
+    {
+     "slug": "property.surveyors-and-valuers",
+     "name": "Surveyors and valuers",
+     "level": "subcategory",
+     "keywords": [
+      "chartered surveyors",
+      "building surveyors",
+      "quantity surveyors",
+      "valuers",
+      "party wall surveyors"
+     ],
+     "synonyms": [
+      "rics surveyors",
+      "property valuers",
+      "building surveying",
+      "home surveys"
+     ],
+     "excluded_keywords": [
+      "surveyor software"
+     ],
+     "sic_codes": [
+      "71129",
+      "74909"
+     ],
+     "osm_tags": [
+      "office=surveyor"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.surveyors-and-valuers.building-surveyors",
+       "name": "Building surveyors",
+       "level": "specialism",
+       "keywords": [
+        "building surveyors",
+        "building surveying",
+        "home buyer reports",
+        "structural surveys"
+       ],
+       "synonyms": [],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "71129",
+        "74909"
+       ],
+       "osm_tags": [
+        "office=surveyor"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.surveyors-and-valuers.quantity-surveyors",
+       "name": "Quantity surveyors",
+       "level": "specialism",
+       "keywords": [
+        "quantity surveyors",
+        "cost consultants"
+       ],
+       "synonyms": [
+        "qs",
+        "cost management"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "71129",
+        "74909"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.surveyors-and-valuers.valuers",
+       "name": "Valuers",
+       "level": "specialism",
+       "keywords": [
+        "property valuers",
+        "valuation services",
+        "red book valuations"
+       ],
+       "synonyms": [
+        "valuations"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68310",
+        "74909"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "property.building-trades-and-maintenance",
+     "name": "Building trades and maintenance",
+     "level": "subcategory",
+     "keywords": [
+      "building maintenance",
+      "property maintenance",
+      "repairs"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.building-trades-and-maintenance.electricians",
+       "name": "Electricians",
+       "level": "specialism",
+       "keywords": [
+        "electricians",
+        "electrical contractors",
+        "electrical installation",
+        "electrical services",
+        "pat testing"
+       ],
+       "synonyms": [
+        "electrician",
+        "sparky",
+        "domestic electricians",
+        "eicr",
+        "rewiring"
+       ],
+       "excluded_keywords": [
+        "electronics retail",
+        "electrical wholesale",
+        "electrical goods"
+       ],
+       "sic_codes": [
+        "43210"
+       ],
+       "osm_tags": [
+        "craft=electrician"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.plumbers",
+       "name": "Plumbers",
+       "level": "specialism",
+       "keywords": [
+        "plumbers",
+        "plumbing",
+        "heating engineers",
+        "plumbing and heating",
+        "emergency plumber"
+       ],
+       "synonyms": [
+        "plumber",
+        "heating and plumbing",
+        "bathroom fitters",
+        "boiler repair"
+       ],
+       "excluded_keywords": [
+        "plumbers merchant",
+        "plumbing supplies",
+        "plumbing wholesale"
+       ],
+       "sic_codes": [
+        "43220"
+       ],
+       "osm_tags": [
+        "craft=plumber",
+        "craft=hvac"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.gas-engineers",
+       "name": "Gas engineers",
+       "level": "specialism",
+       "keywords": [
+        "gas engineers",
+        "gas safe",
+        "boiler installation",
+        "gas servicing",
+        "landlord gas safety"
+       ],
+       "synonyms": [
+        "gas fitter",
+        "boiler engineers",
+        "cp12",
+        "gas safety certificate"
+       ],
+       "excluded_keywords": [
+        "gas supplier",
+        "gas station"
+       ],
+       "sic_codes": [
+        "43220"
+       ],
+       "osm_tags": [
+        "craft=plumber",
+        "craft=hvac"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.heating-and-air-conditioning-engineers",
+       "name": "Heating and air-conditioning engineers",
+       "level": "specialism",
+       "keywords": [
+        "air conditioning",
+        "hvac",
+        "heating engineers",
+        "refrigeration"
+       ],
+       "synonyms": [
+        "air con installation",
+        "heat pump installers",
+        "ventilation"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43220"
+       ],
+       "osm_tags": [
+        "craft=hvac"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.decorators-and-painters",
+       "name": "Decorators and painters",
+       "level": "specialism",
+       "keywords": [
+        "decorators",
+        "painters and decorators",
+        "painting and decorating",
+        "wallpapering"
+       ],
+       "synonyms": [
+        "decorating services",
+        "painter"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43341",
+        "43330",
+        "43390"
+       ],
+       "osm_tags": [
+        "craft=painter"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.roofers",
+       "name": "Roofers",
+       "level": "specialism",
+       "keywords": [
+        "roofers",
+        "roofing contractors",
+        "roofing",
+        "flat roofs",
+        "roof repairs"
+       ],
+       "synonyms": [
+        "roofing company",
+        "slating and tiling",
+        "guttering"
+       ],
+       "excluded_keywords": [
+        "roofing supplies",
+        "roof rack"
+       ],
+       "sic_codes": [
+        "43910"
+       ],
+       "osm_tags": [
+        "craft=roofer"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.builders-and-maintenance-contractors",
+       "name": "Builders and maintenance contractors",
+       "level": "specialism",
+       "keywords": [
+        "builders",
+        "building contractors",
+        "property maintenance",
+        "general builders",
+        "maintenance contractors",
+        "refurbishment"
+       ],
+       "synonyms": [
+        "building maintenance",
+        "repairs and maintenance",
+        "handyman",
+        "construction company",
+        "renovation"
+       ],
+       "excluded_keywords": [
+        "builders merchant",
+        "building supplies"
+       ],
+       "sic_codes": [
+        "41202",
+        "43390",
+        "43999",
+        "81100"
+       ],
+       "osm_tags": [
+        "craft=builder",
+        "craft=handyman",
+        "craft=carpenter"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.joiners-and-carpenters",
+       "name": "Joiners and carpenters",
+       "level": "specialism",
+       "keywords": [
+        "joiners",
+        "carpenters",
+        "joinery",
+        "fitted kitchens"
+       ],
+       "synonyms": [
+        "carpentry",
+        "bespoke joinery"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43320"
+       ],
+       "osm_tags": [
+        "craft=carpenter",
+        "craft=joiner"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.glaziers-and-window-installers",
+       "name": "Glaziers and window installers",
+       "level": "specialism",
+       "keywords": [
+        "glaziers",
+        "window installation",
+        "double glazing",
+        "upvc windows"
+       ],
+       "synonyms": [
+        "glazing contractors",
+        "window fitters"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43342"
+       ],
+       "osm_tags": [
+        "craft=glaziery"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.plasterers",
+       "name": "Plasterers",
+       "level": "specialism",
+       "keywords": [
+        "plasterers",
+        "plastering",
+        "rendering"
+       ],
+       "synonyms": [
+        "skimming",
+        "dry lining"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43310"
+       ],
+       "osm_tags": [
+        "craft=plasterer"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.flooring-contractors",
+       "name": "Flooring contractors",
+       "level": "specialism",
+       "keywords": [
+        "flooring contractors",
+        "floor fitters",
+        "carpet fitters",
+        "floor sanding"
+       ],
+       "synonyms": [],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43330"
+       ],
+       "osm_tags": [
+        "craft=floorer"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.domestic-electricians",
+       "name": "Domestic electricians",
+       "level": "specialism",
+       "keywords": [
+        "domestic electrician",
+        "rewire",
+        "consumer unit",
+        "eicr landlords"
+       ],
+       "synonyms": [],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43210"
+       ],
+       "osm_tags": [
+        "craft=electrician"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.commercial-electrical-contractors",
+       "name": "Commercial electrical contractors",
+       "level": "specialism",
+       "keywords": [
+        "commercial electricians",
+        "electrical contractors",
+        "industrial electrical",
+        "emergency lighting"
+       ],
+       "synonyms": [],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43210"
+       ],
+       "osm_tags": [
+        "craft=electrician"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.building-trades-and-maintenance.ev-charger-installers",
+       "name": "EV charger installers",
+       "level": "specialism",
+       "keywords": [
+        "ev charger installation",
+        "electric vehicle charging",
+        "ev charging points"
+       ],
+       "synonyms": [
+        "car charger installers"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43210"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "property.property-services",
+     "name": "Property services",
+     "level": "subcategory",
+     "keywords": [
+      "property services",
+      "building services"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "property.property-services.cleaners-domestic-and-end-of-tenancy",
+       "name": "Cleaners (domestic and end of tenancy)",
+       "level": "specialism",
+       "keywords": [
+        "cleaners",
+        "cleaning services",
+        "end of tenancy cleaning",
+        "domestic cleaning",
+        "carpet cleaning"
+       ],
+       "synonyms": [
+        "cleaning company",
+        "house cleaners",
+        "oven cleaning",
+        "window cleaners"
+       ],
+       "excluded_keywords": [
+        "dry cleaning",
+        "cleaning products",
+        "cleaning supplies"
+       ],
+       "sic_codes": [
+        "81210",
+        "81221",
+        "81222",
+        "81299"
+       ],
+       "osm_tags": [
+        "craft=cleaning",
+        "shop=dry_cleaning"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.locksmiths",
+       "name": "Locksmiths",
+       "level": "specialism",
+       "keywords": [
+        "locksmiths",
+        "locksmith",
+        "lock repairs",
+        "emergency locksmith",
+        "key cutting"
+       ],
+       "synonyms": [
+        "24 hour locksmith",
+        "lock fitters",
+        "security locks"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "80200",
+        "43999"
+       ],
+       "osm_tags": [
+        "craft=locksmith",
+        "shop=locksmith"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.pest-control",
+       "name": "Pest control",
+       "level": "specialism",
+       "keywords": [
+        "pest control",
+        "pest controllers",
+        "rodent control",
+        "wasp nest removal",
+        "fumigation"
+       ],
+       "synonyms": [
+        "exterminators",
+        "bird proofing",
+        "bed bug treatment"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "81291"
+       ],
+       "osm_tags": [
+        "craft=pest_control"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.fire-safety",
+       "name": "Fire safety",
+       "level": "specialism",
+       "keywords": [
+        "fire safety",
+        "fire alarms",
+        "fire risk assessment",
+        "fire extinguishers",
+        "fire protection"
+       ],
+       "synonyms": [
+        "fire alarm installation",
+        "emergency lighting",
+        "fire door inspection"
+       ],
+       "excluded_keywords": [
+        "fire pits",
+        "fireplace",
+        "fire wood"
+       ],
+       "sic_codes": [
+        "43210",
+        "80200",
+        "74909"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.lift-maintenance",
+       "name": "Lift maintenance",
+       "level": "specialism",
+       "keywords": [
+        "lift maintenance",
+        "lift engineers",
+        "lift installation",
+        "passenger lifts",
+        "stairlifts"
+       ],
+       "synonyms": [
+        "elevator maintenance",
+        "lift servicing",
+        "platform lifts"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "43290",
+        "33120"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.security-services",
+       "name": "Security services",
+       "level": "specialism",
+       "keywords": [
+        "security services",
+        "security guards",
+        "cctv installation",
+        "alarm installers",
+        "door supervisors",
+        "key holding"
+       ],
+       "synonyms": [
+        "manned guarding",
+        "intruder alarms",
+        "security company",
+        "access control"
+       ],
+       "excluded_keywords": [
+        "social security",
+        "security software"
+       ],
+       "sic_codes": [
+        "80100",
+        "80200",
+        "80300"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.gardeners-and-landscapers",
+       "name": "Gardeners and landscapers",
+       "level": "specialism",
+       "keywords": [
+        "gardeners",
+        "landscaping",
+        "landscape gardeners",
+        "grounds maintenance",
+        "tree surgeons"
+       ],
+       "synonyms": [
+        "garden maintenance",
+        "lawn care",
+        "garden design",
+        "tree surgery"
+       ],
+       "excluded_keywords": [
+        "garden centre",
+        "garden furniture"
+       ],
+       "sic_codes": [
+        "81300",
+        "01610"
+       ],
+       "osm_tags": [
+        "craft=gardener",
+        "craft=tree_surgeon"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "property.property-services.waste-and-clearance",
+       "name": "Waste and clearance",
+       "level": "specialism",
+       "keywords": [
+        "waste removal",
+        "rubbish clearance",
+        "skip hire",
+        "waste management",
+        "house clearance"
+       ],
+       "synonyms": [
+        "waste collection",
+        "man and van",
+        "commercial waste",
+        "recycling"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "38110",
+        "38120",
+        "38210",
+        "38320",
+        "39000"
+       ],
+       "osm_tags": [
+        "amenity=waste_disposal"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "events",
+   "name": "Events",
+   "level": "category",
+   "keywords": [
+    "events",
+    "event services",
+    "hospitality"
+   ],
+   "synonyms": [],
+   "excluded_keywords": [],
+   "sic_codes": [],
+   "osm_tags": [],
+   "default_sources": [],
+   "children": [
+    {
+     "slug": "events.venues",
+     "name": "Venues",
+     "level": "subcategory",
+     "keywords": [
+      "venues",
+      "venue hire",
+      "function venues"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "68202",
+      "90040",
+      "93290"
+     ],
+     "osm_tags": [
+      "amenity=events_venue",
+      "amenity=community_centre",
+      "amenity=conference_centre"
+     ],
+     "default_sources": [
+      "osm_geofabrik",
+      "companies_house_bulk",
+      "wikidata"
+     ],
+     "children": [
+      {
+       "slug": "events.venues.private-hire-venues",
+       "name": "Private hire venues",
+       "level": "specialism",
+       "keywords": [
+        "private hire",
+        "venue hire",
+        "hire a room",
+        "party venue"
+       ],
+       "synonyms": [
+        "room hire",
+        "function room hire",
+        "party rooms",
+        "private dining"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68209",
+        "56302",
+        "93290"
+       ],
+       "osm_tags": [
+        "amenity=events_venue"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.venues.community-halls",
+       "name": "Community halls",
+       "level": "specialism",
+       "keywords": [
+        "village hall",
+        "community hall",
+        "community centre",
+        "church hall",
+        "parish hall"
+       ],
+       "synonyms": [
+        "hall hire",
+        "scout hut",
+        "memorial hall",
+        "social club"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68209",
+        "94990",
+        "93290"
+       ],
+       "osm_tags": [
+        "amenity=community_centre",
+        "amenity=social_centre"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.venues.function-rooms",
+       "name": "Function rooms",
+       "level": "specialism",
+       "keywords": [
+        "function room",
+        "function suite",
+        "banqueting",
+        "banqueting suite"
+       ],
+       "synonyms": [
+        "reception rooms",
+        "ballroom",
+        "party suite"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "56302",
+        "55100",
+        "68209"
+       ],
+       "osm_tags": [
+        "amenity=events_venue"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.venues.wedding-venues",
+       "name": "Wedding venues",
+       "level": "specialism",
+       "keywords": [
+        "wedding venue",
+        "wedding venues",
+        "weddings",
+        "barn wedding"
+       ],
+       "synonyms": [
+        "country house wedding",
+        "marquee wedding",
+        "civil ceremony venue",
+        "wedding barn"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "55100",
+        "56210",
+        "68209",
+        "93290"
+       ],
+       "osm_tags": [
+        "amenity=events_venue"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.venues.conference-and-exhibition-centres",
+       "name": "Conference and exhibition centres",
+       "level": "specialism",
+       "keywords": [
+        "conference centre",
+        "exhibition centre",
+        "conference venue",
+        "meeting rooms"
+       ],
+       "synonyms": [
+        "convention centre",
+        "business centre",
+        "seminar rooms"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "68202",
+        "82302"
+       ],
+       "osm_tags": [
+        "amenity=conference_centre",
+        "amenity=exhibition_centre"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.venues.theatres-and-arts-venues",
+       "name": "Theatres and arts venues",
+       "level": "specialism",
+       "keywords": [
+        "theatre",
+        "arts centre",
+        "concert hall",
+        "music venue"
+       ],
+       "synonyms": [
+        "performing arts venue",
+        "comedy club",
+        "cinema"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "90040",
+        "90010"
+       ],
+       "osm_tags": [
+        "amenity=theatre",
+        "amenity=arts_centre",
+        "amenity=music_venue"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.hospitality",
+     "name": "Hospitality",
+     "level": "subcategory",
+     "keywords": [
+      "hotels",
+      "pubs",
+      "bars"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "osm_geofabrik",
+      "companies_house_bulk",
+      "wikidata"
+     ],
+     "children": [
+      {
+       "slug": "events.hospitality.hotels",
+       "name": "Hotels",
+       "level": "specialism",
+       "keywords": [
+        "hotel",
+        "hotels",
+        "boutique hotel",
+        "country hotel",
+        "spa hotel"
+       ],
+       "synonyms": [
+        "inn",
+        "lodge",
+        "guest house",
+        "bed and breakfast",
+        "b&b"
+       ],
+       "excluded_keywords": [
+        "hotel booking site",
+        "hotel supplies"
+       ],
+       "sic_codes": [
+        "55100",
+        "55209"
+       ],
+       "osm_tags": [
+        "tourism=hotel",
+        "tourism=guest_house",
+        "tourism=motel"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.hospitality.pubs-and-bars",
+       "name": "Pubs and bars",
+       "level": "specialism",
+       "keywords": [
+        "pub",
+        "pubs",
+        "public house",
+        "bar",
+        "inn",
+        "tavern",
+        "freehouse"
+       ],
+       "synonyms": [
+        "gastropub",
+        "local pub",
+        "country pub",
+        "wine bar",
+        "cocktail bar",
+        "brewpub"
+       ],
+       "excluded_keywords": [
+        "pub quiz",
+        "pub software"
+       ],
+       "sic_codes": [
+        "56302",
+        "56301"
+       ],
+       "osm_tags": [
+        "amenity=pub",
+        "amenity=bar"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.hospitality.restaurants-and-function-dining",
+       "name": "Restaurants and function dining",
+       "level": "specialism",
+       "keywords": [
+        "restaurant",
+        "private dining",
+        "banquet hall"
+       ],
+       "synonyms": [
+        "dining room",
+        "brasserie"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "56101"
+       ],
+       "osm_tags": [
+        "amenity=restaurant"
+       ],
+       "default_sources": [
+        "osm_geofabrik",
+        "companies_house_bulk",
+        "wikidata"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.catering-and-drinks",
+     "name": "Catering and drinks",
+     "level": "subcategory",
+     "keywords": [
+      "catering",
+      "event catering",
+      "mobile bars"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "56210",
+      "56290",
+      "56302"
+     ],
+     "osm_tags": [
+      "craft=caterer"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "events.catering-and-drinks.event-caterers",
+       "name": "Event caterers",
+       "level": "specialism",
+       "keywords": [
+        "event catering",
+        "caterers",
+        "wedding catering",
+        "buffet catering",
+        "outside catering"
+       ],
+       "synonyms": [
+        "party catering",
+        "corporate catering",
+        "canapes",
+        "hog roast",
+        "street food catering"
+       ],
+       "excluded_keywords": [
+        "catering equipment",
+        "catering supplies",
+        "catering college"
+       ],
+       "sic_codes": [
+        "56210",
+        "56290"
+       ],
+       "osm_tags": [
+        "craft=caterer"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.catering-and-drinks.mobile-bars",
+       "name": "Mobile bars",
+       "level": "specialism",
+       "keywords": [
+        "mobile bar",
+        "mobile bars",
+        "pop up bar",
+        "bar hire",
+        "cocktail bar hire"
+       ],
+       "synonyms": [
+        "prosecco van",
+        "horsebox bar",
+        "bar services",
+        "bartenders for hire"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "56302",
+        "56290"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.catering-and-drinks.cake-makers",
+       "name": "Cake makers",
+       "level": "specialism",
+       "keywords": [
+        "wedding cakes",
+        "celebration cakes",
+        "cake makers"
+       ],
+       "synonyms": [
+        "bespoke cakes",
+        "cake design"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "10710",
+        "47240"
+       ],
+       "osm_tags": [
+        "craft=confectionery"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.entertainment",
+     "name": "Entertainment",
+     "level": "subcategory",
+     "keywords": [
+      "entertainment",
+      "entertainers",
+      "live music"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "90010",
+      "90020",
+      "93290"
+     ],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": [
+      {
+       "slug": "events.entertainment.djs",
+       "name": "DJs",
+       "level": "specialism",
+       "keywords": [
+        "wedding dj",
+        "mobile disco",
+        "dj hire",
+        "djs",
+        "party dj"
+       ],
+       "synonyms": [
+        "disco hire",
+        "wedding djs",
+        "event dj",
+        "mobile dj"
+       ],
+       "excluded_keywords": [
+        "dj equipment shop"
+       ],
+       "sic_codes": [
+        "90010",
+        "93290",
+        "90020"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.entertainment.live-bands-and-musicians",
+       "name": "Live bands and musicians",
+       "level": "specialism",
+       "keywords": [
+        "live band",
+        "wedding band",
+        "function band",
+        "musicians for hire",
+        "cover band"
+       ],
+       "synonyms": [
+        "party band",
+        "ceilidh band",
+        "string quartet",
+        "acoustic duo"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "90010",
+        "90020"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.entertainment.entertainers",
+       "name": "Entertainers",
+       "level": "specialism",
+       "keywords": [
+        "entertainers",
+        "magicians",
+        "children's entertainer",
+        "party entertainer",
+        "face painters"
+       ],
+       "synonyms": [
+        "clowns",
+        "kids parties",
+        "bouncy castle",
+        "fun fair"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "90010",
+        "93290",
+        "90020"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.event-media-and-styling",
+     "name": "Event media and styling",
+     "level": "subcategory",
+     "keywords": [
+      "event photography",
+      "videography",
+      "event decor"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "events.event-media-and-styling.photographers",
+       "name": "Photographers",
+       "level": "specialism",
+       "keywords": [
+        "photographer",
+        "photographers",
+        "wedding photographer",
+        "event photographer",
+        "portrait photography"
+       ],
+       "synonyms": [
+        "photography services",
+        "commercial photographer",
+        "photo booth hire",
+        "photobooth"
+       ],
+       "excluded_keywords": [
+        "photography equipment",
+        "camera shop"
+       ],
+       "sic_codes": [
+        "74201",
+        "74202",
+        "74209"
+       ],
+       "osm_tags": [
+        "craft=photographer",
+        "shop=photo",
+        "office=photographer"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-media-and-styling.videographers",
+       "name": "Videographers",
+       "level": "specialism",
+       "keywords": [
+        "videographer",
+        "wedding videographer",
+        "event videographer",
+        "video production",
+        "drone videography"
+       ],
+       "synonyms": [
+        "film makers",
+        "corporate video",
+        "videography services",
+        "wedding films"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "59112",
+        "59111",
+        "74209"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-media-and-styling.florists",
+       "name": "Florists",
+       "level": "specialism",
+       "keywords": [
+        "florist",
+        "florists",
+        "wedding flowers",
+        "event flowers",
+        "flower shop"
+       ],
+       "synonyms": [
+        "floral design",
+        "flower arranging",
+        "bouquets",
+        "funeral flowers"
+       ],
+       "excluded_keywords": [
+        "florist supplies",
+        "artificial flowers wholesale"
+       ],
+       "sic_codes": [
+        "47760",
+        "46220"
+       ],
+       "osm_tags": [
+        "shop=florist"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-media-and-styling.decor-and-styling",
+       "name": "Decor and styling",
+       "level": "specialism",
+       "keywords": [
+        "event styling",
+        "wedding decor",
+        "venue dressing",
+        "balloon decor",
+        "chair covers"
+       ],
+       "synonyms": [
+        "event decor",
+        "backdrops",
+        "table styling",
+        "prop hire",
+        "neon sign hire"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "74100",
+        "74909"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.event-production-and-hire",
+     "name": "Event production and hire",
+     "level": "subcategory",
+     "keywords": [
+      "event production",
+      "equipment hire",
+      "hire"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "events.event-production-and-hire.audio-visual-and-lighting",
+       "name": "Audio-visual and lighting",
+       "level": "specialism",
+       "keywords": [
+        "av hire",
+        "audio visual",
+        "sound and lighting",
+        "lighting hire",
+        "pa hire",
+        "staging"
+       ],
+       "synonyms": [
+        "av production",
+        "stage hire",
+        "event lighting",
+        "led screens",
+        "av technicians"
+       ],
+       "excluded_keywords": [
+        "av retail"
+       ],
+       "sic_codes": [
+        "77291",
+        "77390",
+        "43210",
+        "74909"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-production-and-hire.equipment-hire",
+       "name": "Equipment hire",
+       "level": "specialism",
+       "keywords": [
+        "equipment hire",
+        "party hire",
+        "furniture hire",
+        "chair hire",
+        "table hire",
+        "catering equipment hire"
+       ],
+       "synonyms": [
+        "event hire",
+        "hire company",
+        "tool hire",
+        "plant hire"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "77390",
+        "77299",
+        "77320",
+        "77210"
+       ],
+       "osm_tags": [
+        "shop=rental"
+       ],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-production-and-hire.marquee-hire",
+       "name": "Marquee hire",
+       "level": "specialism",
+       "keywords": [
+        "marquee hire",
+        "marquees",
+        "tipi hire",
+        "tents",
+        "event structures"
+       ],
+       "synonyms": [
+        "marquee company",
+        "stretch tent",
+        "yurt hire",
+        "clear span marquee"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "77390",
+        "77299",
+        "43999"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-production-and-hire.toilet-and-welfare-hire",
+       "name": "Toilet and welfare hire",
+       "level": "specialism",
+       "keywords": [
+        "portable toilets",
+        "luxury toilets",
+        "toilet hire"
+       ],
+       "synonyms": [
+        "event welfare",
+        "loo hire"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "77390",
+        "81299"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.event-transport",
+     "name": "Event transport",
+     "level": "subcategory",
+     "keywords": [
+      "wedding cars",
+      "chauffeur",
+      "coach hire",
+      "minibus hire"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "49320",
+      "49390"
+     ],
+     "osm_tags": [
+      "amenity=taxi"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "osm_geofabrik"
+     ],
+     "children": [
+      {
+       "slug": "events.event-transport.chauffeur-and-wedding-cars",
+       "name": "Chauffeur and wedding cars",
+       "level": "specialism",
+       "keywords": [
+        "wedding cars",
+        "chauffeur",
+        "limousine hire",
+        "classic car hire",
+        "wedding car hire"
+       ],
+       "synonyms": [
+        "chauffeur driven",
+        "stretch limo",
+        "vintage car hire"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "49320"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-transport.coach-and-minibus-hire",
+       "name": "Coach and minibus hire",
+       "level": "specialism",
+       "keywords": [
+        "coach hire",
+        "minibus hire",
+        "party bus",
+        "private hire coaches"
+       ],
+       "synonyms": [
+        "group travel",
+        "shuttle service",
+        "event transport"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "49390",
+        "49320"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "osm_geofabrik"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "events.event-staffing-and-organisers",
+     "name": "Event staffing and organisers",
+     "level": "subcategory",
+     "keywords": [
+      "event staff",
+      "event management",
+      "event organisers"
+     ],
+     "synonyms": [],
+     "excluded_keywords": [],
+     "sic_codes": [],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": [
+      {
+       "slug": "events.event-staffing-and-organisers.event-staffing",
+       "name": "Event staffing",
+       "level": "specialism",
+       "keywords": [
+        "event staff",
+        "event staffing",
+        "hospitality staff",
+        "waiting staff",
+        "bar staff agency"
+       ],
+       "synonyms": [
+        "temporary staff",
+        "promotional staff",
+        "brand ambassadors",
+        "stewards"
+       ],
+       "excluded_keywords": [
+        "recruitment software"
+       ],
+       "sic_codes": [
+        "78200",
+        "78109",
+        "82990"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      },
+      {
+       "slug": "events.event-staffing-and-organisers.event-organisers-and-planners",
+       "name": "Event organisers and planners",
+       "level": "specialism",
+       "keywords": [
+        "event management",
+        "event planners",
+        "wedding planners",
+        "event organisers",
+        "conference organisers"
+       ],
+       "synonyms": [
+        "party planners",
+        "exhibition organisers",
+        "event agency",
+        "event production company",
+        "festival organisers"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "82301",
+        "82302",
+        "82990",
+        "90020"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "business-services",
+   "name": "General business services",
+   "level": "category",
+   "keywords": [
+    "business services",
+    "professional services"
+   ],
+   "synonyms": [],
+   "excluded_keywords": [],
+   "sic_codes": [],
+   "osm_tags": [],
+   "default_sources": [
+    "companies_house_bulk",
+    "csv_import"
+   ],
+   "children": [
+    {
+     "slug": "business-services.marketing-and-advertising-agencies",
+     "name": "Marketing and advertising agencies",
+     "level": "subcategory",
+     "keywords": [
+      "marketing agency",
+      "digital marketing",
+      "advertising agency",
+      "seo agency",
+      "branding agency"
+     ],
+     "synonyms": [
+      "creative agency",
+      "pr agency",
+      "social media agency",
+      "ppc agency",
+      "content marketing"
+     ],
+     "excluded_keywords": [
+      "marketing software"
+     ],
+     "sic_codes": [
+      "73110",
+      "73120",
+      "70210",
+      "73200"
+     ],
+     "osm_tags": [
+      "office=advertising_agency"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": [
+      {
+       "slug": "business-services.marketing-and-advertising-agencies.digital-and-seo-agencies",
+       "name": "Digital and SEO agencies",
+       "level": "specialism",
+       "keywords": [
+        "seo agency",
+        "digital marketing agency",
+        "ppc",
+        "search engine optimisation"
+       ],
+       "synonyms": [],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "73110",
+        "73120"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      },
+      {
+       "slug": "business-services.marketing-and-advertising-agencies.pr-and-communications",
+       "name": "PR and communications",
+       "level": "specialism",
+       "keywords": [
+        "pr agency",
+        "public relations",
+        "communications agency"
+       ],
+       "synonyms": [
+        "media relations"
+       ],
+       "excluded_keywords": [],
+       "sic_codes": [
+        "70210"
+       ],
+       "osm_tags": [],
+       "default_sources": [
+        "companies_house_bulk",
+        "csv_import"
+       ],
+       "children": []
+      }
+     ]
+    },
+    {
+     "slug": "business-services.software-and-web-agencies",
+     "name": "Software and web agencies",
+     "level": "subcategory",
+     "keywords": [
+      "software development",
+      "web design agency",
+      "app development",
+      "web development",
+      "software house"
+     ],
+     "synonyms": [
+      "web agency",
+      "digital agency",
+      "it development",
+      "mobile app developers",
+      "bespoke software"
+     ],
+     "excluded_keywords": [
+      "software reseller"
+     ],
+     "sic_codes": [
+      "62011",
+      "62012",
+      "62020",
+      "62090"
+     ],
+     "osm_tags": [
+      "office=it"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.it-support-and-managed-services",
+     "name": "IT support and managed services",
+     "level": "subcategory",
+     "keywords": [
+      "it support",
+      "managed it",
+      "it services",
+      "managed service provider",
+      "cyber security"
+     ],
+     "synonyms": [
+      "msp",
+      "computer repair",
+      "it consultancy",
+      "network support"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "62020",
+      "62030",
+      "62090",
+      "63110"
+     ],
+     "osm_tags": [
+      "office=it",
+      "craft=electronics_repair"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.accountants-and-bookkeepers",
+     "name": "Accountants and bookkeepers",
+     "level": "subcategory",
+     "keywords": [
+      "accountants",
+      "chartered accountants",
+      "bookkeeping",
+      "tax advisers",
+      "auditors"
+     ],
+     "synonyms": [
+      "accountancy practice",
+      "payroll services",
+      "tax returns",
+      "certified accountants"
+     ],
+     "excluded_keywords": [
+      "accounting software"
+     ],
+     "sic_codes": [
+      "69201",
+      "69202",
+      "69203"
+     ],
+     "osm_tags": [
+      "office=accountant"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.consultants",
+     "name": "Consultants",
+     "level": "subcategory",
+     "keywords": [
+      "consultancy",
+      "management consultants",
+      "business consultants",
+      "consultants"
+     ],
+     "synonyms": [
+      "advisory",
+      "strategy consultancy",
+      "business advisers",
+      "interim management"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "70229",
+      "70221",
+      "74909"
+     ],
+     "osm_tags": [
+      "office=consulting"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.recruitment-agencies",
+     "name": "Recruitment agencies",
+     "level": "subcategory",
+     "keywords": [
+      "recruitment agency",
+      "recruitment consultants",
+      "staffing agency",
+      "executive search",
+      "employment agency"
+     ],
+     "synonyms": [
+      "temp agency",
+      "headhunters",
+      "talent acquisition",
+      "recruiters"
+     ],
+     "excluded_keywords": [
+      "recruitment software"
+     ],
+     "sic_codes": [
+      "78101",
+      "78109",
+      "78200",
+      "78300"
+     ],
+     "osm_tags": [
+      "office=employment_agency"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.training-providers",
+     "name": "Training providers",
+     "level": "subcategory",
+     "keywords": [
+      "training provider",
+      "training courses",
+      "corporate training",
+      "business training",
+      "health and safety training"
+     ],
+     "synonyms": [
+      "training company",
+      "skills training",
+      "learning and development",
+      "first aid training"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "85590",
+      "85600",
+      "85320"
+     ],
+     "osm_tags": [
+      "amenity=training",
+      "office=educational_institution"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.commercial-cleaning",
+     "name": "Commercial cleaning",
+     "level": "subcategory",
+     "keywords": [
+      "commercial cleaning",
+      "office cleaning",
+      "contract cleaners",
+      "industrial cleaning",
+      "janitorial"
+     ],
+     "synonyms": [
+      "cleaning contractors",
+      "washroom services",
+      "deep cleaning"
+     ],
+     "excluded_keywords": [
+      "dry cleaning",
+      "cleaning supplies"
+     ],
+     "sic_codes": [
+      "81210",
+      "81221",
+      "81222",
+      "81229",
+      "81299"
+     ],
+     "osm_tags": [
+      "craft=cleaning"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.commercial-security",
+     "name": "Commercial security",
+     "level": "subcategory",
+     "keywords": [
+      "security company",
+      "manned guarding",
+      "cctv",
+      "security patrols"
+     ],
+     "synonyms": [
+      "commercial security",
+      "alarm monitoring",
+      "door supervision"
+     ],
+     "excluded_keywords": [
+      "social security"
+     ],
+     "sic_codes": [
+      "80100",
+      "80200",
+      "80300"
+     ],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.commercial-maintenance",
+     "name": "Commercial maintenance",
+     "level": "subcategory",
+     "keywords": [
+      "commercial maintenance",
+      "building services",
+      "mechanical and electrical",
+      "planned preventive maintenance",
+      "m&e contractors"
+     ],
+     "synonyms": [
+      "facilities maintenance",
+      "reactive maintenance",
+      "commercial repairs",
+      "hvac maintenance"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "81100",
+      "43210",
+      "43220",
+      "33120"
+     ],
+     "osm_tags": [
+      "craft=handyman"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.legal-and-professional-services",
+     "name": "Legal and professional services",
+     "level": "subcategory",
+     "keywords": [
+      "solicitors",
+      "law firm",
+      "legal services",
+      "conveyancing",
+      "notaries"
+     ],
+     "synonyms": [
+      "lawyers",
+      "legal practice",
+      "barristers chambers",
+      "commercial law"
+     ],
+     "excluded_keywords": [
+      "legal software"
+     ],
+     "sic_codes": [
+      "69101",
+      "69102",
+      "69109"
+     ],
+     "osm_tags": [
+      "office=lawyer",
+      "office=notary"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.architects-engineers-and-designers-practice",
+     "name": "Architects, engineers and designers (practice)",
+     "level": "subcategory",
+     "keywords": [
+      "architects",
+      "structural engineers",
+      "civil engineers",
+      "engineering consultancy",
+      "architectural practice"
+     ],
+     "synonyms": [
+      "architectural services",
+      "design practice",
+      "building designers"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "71111",
+      "71112",
+      "71121",
+      "71129"
+     ],
+     "osm_tags": [
+      "office=architect",
+      "office=engineer"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    },
+    {
+     "slug": "business-services.office-and-admin-support",
+     "name": "Office and admin support",
+     "level": "subcategory",
+     "keywords": [
+      "virtual assistant",
+      "office support",
+      "call centre",
+      "document services",
+      "business centre"
+     ],
+     "synonyms": [
+      "answering service",
+      "secretarial services",
+      "translation services",
+      "printing services"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "82110",
+      "82190",
+      "82200",
+      "82990",
+      "74300"
+     ],
+     "osm_tags": [
+      "shop=copyshop",
+      "office=coworking"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import"
+     ],
+     "children": []
+    }
+   ]
+  },
+  {
+   "slug": "marketplace-services",
+   "name": "General marketplace services",
+   "level": "category",
+   "keywords": [
+    "freelancers",
+    "local services",
+    "service providers"
+   ],
+   "synonyms": [],
+   "excluded_keywords": [],
+   "sic_codes": [],
+   "osm_tags": [],
+   "default_sources": [
+    "companies_house_bulk",
+    "csv_import",
+    "osm_geofabrik"
+   ],
+   "children": [
+    {
+     "slug": "marketplace-services.designers",
+     "name": "Designers",
+     "level": "subcategory",
+     "keywords": [
+      "graphic designer",
+      "web designer",
+      "interior designer",
+      "product designer",
+      "design studio"
+     ],
+     "synonyms": [
+      "graphic design",
+      "branding designer",
+      "logo design",
+      "ux designer",
+      "creative studio"
+     ],
+     "excluded_keywords": [
+      "design software"
+     ],
+     "sic_codes": [
+      "74100",
+      "73110",
+      "62012"
+     ],
+     "osm_tags": [
+      "craft=graphic_design"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    },
+    {
+     "slug": "marketplace-services.developers-and-technical-freelancers",
+     "name": "Developers and technical freelancers",
+     "level": "subcategory",
+     "keywords": [
+      "freelance developer",
+      "web developer",
+      "software developer",
+      "app developer",
+      "wordpress developer"
+     ],
+     "synonyms": [
+      "contract developer",
+      "freelance programmer",
+      "independent consultant it",
+      "devops contractor"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "62011",
+      "62012",
+      "62020",
+      "62090"
+     ],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    },
+    {
+     "slug": "marketplace-services.freelancers-operating-as-businesses",
+     "name": "Freelancers operating as businesses",
+     "level": "subcategory",
+     "keywords": [
+      "freelance",
+      "sole trader",
+      "self employed",
+      "independent contractor",
+      "limited company contractor"
+     ],
+     "synonyms": [
+      "freelancer",
+      "one man band",
+      "personal service company",
+      "consultant ltd"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "74909",
+      "82990",
+      "70229"
+     ],
+     "osm_tags": [],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    },
+    {
+     "slug": "marketplace-services.local-trades-general",
+     "name": "Local trades (general)",
+     "level": "subcategory",
+     "keywords": [
+      "local tradesman",
+      "trades",
+      "handyman",
+      "odd jobs",
+      "home improvements"
+     ],
+     "synonyms": [
+      "tradespeople",
+      "handymen",
+      "property repairs",
+      "home maintenance"
+     ],
+     "excluded_keywords": [
+      "trade counter",
+      "trade supplies"
+     ],
+     "sic_codes": [
+      "43999",
+      "43390",
+      "43210",
+      "43220",
+      "43341",
+      "43910"
+     ],
+     "osm_tags": [
+      "craft=handyman",
+      "craft=builder"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    },
+    {
+     "slug": "marketplace-services.commercial-contractors",
+     "name": "Commercial contractors",
+     "level": "subcategory",
+     "keywords": [
+      "commercial contractors",
+      "fit out contractors",
+      "shopfitters",
+      "construction contractors",
+      "refurbishment contractors"
+     ],
+     "synonyms": [
+      "office fit out",
+      "interior fit out",
+      "building contractors commercial",
+      "groundworks"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "41201",
+      "43999",
+      "43120",
+      "43390"
+     ],
+     "osm_tags": [
+      "craft=builder"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    },
+    {
+     "slug": "marketplace-services.business-service-providers",
+     "name": "Business service providers",
+     "level": "subcategory",
+     "keywords": [
+      "business support",
+      "outsourced services",
+      "business solutions",
+      "managed services"
+     ],
+     "synonyms": [
+      "service company",
+      "support services",
+      "b2b services",
+      "outsourcing"
+     ],
+     "excluded_keywords": [],
+     "sic_codes": [
+      "82110",
+      "82190",
+      "82990",
+      "70229"
+     ],
+     "osm_tags": [
+      "office=company"
+     ],
+     "default_sources": [
+      "companies_house_bulk",
+      "csv_import",
+      "osm_geofabrik"
+     ],
+     "children": []
+    }
+   ]
+  }
+ ]
+}

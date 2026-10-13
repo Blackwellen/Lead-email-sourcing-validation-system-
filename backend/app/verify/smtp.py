@@ -398,7 +398,7 @@ class SmtpProbe:
                 rep = await self._cmd(reader, writer, "mail", f"MAIL FROM:<{self.mail_from}>", log)
                 if rep.code is None or rep.code // 100 != 2:
                     res = self._result(host, classify_reply(rep.code, rep.enhanced, rep.text, "mail"), rep.code, rep.enhanced, rep.text, policy=True)
-                    await self._close(writer)
+                    await self._close(writer, r=reader)
                     return res
                 rep = await self._cmd(reader, writer, "rcpt", f"RCPT TO:<{address}>", log, shown="RCPT TO:<recipient>")
                 rc = classify_reply(rep.code, rep.enhanced, rep.text, "rcpt")
@@ -407,7 +407,7 @@ class SmtpProbe:
                     await self._cmd(reader, writer, "rset", "RSET", log)
                 except (_ConnLost, TimeoutError, OSError):
                     pass
-                await self._close(writer)
+                await self._close(writer, r=reader)
                 writer = None
                 return res
             except _ConnLost as e:
@@ -435,11 +435,12 @@ class SmtpProbe:
             status = "inconclusive"
         return ProbeResult(status, rc.evidence, rc.reason_code, code, enh or parse_enhanced(text or ""), text, rc.category, host)
 
-    async def _close(self, w: asyncio.StreamWriter, quit_: bool = True) -> None:
+    async def _close(self, w: asyncio.StreamWriter, quit_: bool = True, r: asyncio.StreamReader | None = None) -> None:
         try:
             if quit_:
                 await self._send(w, "QUIT")
-                await asyncio.sleep(0)
+                if r is not None:  # wait briefly for 221 so the server sees QUIT before we hang up
+                    await self._read_reply(r, min(1.0, self.command_timeout))
         except Exception:  # noqa: BLE001
             pass
         try:

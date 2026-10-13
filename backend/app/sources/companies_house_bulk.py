@@ -220,7 +220,7 @@ class CompaniesHouseBulkAdapter(SourceAdapter):
     ) -> AsyncIterator[tuple[BusinessRecord, Checkpoint]]:
         if not query.covers_country("GB"):
             return
-        path = await self.ensure_file(self.config.get("_client"))
+        path = await self.ensure_file(self.config.get("http_client"))
         flt = RecordFilter(query)
         cp = checkpoint or {}
         # row offsets are only meaningful for the same snapshot file; a new monthly file restarts at 0

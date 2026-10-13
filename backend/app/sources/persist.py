@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Organisation, OrganisationDomain, OrganisationSource, RunOrganisation
-from .base import SOURCE_TYPE_PRIORITY, BusinessRecord, adapter_infos
+from .base import SOURCE_TYPE_PRIORITY, BusinessRecord, runnable_priority_map
 from .geo_filters import normalise_postcode
 from .urls import normalise_website
 
@@ -64,7 +64,7 @@ def canonical_identity(rec: BusinessRecord) -> str:
 
 def _rank_expr():
     """SQL expression: trust rank of the existing row's discovery_source (lower = better)."""
-    mapping = {i.adapter_id: i.default_priority for i in adapter_infos()}
+    mapping = runnable_priority_map()
     if not mapping:
         return literal(1000)
     return case(mapping, value=Organisation.discovery_source, else_=1000)
@@ -80,10 +80,7 @@ def _clean(s: str | None, maxlen: int | None = None) -> str | None:
 
 
 def _rec_rank(rec: BusinessRecord) -> int:
-    for i in adapter_infos():
-        if i.adapter_id == rec.adapter_id:
-            return i.default_priority
-    return SOURCE_TYPE_PRIORITY["manual_import"]
+    return runnable_priority_map().get(rec.adapter_id, SOURCE_TYPE_PRIORITY["manual_import"])
 
 
 async def upsert_business(

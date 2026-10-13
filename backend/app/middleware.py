@@ -22,7 +22,7 @@ HTTP_REQUESTS = Counter("lead_http_requests_total", "HTTP requests", ["method", 
 HTTP_SECONDS = Histogram("lead_http_request_seconds", "HTTP request latency", ["route"], buckets=(0.01, 0.05, 0.25, 1, 4, 15))
 
 _RID = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
-_DOCS = ("/docs", "/redoc", "/openapi.json")
+_DOCS = ("/api/docs", "/api/redoc", "/api/openapi.json")
 
 
 def _json_error(status: int, code: str, message: str, headers: list[tuple[bytes, bytes]] | None = None) -> tuple[Message, Message]:

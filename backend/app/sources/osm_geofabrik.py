@@ -443,7 +443,7 @@ class OsmGeofabrikAdapter(SourceAdapter):
         for c in chosen:
             url = self.config.get("url") if len(chosen) == 1 and self.config.get("url") else extract_url(c)
             res = await download_file(url, base / (c.replace("/", "_") + "-latest.osm.pbf"),
-                                      client=self.config.get("_client"), max_bytes=int(self.config.get("max_bytes", 30 * 1024**3)))
+                                      client=self.config.get("http_client"), max_bytes=int(self.config.get("max_bytes", 30 * 1024**3)))
             # the Ireland extract also holds Northern Ireland: default to IE, NI (BT) is re-labelled GB per record
             out.append((res.path, "IE" if c.endswith("ireland-and-northern-ireland") else cc))
         return out

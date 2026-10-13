@@ -164,6 +164,7 @@ class Guard:
         self.resolver = resolver or system_resolver
         self.allowed_ports = frozenset(allowed_ports)
         self._allow_private = allow_private if callable(allow_private) else (lambda: allow_private)
+        self._pre: dict[str, float] = {}  # host -> expiry of a recent successful pre-flight
 
     @property
     def allow_private(self) -> bool:
@@ -236,6 +237,22 @@ class Guard:
                 if reason:
                     raise SSRFBlocked(f"{host} resolves to {a}: {reason}")
         return addrs
+
+
+    async def preflight(self, host: str, port: int, ttl: float = 10.0) -> None:
+        """Early (cached ~10s) resolve+validate so policy errors surface before any connection.
+
+        The connect path re-resolves and re-validates independently (``PinnedBackend``), so a
+        host that changes its answer between the two lookups is still refused.
+        """
+        now = time.monotonic()
+        key = f"{host}:{port}"
+        if self._pre.get(key, 0.0) > now:
+            return
+        await self.resolve(host, port)
+        if len(self._pre) > 1024:
+            self._pre = {k: v for k, v in self._pre.items() if v > now}
+        self._pre[key] = now + ttl
 
 
 class PinnedBackend(httpcore.AnyIOBackend):
@@ -566,7 +583,7 @@ class SafeFetcher:
                            cache: CacheStore | None, conditional: bool, extra_headers: dict[str, str] | None) -> None:
         current = url
         visited: list[str] = []
-        for hop in range(self.max_redirects + 1):
+        for _hop in range(self.max_redirects + 1):
             try:
                 target = self.guard.check_url(current)
             except SSRFBlocked as e:
@@ -574,6 +591,12 @@ class SafeFetcher:
             except ValueError as e:
                 return self._fail(res, INVALID_URL, str(e))
             canon = target.url
+            try:
+                await self.guard.preflight(target.host, target.port)
+            except SSRFBlocked as e:
+                return self._fail(res, BLOCKED_SSRF, str(e))
+            except DnsFailure as e:
+                return self._fail(res, DNS_FAILURE, str(e))
             if canon in visited:
                 return self._fail(res, REDIRECT_LOOP, f"redirect loop at {canon}")
             visited.append(canon)

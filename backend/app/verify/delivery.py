@@ -26,6 +26,7 @@ EVENT_ALIASES: dict[str, str] = {
     "unsubscribe": "unsubscribe", "unsubscribed": "unsubscribe", "opt_out": "unsubscribe", "optout": "unsubscribe",
     "deferral": "deferral", "deferred": "deferral", "delayed": "deferral",
 }
+_REASON_RANK = {"bounce": 0, "complaint": 1, "opt_out": 2}
 SUPPRESSION_REASON = {"hard_bounce": "bounce", "complaint": "complaint", "unsubscribe": "opt_out"}
 
 
@@ -91,10 +92,16 @@ async def import_delivery_events(session: AsyncSession, rows: Iterable[Mapping[s
         summary.affected_email_ids.add(email.id)
         # side effects are idempotent too, so a re-import still repairs missing suppressions
         if et in SUPPRESSION_REASON:
-            sup = pg_insert(SuppressionEntry).values(
-                kind="email", value=syn.normalised, reason=SUPPRESSION_REASON[et], note=f"delivery feedback ({campaign or 'no campaign'})",
-            ).on_conflict_do_nothing(constraint="uq_suppression").returning(SuppressionEntry.id)
-            if (await session.execute(sup)).scalar_one_or_none() is not None:
+            reason = SUPPRESSION_REASON[et]
+            # one row per (kind, value): a stronger reason (opt_out > complaint > bounce) upgrades a weaker one
+            weaker = [r for r, rank in _REASON_RANK.items() if rank < _REASON_RANK[reason]]
+            ins = pg_insert(SuppressionEntry).values(
+                kind="email", value=syn.normalised, reason=reason, note=f"delivery feedback ({campaign or 'no campaign'})")
+            sup = ins.on_conflict_do_update(
+                constraint="uq_suppression", set_={"reason": reason, "note": ins.excluded.note},
+                where=SuppressionEntry.reason.in_(weaker),
+            ).returning(SuppressionEntry.id)
+            if (await session.execute(sup)).first() is not None:  # inserted or upgraded
                 summary.suppressions_added += 1
             values: dict[str, Any] = {"suppressed_at": func.coalesce(EmailAddress.suppressed_at, func.now())}
             if et == "hard_bounce":

@@ -1,0 +1,1113 @@
+{
+ "version": 1,
+ "disclaimer": "Best-knowledge summary, NOT legal advice. Site terms change: the operator must re-verify every entry's terms before enabling any automated access. Default policy is deny unless automated_extraction is allowed_open_data (or an official API you hold credentials for).",
+ "entries": [
+  {
+   "id": "yell",
+   "name": "Yell.com",
+   "url": "https://www.yell.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Terms of use are understood to forbid scraping/automated extraction. Use only for manual research, or approach Yell about a licensed data feed.",
+   "adapter_id": null
+  },
+  {
+   "id": "thomson_local",
+   "name": "Thomson Local",
+   "url": "https://www.thomsonlocal.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Directory terms are understood to restrict automated collection and reuse. Manual research or licensed data only.",
+   "adapter_id": null
+  },
+  {
+   "id": "freeindex",
+   "name": "FreeIndex",
+   "url": "https://www.freeindex.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Review the site terms before any automated access; default is manual domain discovery by an operator.",
+   "adapter_id": null
+  },
+  {
+   "id": "checkatrade",
+   "name": "Checkatrade",
+   "url": "https://www.checkatrade.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "trades",
+    "property"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Member profiles are the platform's content; automated extraction is understood to be prohibited. Use manual lookups to find a firm's own website.",
+   "adapter_id": null
+  },
+  {
+   "id": "trustatrader",
+   "name": "Trustatrader",
+   "url": "https://www.trustatrader.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "trades",
+    "property"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified. Manual domain discovery only until reviewed.",
+   "adapter_id": null
+  },
+  {
+   "id": "ratedpeople",
+   "name": "Rated People",
+   "url": "https://www.ratedpeople.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "trades"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Lead-generation marketplace; automated extraction not permitted to our knowledge.",
+   "adapter_id": null
+  },
+  {
+   "id": "mybuilder",
+   "name": "MyBuilder",
+   "url": "https://www.mybuilder.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "trades"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Marketplace; automated extraction not permitted to our knowledge.",
+   "adapter_id": null
+  },
+  {
+   "id": "bark",
+   "name": "Bark",
+   "url": "https://www.bark.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "services",
+    "events"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Marketplace; automated extraction not permitted to our knowledge.",
+   "adapter_id": null
+  },
+  {
+   "id": "cylex_uk",
+   "name": "Cylex UK",
+   "url": "https://www.cylex-uk.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "hotfrog_uk",
+   "name": "Hotfrog UK",
+   "url": "https://www.hotfrog.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bt_phonebook",
+   "name": "BT Phone Book / 192.com",
+   "url": "https://www.192.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Commercial data; bulk or automated use requires a licence.",
+   "adapter_id": null
+  },
+  {
+   "id": "google_maps",
+   "name": "Google Maps / Search",
+   "url": "https://www.google.com/maps",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "skip",
+   "licence_notes": "Scraping Google Search/Maps is forbidden by their terms and is excluded by project policy. Google Places API results may not be stored/cached beyond its terms; not used.",
+   "adapter_id": null
+  },
+  {
+   "id": "trustpilot",
+   "name": "Trustpilot",
+   "url": "https://www.trustpilot.com/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "skip",
+   "licence_notes": "Reviews platform; scraping prohibited. Not a source of official websites.",
+   "adapter_id": null
+  },
+  {
+   "id": "linkedin",
+   "name": "LinkedIn",
+   "url": "https://www.linkedin.com/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "skip",
+   "licence_notes": "Scraping prohibited by terms. Never used.",
+   "adapter_id": null
+  },
+  {
+   "id": "facebook",
+   "name": "Facebook / Instagram pages",
+   "url": "https://www.facebook.com/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "skip",
+   "licence_notes": "Scraping prohibited by terms. Never used.",
+   "adapter_id": null
+  },
+  {
+   "id": "trustmark",
+   "name": "TrustMark",
+   "url": "https://www.trustmark.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "trades",
+    "property"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Government-endorsed scheme with a public search; no open bulk dataset known. Ask TrustMark about data access; otherwise manual lookup.",
+   "adapter_id": null
+  },
+  {
+   "id": "rics",
+   "name": "RICS Find a Professional",
+   "url": "https://www.ricsfirms.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "surveyors",
+    "property"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Firm directory; terms not verified, assume no automated extraction without permission.",
+   "adapter_id": null
+  },
+  {
+   "id": "propertymark",
+   "name": "Propertymark (ARLA Propertymark / NAEA Propertymark)",
+   "url": "https://www.propertymark.co.uk/find-an-agent.html",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "estate_agents",
+    "letting_agents"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "ARLA and NAEA are now Propertymark. Member search is a public lookup; request permission for bulk use.",
+   "adapter_id": null
+  },
+  {
+   "id": "naea",
+   "name": "NAEA Propertymark",
+   "url": "https://www.propertymark.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "estate_agents"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Merged into Propertymark; see propertymark entry.",
+   "adapter_id": null
+  },
+  {
+   "id": "arla",
+   "name": "ARLA Propertymark",
+   "url": "https://www.propertymark.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "letting_agents"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Merged into Propertymark; see propertymark entry.",
+   "adapter_id": null
+  },
+  {
+   "id": "tpo",
+   "name": "The Property Ombudsman - member search",
+   "url": "https://www.tpos.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "estate_agents",
+    "letting_agents"
+   ],
+   "kind": "register",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "safeagent",
+   "name": "safeagent (formerly NALS)",
+   "url": "https://safeagents.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "letting_agents"
+   ],
+   "kind": "register",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "arma",
+   "name": "ARMA - Association of Residential Managing Agents",
+   "url": "https://arma.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "block_managers",
+    "property_managers"
+   ],
+   "kind": "register",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Member directory; terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "irpm",
+   "name": "IRPM - Institute of Residential Property Management",
+   "url": "https://irpm.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "block_managers",
+    "property_managers"
+   ],
+   "kind": "register",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Member directory; terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "iwfm",
+   "name": "IWFM - Institute of Workplace and Facilities Management",
+   "url": "https://www.iwfm.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "facilities_managers"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "gas_safe",
+   "name": "Gas Safe Register",
+   "url": "https://www.gassaferegister.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "gas_engineers"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Public lookup to verify an engineer/business; no open bulk download. Bulk use needs the Register's permission.",
+   "adapter_id": null
+  },
+  {
+   "id": "niceic",
+   "name": "NICEIC - Find a contractor",
+   "url": "https://www.niceic.com/find-a-contractor",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "electricians"
+   ],
+   "kind": "directory",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Public contractor search; automated extraction not permitted without agreement (to our knowledge).",
+   "adapter_id": null
+  },
+  {
+   "id": "napit",
+   "name": "NAPIT - Find a registered installer",
+   "url": "https://www.napit.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "electricians",
+    "plumbers"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "eca",
+   "name": "ECA - Electrical Contractors' Association",
+   "url": "https://www.eca.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "electricians"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "watersafe",
+   "name": "WaterSafe",
+   "url": "https://www.watersafe.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "plumbers"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Public lookup; permission needed for bulk use (terms not verified).",
+   "adapter_id": null
+  },
+  {
+   "id": "fensa",
+   "name": "FENSA - Find an installer",
+   "url": "https://www.fensa.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "window_installers",
+    "property"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "nfrc",
+   "name": "NFRC - National Federation of Roofing Contractors",
+   "url": "https://www.nfrc.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "roofers"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "mla",
+   "name": "Master Locksmiths Association",
+   "url": "https://www.locksmiths.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "locksmiths"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bpca",
+   "name": "BPCA - British Pest Control Association",
+   "url": "https://bpca.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "pest_control"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bafe",
+   "name": "BAFE fire safety register",
+   "url": "https://www.bafe.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "fire_safety"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "fia",
+   "name": "Fire Industry Association",
+   "url": "https://www.fia.uk.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "fire_safety"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "leia",
+   "name": "LEIA - Lift and Escalator Industry Association",
+   "url": "https://www.leia.co.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "lift_maintenance"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "sia_acs",
+   "name": "SIA Approved Contractor Scheme / licence register",
+   "url": "https://www.sia.homeoffice.gov.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "security"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Public register lookups; bulk reuse not offered to our knowledge - request permission.",
+   "adapter_id": null
+  },
+  {
+   "id": "bicsc",
+   "name": "BICSc - British Institute of Cleaning Science",
+   "url": "https://www.bics.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "cleaning"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bcc_chambers",
+   "name": "British Chambers of Commerce / local chambers (member directories)",
+   "url": "https://www.britishchambers.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Each chamber publishes its own member directory with its own terms. Review per chamber; manual research by default.",
+   "adapter_id": null
+  },
+  {
+   "id": "fsb",
+   "name": "Federation of Small Businesses",
+   "url": "https://www.fsb.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "directory",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Membership list is not public; no bulk access.",
+   "adapter_id": null
+  },
+  {
+   "id": "rec",
+   "name": "REC - Recruitment & Employment Confederation",
+   "url": "https://www.rec.uk.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "recruitment"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "icaew",
+   "name": "ICAEW - Find a chartered accountant",
+   "url": "https://find.icaew.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "accountants"
+   ],
+   "kind": "directory",
+   "automated_extraction": "permission_required",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Directory search; bulk extraction not permitted without permission (to our knowledge).",
+   "adapter_id": null
+  },
+  {
+   "id": "acca",
+   "name": "ACCA - Find an accountant",
+   "url": "https://www.accaglobal.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "accountants"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bipp",
+   "name": "BIPP - British Institute of Professional Photography",
+   "url": "https://www.bipp.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "photographers"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "bii",
+   "name": "BII - British Institute of Innkeeping",
+   "url": "https://www.bii.org/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "pubs"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "ukwa",
+   "name": "UKAWP / wedding professionals associations",
+   "url": "https://www.ukawp.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "wedding_venues",
+    "events"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "hire_space",
+   "name": "Hire Space (venue marketplace)",
+   "url": "https://hirespace.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "venues"
+   ],
+   "kind": "directory",
+   "automated_extraction": "prohibited",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Marketplace; automated extraction not permitted to our knowledge.",
+   "adapter_id": null
+  },
+  {
+   "id": "venuefinder",
+   "name": "Venuefinder",
+   "url": "https://www.venuefinder.com/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "venues"
+   ],
+   "kind": "directory",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "manual domain discovery",
+   "licence_notes": "Terms not verified.",
+   "adapter_id": null
+  },
+  {
+   "id": "companies_house_bulk",
+   "name": "Companies House BasicCompanyData",
+   "url": "https://download.companieshouse.gov.uk/en_output.html",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Open Government Licence v3.0. Implemented: adapter companies_house_bulk.",
+   "adapter_id": "companies_house_bulk"
+  },
+  {
+   "id": "companies_house_api",
+   "name": "Companies House REST API",
+   "url": "https://developer.company-information.service.gov.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "api_available",
+   "recommended_access": "official API",
+   "licence_notes": "Free API key; rate limited (600 requests / 5 min). Per-company lookups are deliberately NOT used by this platform; prefer the bulk file.",
+   "adapter_id": null
+  },
+  {
+   "id": "osm_geofabrik",
+   "name": "OpenStreetMap via Geofabrik",
+   "url": "https://download.geofabrik.de/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "ODbL 1.0 with attribution. Implemented: adapter osm_geofabrik.",
+   "adapter_id": "osm_geofabrik"
+  },
+  {
+   "id": "wikidata",
+   "name": "Wikidata SPARQL",
+   "url": "https://query.wikidata.org/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "official API",
+   "licence_notes": "CC0. Implemented: adapter wikidata.",
+   "adapter_id": "wikidata"
+  },
+  {
+   "id": "fsa_fhrs",
+   "name": "Food Standards Agency - Food Hygiene Rating Scheme open data",
+   "url": "https://ratings.food.gov.uk/open-data",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "pubs",
+    "hotels",
+    "catering",
+    "venues"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Open Government Licence. XML/JSON per local authority; good for pubs, hotels, caterers. NOT yet implemented as an adapter.",
+   "adapter_id": null
+  },
+  {
+   "id": "charity_commission_ew",
+   "name": "Charity Commission for England & Wales - register extract",
+   "url": "https://register-of-charities.charitycommission.gov.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "community_halls",
+    "venues"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Register data extract published under OGL (check current licence page). NOT yet implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "oscr",
+   "name": "Scottish Charity Register (OSCR)",
+   "url": "https://www.oscr.org.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "community_halls",
+    "venues"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Downloadable register under OGL (verify). NOT yet implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "hmlr_ccod",
+   "name": "HM Land Registry - UK companies that own property (CCOD)",
+   "url": "https://use-land-property-data.service.gov.uk/",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "landlords",
+    "property"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "permission_required",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Free but requires registration and acceptance of a licence; licence conditions apply. Candidate for 'landlords via registered businesses'. NOT implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "la_premises_licences",
+   "name": "Local authority premises licence registers",
+   "url": "https://www.gov.uk/guidance/premises-licence-register",
+   "countries": [
+    "GB"
+   ],
+   "categories": [
+    "pubs",
+    "venues"
+   ],
+   "kind": "open_data",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Published per council with differing terms/formats; review each council's licence. NOT implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "sirene_fr",
+   "name": "INSEE Sirene (France) stock files",
+   "url": "https://www.data.gouv.fr/fr/datasets/base-sirene-des-entreprises-et-de-leurs-etablissements-siren-siret/",
+   "countries": [
+    "FR"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Published as open data (Licence Ouverte / Etalab, believed). Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "brreg_no",
+   "name": "Bronnoysund Register Centre - Enhetsregisteret (Norway)",
+   "url": "https://data.brreg.no/enhetsregisteret/api/docs/index.html",
+   "countries": [
+    "NO"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Open data under NLOD (believed), bulk downloads and API. Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "abn_au",
+   "name": "ABN Bulk Extract (Australia)",
+   "url": "https://data.gov.au/data/dataset/abn-bulk-extract",
+   "countries": [
+    "AU"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Published on data.gov.au under CC BY (believed). Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "corp_canada",
+   "name": "Corporations Canada - federal corporations open data",
+   "url": "https://ised-isde.canada.ca/cc/lgcy/fdrlCrpDsplyDscrptn.html",
+   "countries": [
+    "CA"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "allowed_open_data",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Open Government Licence - Canada (believed). Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "ares_cz",
+   "name": "ARES (Czech Republic)",
+   "url": "https://ares.gov.cz/",
+   "countries": [
+    "CZ"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "api_available",
+   "recommended_access": "official API",
+   "licence_notes": "Public API; check terms and rate limits. Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "cro_ie",
+   "name": "Companies Registration Office (Ireland)",
+   "url": "https://www.cro.ie/",
+   "countries": [
+    "IE"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "unknown_review_terms",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Bulk/open availability not verified. Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "kbo_be",
+   "name": "Crossroads Bank for Enterprises - KBO/BCE open data (Belgium)",
+   "url": "https://economie.fgov.be/en/themes/enterprises/crossroads-bank-enterprises/services-everyone/public-data-available-reuse",
+   "countries": [
+    "BE"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "bulk_dataset",
+   "automated_extraction": "permission_required",
+   "recommended_access": "bulk dataset",
+   "licence_notes": "Public data for reuse after registration/licence acceptance (believed). Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "kvk_nl",
+   "name": "KvK Handelsregister (Netherlands)",
+   "url": "https://www.kvk.nl/",
+   "countries": [
+    "NL"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Commercial data services; paid/licensed. Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "handelsregister_de",
+   "name": "Handelsregister (Germany)",
+   "url": "https://www.handelsregister.de/",
+   "countries": [
+    "DE"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "prohibited",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Portal terms restrict automated retrieval/bulk use; use licensed providers. Not implemented.",
+   "adapter_id": null
+  },
+  {
+   "id": "opencorporates",
+   "name": "OpenCorporates",
+   "url": "https://opencorporates.com/",
+   "countries": [
+    "*"
+   ],
+   "categories": [
+    "*"
+   ],
+   "kind": "register",
+   "automated_extraction": "permission_required",
+   "recommended_access": "licensed feed",
+   "licence_notes": "Open-data company database; API/bulk access requires a plan or public-benefit/share-alike terms. Check licence. Not implemented.",
+   "adapter_id": null
+  }
+ ]
+}

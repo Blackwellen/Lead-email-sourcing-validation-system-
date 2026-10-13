@@ -107,7 +107,7 @@ def score_email(i: ScoreInputs) -> ScoreResult:
     ident = MAX["identity"] * max(0.0, min(1.0, i.domain_identity_confidence))
     total += add("identity", ident, MAX["identity"], f"organisation/domain identity confidence {i.domain_identity_confidence:.2f}")
 
-    corr = 8 * max(0.0, min(1.0, i.contact_confidence)) + 3.5 * min(max(i.corroborating_sources - 1, 0), 2)
+    corr = min(float(MAX["corroboration"]), 4.0 + 8 * max(0.0, min(1.0, i.contact_confidence)) + 3.5 * min(max(i.corroborating_sources - 1, 0), 2))
     if i.origin in SPECULATIVE_ORIGINS:
         corr = 0.0
     total += add("corroboration", corr, MAX["corroboration"], f"contact confidence {i.contact_confidence:.2f}, {i.corroborating_sources} source(s)")
