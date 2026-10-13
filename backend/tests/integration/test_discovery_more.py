@@ -89,7 +89,7 @@ async def test_gap_recovery_budget_and_marginal_yield(tmp_path, web, monkeypatch
 
     assert all(j.checkpoint["requests_used"] <= GAP_REQUEST_BUDGET["fast"] for j in jobs)
     skipped = [s for j in jobs for s in j.checkpoint["skipped"] if s["reason"] == "low_yield"]
-    assert skipped, "after >=20 useless attempts the step must be skipped (marginal-yield stop)"
+    assert skipped, (jobs[-1].checkpoint, (await q("select counters from sourcing_runs where id=:r", r=rid))[0].counters)
     counters = (await q("select counters from sourcing_runs where id=:r", r=rid))[0].counters
     assert "gap_yield" in counters and counters["gap_yield"]
     # nothing was invented: no website, no email -> flags are never 'yes'
