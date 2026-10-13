@@ -37,6 +37,7 @@ from ..models import (
 from . import lists
 from .catchall import CatchAllResult, assess_catch_all
 from .delivery import delivery_history, domain_accept_then_bounce
+from .dns_health import check_resolver
 from .dnsmx import DomainMailInfo, configure_concurrency, get_domain_info
 from .marketing import marketing_decision
 from .scoring import SOURCE_POINTS, ScoreInputs, ScoreResult, score_email
@@ -368,6 +369,12 @@ async def _verify_email(
         if not mail_info.from_cache:
             network_skipped = False
         mail_status = mail_info.mail_status
+        if resolver is None and mail_info.implicit_mx:
+            # implicit MX is only meaningful if the resolver can answer MX queries at all
+            health = await check_resolver(res)
+            if not health.ok:
+                mail_status = "unknown"
+                notes.append(f"resolver_unreliable:{health.status}")
         ttl = timedelta(seconds=mail_info.ttl)
         v2 = ("nxdomain" if mail_info.reason_code == "domain_nxdomain" else "temporary_failure" if mail_status in ("temporary_dns_failure", "unknown")
               else "no_records" if mail_info.reason_code == "no_mx_no_address" else "resolves")

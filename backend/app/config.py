@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     allow_private_networks: bool = False  # ONLY for tests against local fixture servers
     http_max_bytes: int = 2_000_000
     http_timeout_s: float = 15.0
+    # CA bundle for outbound TLS (e.g. a corporate TLS-inspecting proxy). Empty = use $SSL_CERT_FILE if set, else certifi.
+    ca_bundle: str = ""
 
     # SMTP diagnostics -- disabled unless explicitly configured
     smtp_diagnostics_enabled: bool = False

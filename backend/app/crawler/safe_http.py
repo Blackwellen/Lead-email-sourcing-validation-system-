@@ -20,6 +20,7 @@ import asyncio
 import hashlib
 import ipaddress
 import logging
+import os
 import re
 import socket
 import ssl
@@ -467,6 +468,16 @@ def classify_exception(exc: BaseException) -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------- fetcher
+def _tls_context(settings: Settings) -> ssl.SSLContext | bool:
+    """Certificate verification is never disabled. Proxy env vars are ignored (SSRF pinning), but a CA bundle may be
+    supplied explicitly (settings.ca_bundle) or through the standard SSL_CERT_FILE variable, e.g. for networks that
+    re-terminate TLS at an inspecting proxy."""
+    path = settings.ca_bundle or os.environ.get("SSL_CERT_FILE", "")
+    if path and os.path.isfile(path):
+        return ssl.create_default_context(cafile=path)
+    return True
+
+
 class SafeFetcher:
     """Connection-pooled, SSRF-safe, size/type-bounded HTTP fetcher.
 
@@ -501,6 +512,8 @@ class SafeFetcher:
         limits = httpx.Limits(max_connections=max_connections, max_keepalive_connections=max(10, max_connections // 5),
                               keepalive_expiry=20.0)
         if transport is None:
+            if verify is True:
+                verify = _tls_context(s)
             at = httpx.AsyncHTTPTransport(verify=verify, limits=limits, http1=True, http2=False, trust_env=False)
             at._pool._network_backend = PinnedBackend(self.guard)  # type: ignore[attr-defined]
             transport = at
