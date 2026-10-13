@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
@@ -18,6 +19,7 @@ from urllib.parse import urlparse
 
 import dns.asyncresolver
 from sqlalchemy import or_, select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import Settings, get_settings
@@ -162,7 +164,23 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+# Per-call cache of the latest ValidationResult per check type (one query instead of one per stage).
+_LATEST: ContextVar[tuple[int, dict[str, ValidationResult]] | None] = ContextVar("_verify_latest_cache", default=None)
+
+
+async def _preload_latest(session: AsyncSession, email_id: int) -> dict[str, ValidationResult]:
+    rows = (await session.execute(
+        select(ValidationResult).where(ValidationResult.email_id == email_id)
+        .order_by(ValidationResult.check_type, ValidationResult.observed_at.desc(), ValidationResult.id.desc())
+        .ext(distinct_on(ValidationResult.check_type))
+    )).scalars().all()
+    return {r.check_type: r for r in rows}
+
+
 async def _latest(session: AsyncSession, email_id: int, check_type: str) -> ValidationResult | None:
+    cached = _LATEST.get()
+    if cached is not None and cached[0] == email_id:
+        return cached[1].get(check_type)
     return (await session.execute(
         select(ValidationResult).where(ValidationResult.email_id == email_id, ValidationResult.check_type == check_type)
         .order_by(ValidationResult.observed_at.desc(), ValidationResult.id.desc()).limit(1)
@@ -190,8 +208,10 @@ async def _record(
         enhanced_status_code=enhanced, provider=provider, observed_at=now, expires_at=now + (ttl or timedelta(days=30)),
         verifier_version=VERIFIER_VERSION, permission_context=permission_context,
     )
-    session.add(row)
-    await session.flush()
+    session.add(row)  # flushed with the caller's transaction (no per-row round trip)
+    cached = _LATEST.get()
+    if cached is not None and cached[0] == email_id:
+        cached[1][check_type] = row
     return row
 
 
@@ -278,6 +298,24 @@ async def verify_email(
 
     ``mode`` picks the FAST / DEEP preset; explicit ``options`` (the CUSTOM case) always win over the preset.
     """
+    token = _LATEST.set((email_id, await _preload_latest(session, email_id)))
+    try:
+        return await _verify_email(session, email_id, mode=mode, options=options, resolver=resolver, smtp_factory=smtp_factory,
+                                   settings=settings)
+    finally:
+        _LATEST.reset(token)
+
+
+async def _verify_email(
+    session: AsyncSession,
+    email_id: int,
+    *,
+    mode: Mode,
+    options: VerifyOptions | None,
+    resolver: Any,
+    smtp_factory: SmtpFactory | None,
+    settings: Settings | None,
+) -> VerifyOutcome:
     st = settings or get_settings()
     o = replace(options) if options is not None else VerifyOptions.for_mode(mode)
     email = await session.get(EmailAddress, email_id)

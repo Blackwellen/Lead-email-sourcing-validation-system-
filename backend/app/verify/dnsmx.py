@@ -253,7 +253,9 @@ _sem_state: dict[str, Any] = {"limit": 20, "sem": None, "loop": None}
 
 def configure_concurrency(limit: int) -> None:
     """Set the bound on simultaneous DNS domain lookups (process-wide)."""
-    _sem_state.update(limit=max(1, int(limit)), sem=None, loop=None)
+    limit = max(1, int(limit))
+    if _sem_state["limit"] != limit:  # replacing the semaphore on every call would silently drop the bound
+        _sem_state.update(limit=limit, sem=None, loop=None)
 
 
 def _semaphore() -> asyncio.Semaphore:
