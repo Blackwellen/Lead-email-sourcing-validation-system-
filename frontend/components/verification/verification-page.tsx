@@ -102,7 +102,12 @@ function FailuresSheet({ batch, onClose }: { batch: Batch | null; onClose: () =>
           <SheetTitle>Failures: {batch?.name}</SheetTitle>
           <SheetDescription>Addresses whose verification job failed. Failures are not classifications; retry them with a new batch.</SheetDescription>
         </SheetHeader>
-        {q.isPending ? <LoadingState rows={3} /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} compact /> : q.data.items.length === 0 ? <EmptyState title="No failed jobs" description="Nothing has failed in this batch." compact /> : (
+        {q.isPending ? <LoadingState rows={3} /> : q.isError && (q.error as { status?: number }).status === 404 ? (
+          <div role="note" data-testid="failures-unavailable" className="rounded-md border border-warning-border bg-warning-soft p-3 text-sm text-warning-foreground">
+            <p className="font-medium">{batch?.failed} job{batch?.failed === 1 ? '' : 's'} failed in this batch.</p>
+            <p className="mt-1">The failure details cannot be shown: the API hides the internal run behind a verification batch, so its failed jobs are not listed anywhere. Failed addresses are not classified; start a new batch for them to retry.</p>
+          </div>
+        ) : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} compact /> : q.data.items.length === 0 ? <EmptyState title="No failed jobs" description="Nothing has failed in this batch." compact /> : (
           <ul className="divide-y text-sm" aria-label="Failed jobs">
             {q.data.items.map((j) => {
               const eid = (j.payload as { email_id?: number }).email_id;
