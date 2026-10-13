@@ -30,8 +30,10 @@ export interface UsePagedQueryOptions<T, F> {
 }
 
 /**
- * Cursor-based infinite list. `items` is the flattened concatenation; `total`/`approximate` come from the
- * latest page (render as "~1,234" when approximate). Filters are part of the query key, so changing them resets paging.
+ * Cursor-based infinite list. `items` is the flattened concatenation. `total`/`approximate` come from the FIRST page:
+ * backends only count on the first (cursor-less) request and send `total_estimate: null` on later pages, so the first
+ * page's total is kept for the life of the list (render as "~1,234" when approximate). Filters are part of the query key,
+ * so changing them resets paging (and the total).
  */
 export function usePagedQuery<T, F = Record<string, unknown>>({ queryKey, fetchPage, filters, limit = 50, sort, enabled, refetchInterval }: UsePagedQueryOptions<T, F>) {
   const f = (filters ?? {}) as F;
@@ -44,11 +46,12 @@ export function usePagedQuery<T, F = Record<string, unknown>>({ queryKey, fetchP
     refetchInterval,
   });
   const pages = q.data?.pages ?? [];
-  const lastPage = pages[pages.length - 1];
+  // First page carries the count; fall back to the most recent page that reported one (a backend may count every page).
+  const counted = pages.find((p) => p.total_estimate !== null && p.total_estimate !== undefined) ?? null;
   return {
     ...q,
     items: pages.flatMap((p) => p.items),
-    total: lastPage?.total_estimate ?? null,
-    approximate: lastPage?.approximate ?? false,
+    total: counted?.total_estimate ?? null,
+    approximate: counted?.approximate ?? false,
   };
 }

@@ -1,6 +1,133 @@
 {
   "components": {
     "schemas": {
+      "ActionIn": {
+        "properties": {
+          "action": {
+            "enum": [
+              "confirm_duplicate",
+              "merge",
+              "reject_duplicate",
+              "confirm_domain",
+              "reject_domain",
+              "queue_recrawl",
+              "queue_revalidate",
+              "mark_reviewed",
+              "suppress"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "ids": {
+            "description": "review-link ids | domain ids | organisation ids | email ids, depending on the action",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Ids",
+            "type": "array"
+          },
+          "reason": {
+            "description": "required; stored in the audit trail",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "ids",
+          "reason"
+        ],
+        "title": "ActionIn",
+        "type": "object"
+      },
+      "ActionOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "errors": {
+            "title": "Errors",
+            "type": "integer"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "requested": {
+            "title": "Requested",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ActionResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "subject_type": {
+            "title": "Subject Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "subject_type",
+          "requested",
+          "ok",
+          "skipped",
+          "errors",
+          "results"
+        ],
+        "title": "ActionOut",
+        "type": "object"
+      },
+      "ActionResult": {
+        "properties": {
+          "after": {
+            "additionalProperties": true,
+            "title": "After",
+            "type": "object"
+          },
+          "before": {
+            "additionalProperties": true,
+            "title": "Before",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "skipped",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "ActionResult",
+        "type": "object"
+      },
       "ActiveRun": {
         "properties": {
           "id": {
@@ -249,6 +376,12 @@
             "title": "Enabled",
             "type": "boolean"
           },
+          "informational": {
+            "default": true,
+            "description": "Stored for the operator's reference only; the application does not run or verify backups (use pg_dump / your platform).",
+            "title": "Informational",
+            "type": "boolean"
+          },
           "last_verified_restore_at": {
             "anyOf": [
               {
@@ -484,6 +617,20 @@
         "title": "Body_import_delivery",
         "type": "object"
       },
+      "Body_import_source_file": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_source_file",
+        "type": "object"
+      },
       "Body_import_taxonomy": {
         "properties": {
           "file": {
@@ -642,6 +789,16 @@
             ],
             "title": "Category Name"
           },
+          "completeness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompletenessBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "contacts": {
             "items": {
               "$ref": "#/components/schemas/ContactBrief"
@@ -747,6 +904,11 @@
             "title": "Domains Moved",
             "type": "integer"
           },
+          "dry_run": {
+            "default": false,
+            "title": "Dry Run",
+            "type": "boolean"
+          },
           "emails_moved": {
             "title": "Emails Moved",
             "type": "integer"
@@ -761,6 +923,14 @@
           "primary_id": {
             "title": "Primary Id",
             "type": "integer"
+          },
+          "would_move": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "dry_run only: rows that WOULD be moved / collapsed",
+            "title": "Would Move",
+            "type": "object"
           }
         },
         "required": [
@@ -829,6 +999,17 @@
               }
             ],
             "title": "Company Number"
+          },
+          "completeness_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completeness Score"
           },
           "country_code": {
             "title": "Country Code",
@@ -920,9 +1101,31 @@
             ],
             "title": "Merged Into Id"
           },
+          "official_website_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Website State"
+          },
           "published_email_count": {
             "title": "Published Email Count",
             "type": "integer"
+          },
+          "published_email_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Email State"
           },
           "region": {
             "anyOf": [
@@ -973,6 +1176,24 @@
           "updated_at"
         ],
         "title": "BusinessRow",
+        "type": "object"
+      },
+      "CatchAllOut": {
+        "properties": {
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "domain"
+        ],
+        "title": "CatchAllOut",
         "type": "object"
       },
       "CategoryIn": {
@@ -1251,6 +1472,18 @@
             },
             "title": "Synonyms",
             "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
           }
         },
         "required": [
@@ -1355,6 +1588,18 @@
             },
             "title": "Synonyms",
             "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
           }
         },
         "required": [
@@ -1492,6 +1737,130 @@
         "title": "CategoryUpdateIn",
         "type": "object"
       },
+      "CompletenessBrief": {
+        "properties": {
+          "flags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "object"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "boolean"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "score",
+          "flags",
+          "needs_review"
+        ],
+        "title": "CompletenessBrief",
+        "type": "object"
+      },
+      "CompletenessOut": {
+        "properties": {
+          "flags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "object"
+          },
+          "gap_exhausted": {
+            "title": "Gap Exhausted",
+            "type": "boolean"
+          },
+          "gap_steps_tried": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Gap Steps Tried",
+            "type": "array"
+          },
+          "legend": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Legend",
+            "type": "object"
+          },
+          "missing_opportunities": {
+            "items": {
+              "$ref": "#/components/schemas/MissingOpportunity"
+            },
+            "title": "Missing Opportunities",
+            "type": "array"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "boolean"
+          },
+          "organisation_id": {
+            "title": "Organisation Id",
+            "type": "integer"
+          },
+          "reasons": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "object"
+          },
+          "research_progress": {
+            "title": "Research Progress",
+            "type": "number"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          },
+          "stored_updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stored Updated At"
+          }
+        },
+        "required": [
+          "organisation_id",
+          "flags",
+          "reasons",
+          "score",
+          "research_progress",
+          "needs_review",
+          "missing_opportunities",
+          "stored_updated_at",
+          "gap_steps_tried",
+          "gap_exhausted",
+          "legend"
+        ],
+        "title": "CompletenessOut",
+        "type": "object"
+      },
       "ConcurrencySettings": {
         "additionalProperties": false,
         "properties": {
@@ -1546,6 +1915,87 @@
           "config"
         ],
         "title": "ConfigIn",
+        "type": "object"
+      },
+      "ConfigKeyOut": {
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "secret": {
+            "default": false,
+            "title": "Secret",
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "integer",
+              "boolean",
+              "path",
+              "url",
+              "list",
+              "object"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type"
+        ],
+        "title": "ConfigKeyOut",
+        "type": "object"
+      },
+      "ConfigureIn": {
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "description": "Plain keys are stored as given; secret-looking keys are sealed",
+            "title": "Config",
+            "type": "object"
+          },
+          "permission_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "how the operator is permitted to collect from this source",
+            "title": "Permission Basis"
+          },
+          "permission_note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission Note"
+          },
+          "remove_keys": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Remove Keys",
+            "type": "array"
+          }
+        },
+        "title": "ConfigureIn",
         "type": "object"
       },
       "ContactBrief": {
@@ -1719,9 +2169,7 @@
       "ContactDetail": {
         "properties": {
           "catch_all": {
-            "additionalProperties": true,
-            "title": "Catch All",
-            "type": "object"
+            "$ref": "#/components/schemas/CatchAllOut"
           },
           "classification_explanation": {
             "items": {
@@ -1742,14 +2190,12 @@
           "contact_profile": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/ContactProfileOut"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Contact Profile"
+            ]
           },
           "delivery_counts": {
             "additionalProperties": {
@@ -1767,8 +2213,7 @@
           },
           "domains": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/DomainBrief"
             },
             "title": "Domains",
             "type": "array"
@@ -1787,14 +2232,10 @@
             "type": "string"
           },
           "flags": {
-            "additionalProperties": true,
-            "title": "Flags",
-            "type": "object"
+            "$ref": "#/components/schemas/FlagsOut"
           },
           "freshness": {
-            "additionalProperties": true,
-            "title": "Freshness",
-            "type": "object"
+            "$ref": "#/components/schemas/FreshnessOut"
           },
           "id": {
             "title": "Id",
@@ -1818,14 +2259,10 @@
             "title": "Last Validated At"
           },
           "marketing": {
-            "additionalProperties": true,
-            "title": "Marketing",
-            "type": "object"
+            "$ref": "#/components/schemas/MarketingOut"
           },
           "organisation": {
-            "additionalProperties": true,
-            "title": "Organisation",
-            "type": "object"
+            "$ref": "#/components/schemas/OrganisationBrief"
           },
           "origin": {
             "title": "Origin",
@@ -1843,11 +2280,7 @@
             "type": "array"
           },
           "statuses": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Statuses",
-            "type": "object"
+            "$ref": "#/components/schemas/StatusesOut"
           },
           "suppressions": {
             "items": {
@@ -2150,6 +2583,12 @@
           },
           "reachability": {
             "items": {
+              "enum": [
+                "safe",
+                "risky",
+                "invalid",
+                "unknown"
+              ],
               "type": "string"
             },
             "maxItems": 10,
@@ -2250,6 +2689,79 @@
         "title": "ContactFilterSpec",
         "type": "object"
       },
+      "ContactProfileOut": {
+        "properties": {
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "family_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "given_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Name"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "identity_confidence": {
+            "title": "Identity Confidence",
+            "type": "number"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          }
+        },
+        "required": [
+          "id",
+          "identity_confidence"
+        ],
+        "title": "ContactProfileOut",
+        "type": "object"
+      },
       "ContactRow": {
         "properties": {
           "catch_all_status": {
@@ -2318,6 +2830,17 @@
           "country_code": {
             "title": "Country Code",
             "type": "string"
+          },
+          "discovery_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discovery Source"
           },
           "domain": {
             "title": "Domain",
@@ -2431,6 +2954,18 @@
           "syntax_status": {
             "title": "Syntax Status",
             "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "website URL of the organisation's best-matching domain",
+            "title": "Website"
           }
         },
         "required": [
@@ -2471,6 +3006,24 @@
           "value"
         ],
         "title": "Count",
+        "type": "object"
+      },
+      "CountBy": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "title": "CountBy",
         "type": "object"
       },
       "CountryAvailability": {
@@ -2686,6 +3239,34 @@
           "warnings"
         ],
         "title": "CoveragePlan",
+        "type": "object"
+      },
+      "CoverageRow": {
+        "properties": {
+          "businesses": {
+            "title": "Businesses",
+            "type": "integer"
+          },
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "with_confirmed_website": {
+            "title": "With Confirmed Website",
+            "type": "integer"
+          },
+          "with_published_email": {
+            "title": "With Published Email",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "country_code",
+          "businesses",
+          "with_confirmed_website",
+          "with_published_email"
+        ],
+        "title": "CoverageRow",
         "type": "object"
       },
       "DayPoint": {
@@ -2928,6 +3509,55 @@
         "title": "DiscoverySpec",
         "type": "object"
       },
+      "DomainBrief": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "manual_override": {
+            "title": "Manual Override",
+            "type": "boolean"
+          },
+          "parked": {
+            "title": "Parked",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "website_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Url"
+          }
+        },
+        "required": [
+          "id",
+          "domain",
+          "status",
+          "confidence",
+          "parked",
+          "manual_override"
+        ],
+        "title": "DomainBrief",
+        "type": "object"
+      },
       "DomainDecisionIn": {
         "properties": {
           "decision": {
@@ -3096,6 +3726,50 @@
           "errors"
         ],
         "title": "DraftSaved",
+        "type": "object"
+      },
+      "EffectivenessOut": {
+        "properties": {
+          "all_time": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsOut"
+            },
+            "title": "All Time",
+            "type": "array"
+          },
+          "min_samples": {
+            "title": "Min Samples",
+            "type": "integer"
+          },
+          "recent_runs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Recent Runs",
+            "type": "array"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MetricsOut"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "min_samples",
+          "all_time",
+          "recent_runs"
+        ],
+        "title": "EffectivenessOut",
         "type": "object"
       },
       "EgressResult": {
@@ -3411,6 +4085,406 @@
           "source_reliability"
         ],
         "title": "EvidenceOut",
+        "type": "object"
+      },
+      "ExpandIn": {
+        "properties": {
+          "budget": {
+            "default": 30,
+            "description": "maximum page fetches for this expansion",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Budget",
+            "type": "integer"
+          },
+          "max_depth": {
+            "default": 1,
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Max Depth",
+            "type": "integer"
+          }
+        },
+        "title": "ExpandIn",
+        "type": "object"
+      },
+      "ExpandOut": {
+        "properties": {
+          "budget": {
+            "title": "Budget",
+            "type": "integer"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "max_depth": {
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "organisation_id": {
+            "title": "Organisation Id",
+            "type": "integer"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "boolean"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "organisation_id",
+          "queued",
+          "job_id",
+          "run_id",
+          "max_depth",
+          "budget"
+        ],
+        "title": "ExpandOut",
+        "type": "object"
+      },
+      "ExplorerDetail": {
+        "properties": {
+          "access_method": {
+            "title": "Access Method",
+            "type": "string"
+          },
+          "adapter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Id"
+          },
+          "automated_allowed": {
+            "title": "Automated Allowed",
+            "type": "boolean"
+          },
+          "automated_extraction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automated Extraction"
+          },
+          "catalogue_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Id"
+          },
+          "config": {
+            "additionalProperties": true,
+            "description": "Secret values are masked",
+            "title": "Config",
+            "type": "object"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "string"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "credentials": {
+            "title": "Credentials",
+            "type": "string"
+          },
+          "credentials_required": {
+            "title": "Credentials Required",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "health": {
+            "$ref": "#/components/schemas/HealthOut"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "industries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Industries",
+            "type": "array"
+          },
+          "info_only": {
+            "title": "Info Only",
+            "type": "boolean"
+          },
+          "licence": {
+            "title": "Licence",
+            "type": "string"
+          },
+          "live_verified": {
+            "title": "Live Verified",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/app__api__source_explorer__PermissionOut"
+          },
+          "rate_policy": {
+            "additionalProperties": true,
+            "title": "Rate Policy",
+            "type": "object"
+          },
+          "refresh_frequency": {
+            "title": "Refresh Frequency",
+            "type": "string"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/RequirementsOut"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "score_breakdown": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Score Breakdown",
+            "type": "object"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/StateOut"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "usage": {
+            "title": "Usage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "adapter_id",
+          "catalogue_id",
+          "name",
+          "countries",
+          "source_type",
+          "access_method",
+          "licence",
+          "cost",
+          "credentials",
+          "credentials_required",
+          "refresh_frequency",
+          "automated_allowed",
+          "industries",
+          "configured",
+          "enabled",
+          "info_only",
+          "live_verified",
+          "url",
+          "health",
+          "notes",
+          "usage",
+          "requirements",
+          "permission",
+          "state"
+        ],
+        "title": "ExplorerDetail",
+        "type": "object"
+      },
+      "ExplorerItem": {
+        "properties": {
+          "access_method": {
+            "title": "Access Method",
+            "type": "string"
+          },
+          "adapter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Id"
+          },
+          "automated_allowed": {
+            "title": "Automated Allowed",
+            "type": "boolean"
+          },
+          "catalogue_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalogue Id"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "cost": {
+            "title": "Cost",
+            "type": "string"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
+          },
+          "credentials": {
+            "title": "Credentials",
+            "type": "string"
+          },
+          "credentials_required": {
+            "title": "Credentials Required",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "health": {
+            "$ref": "#/components/schemas/HealthOut"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "industries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Industries",
+            "type": "array"
+          },
+          "info_only": {
+            "title": "Info Only",
+            "type": "boolean"
+          },
+          "licence": {
+            "title": "Licence",
+            "type": "string"
+          },
+          "live_verified": {
+            "title": "Live Verified",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "refresh_frequency": {
+            "title": "Refresh Frequency",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "score_breakdown": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Score Breakdown",
+            "type": "object"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "adapter_id",
+          "catalogue_id",
+          "name",
+          "countries",
+          "source_type",
+          "access_method",
+          "licence",
+          "cost",
+          "credentials",
+          "credentials_required",
+          "refresh_frequency",
+          "automated_allowed",
+          "industries",
+          "configured",
+          "enabled",
+          "info_only",
+          "live_verified",
+          "url",
+          "health"
+        ],
+        "title": "ExplorerItem",
         "type": "object"
       },
       "ExportCreateIn": {
@@ -3750,6 +4824,12 @@
           },
           "reachability": {
             "items": {
+              "enum": [
+                "safe",
+                "risky",
+                "invalid",
+                "unknown"
+              ],
               "type": "string"
             },
             "maxItems": 10,
@@ -3996,6 +5076,24 @@
         "title": "ExportSettings",
         "type": "object"
       },
+      "FacetCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "title": "FacetCount",
+        "type": "object"
+      },
       "FailedJob": {
         "properties": {
           "attempts": {
@@ -4091,6 +5189,98 @@
         "title": "FieldError",
         "type": "object"
       },
+      "FlagsOut": {
+        "properties": {
+          "disposable": {
+            "title": "Disposable",
+            "type": "boolean"
+          },
+          "free_provider": {
+            "title": "Free Provider",
+            "type": "boolean"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "boolean"
+          },
+          "previously_bounced": {
+            "title": "Previously Bounced",
+            "type": "boolean"
+          },
+          "role_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Type"
+          }
+        },
+        "required": [
+          "needs_review",
+          "previously_bounced",
+          "free_provider",
+          "disposable"
+        ],
+        "title": "FlagsOut",
+        "type": "object"
+      },
+      "FreshnessOut": {
+        "properties": {
+          "age_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Age Days"
+          },
+          "last_validated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Validated At"
+          },
+          "next_expiry": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Expiry"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "validity_days": {
+            "title": "Validity Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "validity_days",
+          "stale"
+        ],
+        "title": "FreshnessOut",
+        "type": "object"
+      },
       "FunnelRow": {
         "properties": {
           "count": {
@@ -4143,6 +5333,188 @@
         "title": "Geo",
         "type": "object"
       },
+      "GraphEdge": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "from": {
+            "title": "From",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "source_adapter": {
+            "title": "Source Adapter",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "to": {
+            "title": "To",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to",
+          "relation",
+          "depth",
+          "confidence",
+          "source_adapter",
+          "source_url",
+          "observed_at"
+        ],
+        "title": "GraphEdge",
+        "type": "object"
+      },
+      "GraphNode": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "distance": {
+            "title": "Distance",
+            "type": "integer"
+          },
+          "has_confirmed_domain": {
+            "title": "Has Confirmed Domain",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "merged_into_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merged Into Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country_code",
+          "city",
+          "distance",
+          "has_confirmed_domain",
+          "merged_into_id"
+        ],
+        "title": "GraphNode",
+        "type": "object"
+      },
+      "GraphOut": {
+        "properties": {
+          "center": {
+            "title": "Center",
+            "type": "integer"
+          },
+          "depth_applied": {
+            "title": "Depth Applied",
+            "type": "integer"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "limit_applied": {
+            "title": "Limit Applied",
+            "type": "integer"
+          },
+          "node_cap": {
+            "default": 300,
+            "title": "Node Cap",
+            "type": "integer"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "truncated": {
+            "description": "true when the neighbourhood had more nodes than the (capped) limit",
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "center",
+          "nodes",
+          "edges",
+          "truncated",
+          "limit_applied",
+          "depth_applied"
+        ],
+        "title": "GraphOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -4154,6 +5526,41 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthOut": {
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "probed": {
+            "default": false,
+            "title": "Probed",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthOut",
         "type": "object"
       },
       "HistoryRow": {
@@ -4232,34 +5639,185 @@
         "title": "HistoryRow",
         "type": "object"
       },
-      "ImportOut": {
+      "IndustryRow": {
         "properties": {
-          "created": {
-            "title": "Created",
+          "businesses": {
+            "title": "Businesses",
             "type": "integer"
           },
-          "dry_run": {
-            "title": "Dry Run",
-            "type": "boolean"
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
           },
-          "errors": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Errors",
-            "type": "array"
+          "min_sample": {
+            "default": 10,
+            "title": "Min Sample",
+            "type": "integer"
           },
-          "updated": {
-            "title": "Updated",
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "published_email_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null when fewer than the minimum sample of businesses",
+            "title": "Published Email Rate"
+          },
+          "with_published_email": {
+            "title": "With Published Email",
             "type": "integer"
           }
         },
         "required": [
-          "created",
-          "updated",
-          "dry_run"
+          "category_id",
+          "name",
+          "businesses",
+          "with_published_email",
+          "published_email_rate"
         ],
-        "title": "ImportOut",
+        "title": "IndustryRow",
+        "type": "object"
+      },
+      "IssueCount": {
+        "properties": {
+          "action_hint": {
+            "title": "Action Hint",
+            "type": "string"
+          },
+          "capped": {
+            "default": false,
+            "title": "Capped",
+            "type": "boolean"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "issue_type": {
+            "title": "Issue Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_type",
+          "count",
+          "action_hint"
+        ],
+        "title": "IssueCount",
+        "type": "object"
+      },
+      "IssueRow": {
+        "properties": {
+          "classification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classification"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "detected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected At"
+          },
+          "id": {
+            "description": "row key (stable, unique within the issue type); the id to pass to POST /actions for this issue type",
+            "title": "Id",
+            "type": "integer"
+          },
+          "issue_type": {
+            "title": "Issue Type",
+            "type": "string"
+          },
+          "organisation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organisation Id"
+          },
+          "organisation_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organisation Name"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          },
+          "subject_type": {
+            "enum": [
+              "review_link",
+              "organisation",
+              "domain",
+              "email",
+              "contact"
+            ],
+            "title": "Subject Type",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "issue_type",
+          "subject_type",
+          "subject_id",
+          "organisation_id",
+          "organisation_name",
+          "summary"
+        ],
+        "title": "IssueRow",
         "type": "object"
       },
       "JobRow": {
@@ -4330,6 +5888,17 @@
             "additionalProperties": true,
             "title": "Payload",
             "type": "object"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
           },
           "stage": {
             "title": "Stage",
@@ -4486,6 +6055,106 @@
         "title": "MaintenanceOut",
         "type": "object"
       },
+      "MarketingOut": {
+        "properties": {
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "suppressed": {
+            "title": "Suppressed",
+            "type": "boolean"
+          },
+          "suppressed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppressed At"
+          }
+        },
+        "required": [
+          "status",
+          "eligible",
+          "suppressed",
+          "note"
+        ],
+        "title": "MarketingOut",
+        "type": "object"
+      },
+      "MetricsOut": {
+        "properties": {
+          "adapter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Id"
+          },
+          "counters": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Counters",
+            "type": "object"
+          },
+          "derived": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Derived",
+            "type": "object"
+          },
+          "min_samples": {
+            "title": "Min Samples",
+            "type": "integer"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "run_id",
+          "counters",
+          "derived",
+          "min_samples"
+        ],
+        "title": "MetricsOut",
+        "type": "object"
+      },
       "MfaCodeIn": {
         "properties": {
           "code": {
@@ -4540,6 +6209,232 @@
         "title": "MfaSetupOut",
         "type": "object"
       },
+      "MissingOpportunity": {
+        "properties": {
+          "classification": {
+            "title": "Classification",
+            "type": "string"
+          },
+          "flag": {
+            "title": "Flag",
+            "type": "string"
+          },
+          "next_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Step"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "flag",
+          "state",
+          "classification",
+          "reason",
+          "next_step"
+        ],
+        "title": "MissingOpportunity",
+        "type": "object"
+      },
+      "MonitorIn": {
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "frequency": {
+            "default": "weekly",
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "title": "Frequency",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "new_registrations",
+              "website_changes",
+              "signals"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "MonitorIn",
+        "type": "object"
+      },
+      "MonitorOut": {
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_result": {
+            "additionalProperties": true,
+            "title": "Last Result",
+            "type": "object"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "frequency",
+          "config",
+          "enabled",
+          "last_run_at",
+          "next_run_at",
+          "last_result",
+          "created_by"
+        ],
+        "title": "MonitorOut",
+        "type": "object"
+      },
+      "MonitorPatch": {
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "frequency": {
+            "anyOf": [
+              {
+                "enum": [
+                  "daily",
+                  "weekly",
+                  "monthly"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "MonitorPatch",
+        "type": "object"
+      },
       "NeedsReviewIn": {
         "properties": {
           "value": {
@@ -4587,6 +6482,12 @@
             "maxItems": 50,
             "title": "Email Recipients",
             "type": "array"
+          },
+          "informational": {
+            "default": true,
+            "description": "These settings are stored for the operator's reference only; nothing in the worker or API sends notifications yet.",
+            "title": "Informational",
+            "type": "boolean"
           },
           "notify_on_run_complete": {
             "default": false,
@@ -4700,6 +6601,87 @@
         "title": "Ok",
         "type": "object"
       },
+      "OpportunityGroup": {
+        "properties": {
+          "classification": {
+            "enum": [
+              "incomplete_research",
+              "genuinely_unavailable",
+              "in_progress"
+            ],
+            "title": "Classification",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/OpportunitySample"
+            },
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "classification",
+          "count",
+          "explanation",
+          "samples"
+        ],
+        "title": "OpportunityGroup",
+        "type": "object"
+      },
+      "OpportunitySample": {
+        "properties": {
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "official_website": {
+            "title": "Official Website",
+            "type": "string"
+          },
+          "organisation_id": {
+            "title": "Organisation Id",
+            "type": "integer"
+          },
+          "published_email": {
+            "title": "Published Email",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "organisation_id",
+          "name",
+          "country_code",
+          "official_website",
+          "published_email",
+          "score"
+        ],
+        "title": "OpportunitySample",
+        "type": "object"
+      },
       "OrgRow": {
         "properties": {
           "category_id": {
@@ -4777,6 +6759,167 @@
           "stage"
         ],
         "title": "OrgRow",
+        "type": "object"
+      },
+      "OrganisationBrief": {
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "company_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Number"
+          },
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "discovery_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discovery Source"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "legal_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Name"
+          },
+          "legal_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Type"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "trading_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trading Name"
+          }
+        },
+        "required": [
+          "id",
+          "country_code"
+        ],
+        "title": "OrganisationBrief",
         "type": "object"
       },
       "Overview": {
@@ -4910,6 +7053,116 @@
           "time_series"
         ],
         "title": "Overview",
+        "type": "object"
+      },
+      "OverviewOut": {
+        "properties": {
+          "businesses_by_source": {
+            "items": {
+              "$ref": "#/components/schemas/CountBy"
+            },
+            "title": "Businesses By Source",
+            "type": "array"
+          },
+          "completeness_flags": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Completeness Flags",
+            "type": "object"
+          },
+          "completeness_score_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/CountBy"
+            },
+            "title": "Completeness Score Distribution",
+            "type": "array"
+          },
+          "emails_by_source": {
+            "items": {
+              "$ref": "#/components/schemas/CountBy"
+            },
+            "title": "Emails By Source",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "geographic_coverage": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageRow"
+            },
+            "title": "Geographic Coverage",
+            "type": "array"
+          },
+          "high_performing_industries": {
+            "items": {
+              "$ref": "#/components/schemas/IndustryRow"
+            },
+            "title": "High Performing Industries",
+            "type": "array"
+          },
+          "missing_contact_opportunities": {
+            "items": {
+              "$ref": "#/components/schemas/OpportunityGroup"
+            },
+            "title": "Missing Contact Opportunities",
+            "type": "array"
+          },
+          "organisations_without_assessment": {
+            "title": "Organisations Without Assessment",
+            "type": "integer"
+          },
+          "restricted_sources": {
+            "items": {
+              "$ref": "#/components/schemas/RestrictedSource"
+            },
+            "title": "Restricted Sources",
+            "type": "array"
+          },
+          "source_effectiveness": {
+            "items": {
+              "$ref": "#/components/schemas/MetricsOut"
+            },
+            "title": "Source Effectiveness",
+            "type": "array"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Totals",
+            "type": "object"
+          },
+          "websites_by_source": {
+            "items": {
+              "$ref": "#/components/schemas/CountBy"
+            },
+            "title": "Websites By Source",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "totals",
+          "businesses_by_source",
+          "websites_by_source",
+          "emails_by_source",
+          "completeness_score_distribution",
+          "completeness_flags",
+          "organisations_without_assessment",
+          "geographic_coverage",
+          "high_performing_industries",
+          "missing_contact_opportunities",
+          "restricted_sources",
+          "source_effectiveness"
+        ],
+        "title": "OverviewOut",
         "type": "object"
       },
       "Page_AuditRow_": {
@@ -5088,6 +7341,50 @@
         "title": "Page[ContactRow]",
         "type": "object"
       },
+      "Page_ExplorerItem_": {
+        "properties": {
+          "approximate": {
+            "default": false,
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExplorerItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Row count (exact when small, capped/approximate otherwise); null when unknown",
+            "title": "Total Estimate"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[ExplorerItem]",
+        "type": "object"
+      },
       "Page_ExportOut_": {
         "properties": {
           "approximate": {
@@ -5176,6 +7473,50 @@
         "title": "Page[HistoryRow]",
         "type": "object"
       },
+      "Page_IssueRow_": {
+        "properties": {
+          "approximate": {
+            "default": false,
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/IssueRow"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Row count (exact when small, capped/approximate otherwise); null when unknown",
+            "title": "Total Estimate"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[IssueRow]",
+        "type": "object"
+      },
       "Page_JobRow_": {
         "properties": {
           "approximate": {
@@ -5218,6 +7559,50 @@
           "items"
         ],
         "title": "Page[JobRow]",
+        "type": "object"
+      },
+      "Page_MonitorOut_": {
+        "properties": {
+          "approximate": {
+            "default": false,
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MonitorOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Row count (exact when small, capped/approximate otherwise); null when unknown",
+            "title": "Total Estimate"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[MonitorOut]",
         "type": "object"
       },
       "Page_OrgRow_": {
@@ -5264,6 +7649,50 @@
         "title": "Page[OrgRow]",
         "type": "object"
       },
+      "Page_RelationshipOut_": {
+        "properties": {
+          "approximate": {
+            "default": false,
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RelationshipOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Row count (exact when small, capped/approximate otherwise); null when unknown",
+            "title": "Total Estimate"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[RelationshipOut]",
+        "type": "object"
+      },
       "Page_RunSummary_": {
         "properties": {
           "approximate": {
@@ -5306,6 +7735,50 @@
           "items"
         ],
         "title": "Page[RunSummary]",
+        "type": "object"
+      },
+      "Page_SignalOut_": {
+        "properties": {
+          "approximate": {
+            "default": false,
+            "title": "Approximate",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SignalOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Row count (exact when small, capped/approximate otherwise); null when unknown",
+            "title": "Total Estimate"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[SignalOut]",
         "type": "object"
       },
       "Page_SuppressionOut_": {
@@ -5654,47 +8127,6 @@
           "basis"
         ],
         "title": "PermissionIn",
-        "type": "object"
-      },
-      "PermissionOut": {
-        "properties": {
-          "basis": {
-            "title": "Basis",
-            "type": "string"
-          },
-          "domain": {
-            "title": "Domain",
-            "type": "string"
-          },
-          "granted_at": {
-            "format": "date-time",
-            "title": "Granted At",
-            "type": "string"
-          },
-          "granted_by": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Granted By"
-          },
-          "smtp_probe_allowed": {
-            "title": "Smtp Probe Allowed",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "domain",
-          "smtp_probe_allowed",
-          "basis",
-          "granted_by",
-          "granted_at"
-        ],
-        "title": "PermissionOut",
         "type": "object"
       },
       "PresetIn": {
@@ -6046,6 +8478,149 @@
         "title": "RecentExport",
         "type": "object"
       },
+      "RelationshipOut": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "from_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Name"
+          },
+          "from_org_id": {
+            "title": "From Org Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          },
+          "source_adapter": {
+            "title": "Source Adapter",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "to_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "To Name"
+          },
+          "to_org_id": {
+            "title": "To Org Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "from_org_id",
+          "from_name",
+          "to_org_id",
+          "to_name",
+          "relation",
+          "depth",
+          "confidence",
+          "source_adapter",
+          "source_url",
+          "observed_at"
+        ],
+        "title": "RelationshipOut",
+        "type": "object"
+      },
+      "RequirementsOut": {
+        "properties": {
+          "accepts_file_upload": {
+            "title": "Accepts File Upload",
+            "type": "boolean"
+          },
+          "access_requirements": {
+            "title": "Access Requirements",
+            "type": "string"
+          },
+          "config_keys_set": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Config Keys Set",
+            "type": "array"
+          },
+          "credentials": {
+            "title": "Credentials",
+            "type": "string"
+          },
+          "credentials_note": {
+            "title": "Credentials Note",
+            "type": "string"
+          },
+          "permitted_permission_bases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Permitted Permission Bases",
+            "type": "array"
+          },
+          "requires_config": {
+            "title": "Requires Config",
+            "type": "boolean"
+          },
+          "secret_keys_set": {
+            "description": "names only; values are never returned",
+            "items": {
+              "type": "string"
+            },
+            "title": "Secret Keys Set",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requires_config",
+          "credentials",
+          "credentials_note",
+          "access_requirements",
+          "accepts_file_upload",
+          "config_keys_set",
+          "secret_keys_set",
+          "permitted_permission_bases"
+        ],
+        "title": "RequirementsOut",
+        "type": "object"
+      },
       "ResourceInfo": {
         "properties": {
           "cpu_count": {
@@ -6112,6 +8687,39 @@
           "retried_jobs"
         ],
         "title": "RestartOut",
+        "type": "object"
+      },
+      "RestrictedSource": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "licence": {
+            "title": "Licence",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "reason",
+          "licence"
+        ],
+        "title": "RestrictedSource",
         "type": "object"
       },
       "Restriction": {
@@ -6439,6 +9047,12 @@
             ],
             "title": "Category Id"
           },
+          "collected": {
+            "default": 0,
+            "description": "distinct addresses with evidence in this run (counter snapshot)",
+            "title": "Collected",
+            "type": "integer"
+          },
           "config": {
             "additionalProperties": true,
             "title": "Config",
@@ -6455,6 +9069,13 @@
             "additionalProperties": true,
             "title": "Counters",
             "type": "object"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
           },
           "created_at": {
             "format": "date-time",
@@ -6487,6 +9108,12 @@
             "additionalProperties": true,
             "title": "Effective Concurrency",
             "type": "object"
+          },
+          "eligible": {
+            "default": 0,
+            "description": "addresses counted toward the target (qualified)",
+            "title": "Eligible",
+            "type": "integer"
           },
           "eta": {
             "$ref": "#/components/schemas/EtaOut"
@@ -6585,6 +9212,18 @@
               }
             ],
             "title": "Scheduled For"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "qualified addresses per hour since the run started; null while there is too little data",
+            "title": "Speed"
           },
           "started_at": {
             "anyOf": [
@@ -6792,6 +9431,40 @@
         "title": "RunLink",
         "type": "object"
       },
+      "RunNowOut": {
+        "properties": {
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "monitor_id": {
+            "title": "Monitor Id",
+            "type": "integer"
+          },
+          "queued": {
+            "title": "Queued",
+            "type": "boolean"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "monitor_id",
+          "queued",
+          "run_id"
+        ],
+        "title": "RunNowOut",
+        "type": "object"
+      },
       "RunSummary": {
         "properties": {
           "archived": {
@@ -6808,6 +9481,19 @@
               }
             ],
             "title": "Category Id"
+          },
+          "collected": {
+            "default": 0,
+            "description": "distinct addresses with evidence in this run (counter snapshot)",
+            "title": "Collected",
+            "type": "integer"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Countries",
+            "type": "array"
           },
           "created_at": {
             "format": "date-time",
@@ -6835,6 +9521,12 @@
               }
             ],
             "title": "Destination Category Id"
+          },
+          "eligible": {
+            "default": 0,
+            "description": "addresses counted toward the target (qualified)",
+            "title": "Eligible",
+            "type": "integer"
           },
           "finished_at": {
             "anyOf": [
@@ -6887,6 +9579,18 @@
               }
             ],
             "title": "Scheduled For"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "qualified addresses per hour since the run started; null while there is too little data",
+            "title": "Speed"
           },
           "started_at": {
             "anyOf": [
@@ -6943,6 +9647,170 @@
         "title": "RunSummary",
         "type": "object"
       },
+      "SchedulerOut": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SchedulerRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "run_id",
+          "rows"
+        ],
+        "title": "SchedulerOut",
+        "type": "object"
+      },
+      "SchedulerRow": {
+        "properties": {
+          "adapter_id": {
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "explanation": {
+            "additionalProperties": true,
+            "title": "Explanation",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "priority_score": {
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "rate_policy": {
+            "additionalProperties": true,
+            "title": "Rate Policy",
+            "type": "object"
+          },
+          "samples": {
+            "title": "Samples",
+            "type": "integer"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          },
+          "static_priority": {
+            "title": "Static Priority",
+            "type": "integer"
+          },
+          "static_score": {
+            "title": "Static Score",
+            "type": "number"
+          },
+          "stored_priority_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "value written by the last scheduler.rebalance for the run (if any)",
+            "title": "Stored Priority Score"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "name",
+          "source_type",
+          "enabled",
+          "static_priority",
+          "static_score",
+          "priority_score",
+          "samples",
+          "explanation",
+          "rate_policy"
+        ],
+        "title": "SchedulerRow",
+        "type": "object"
+      },
+      "SeedIn": {
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Countries",
+            "type": "array"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "min_score": {
+            "default": 0.35,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Score",
+            "type": "number"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          }
+        },
+        "title": "SeedIn",
+        "type": "object"
+      },
       "SessionOut": {
         "properties": {
           "csrf_token": {
@@ -6994,6 +9862,159 @@
         "title": "Shortage",
         "type": "object"
       },
+      "SignalFacets": {
+        "properties": {
+          "by_country": {
+            "items": {
+              "$ref": "#/components/schemas/FacetCount"
+            },
+            "title": "By Country",
+            "type": "array"
+          },
+          "by_type": {
+            "items": {
+              "$ref": "#/components/schemas/FacetCount"
+            },
+            "title": "By Type",
+            "type": "array"
+          },
+          "first_observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Observed At"
+          },
+          "last_observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Observed At"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "by_type",
+          "by_country",
+          "first_observed_at",
+          "last_observed_at"
+        ],
+        "title": "SignalFacets",
+        "type": "object"
+      },
+      "SignalOut": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "country_code": {
+            "title": "Country Code",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          },
+          "organisation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organisation"
+          },
+          "organisation_id": {
+            "title": "Organisation Id",
+            "type": "integer"
+          },
+          "signal_type": {
+            "title": "Signal Type",
+            "type": "string"
+          },
+          "source_adapter": {
+            "title": "Source Adapter",
+            "type": "string"
+          },
+          "source_url": {
+            "description": "always present: no source URL, no signal",
+            "title": "Source Url",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organisation_id",
+          "organisation",
+          "country_code",
+          "industry",
+          "signal_type",
+          "title",
+          "detail",
+          "source_adapter",
+          "source_url",
+          "occurred_at",
+          "observed_at",
+          "confidence"
+        ],
+        "title": "SignalOut",
+        "type": "object"
+      },
       "SignalsSpec": {
         "description": "DISC-09 business-signal detection controls (empty ``types`` = all types).",
         "properties": {
@@ -7018,6 +10039,192 @@
           }
         },
         "title": "SignalsSpec",
+        "type": "object"
+      },
+      "SimilarExpandIn": {
+        "properties": {
+          "category_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "countries": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Countries",
+            "type": "array"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "min_score": {
+            "default": 0.35,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Score",
+            "type": "number"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "target_run_id": {
+            "description": "the run the lookalikes are queued into",
+            "minimum": 1.0,
+            "title": "Target Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "target_run_id"
+        ],
+        "title": "SimilarExpandIn",
+        "type": "object"
+      },
+      "SimilarExpandOut": {
+        "properties": {
+          "queued": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Queued",
+            "type": "array"
+          },
+          "target_run_id": {
+            "title": "Target Run Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "target_run_id",
+          "queued"
+        ],
+        "title": "SimilarExpandOut",
+        "type": "object"
+      },
+      "SimilarItem": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country Code"
+          },
+          "explanation": {
+            "description": "how the score is composed, e.g. '0.812 = sic=0.90x0.30 + ...'",
+            "title": "Explanation",
+            "type": "string"
+          },
+          "factors": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Factors",
+            "type": "object"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "org_id": {
+            "title": "Org Id",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "org_id",
+          "name",
+          "country_code",
+          "score",
+          "explanation"
+        ],
+        "title": "SimilarItem",
+        "type": "object"
+      },
+      "SimilarOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SimilarItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "seed": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Seed",
+            "type": "object"
+          }
+        },
+        "required": [
+          "seed",
+          "items"
+        ],
+        "title": "SimilarOut",
         "type": "object"
       },
       "SmtpBrief": {
@@ -7233,6 +10440,17 @@
       },
       "SourceOut": {
         "properties": {
+          "access_method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Method"
+          },
           "access_requirements": {
             "anyOf": [
               {
@@ -7247,6 +10465,17 @@
           "adapter_id": {
             "title": "Adapter Id",
             "type": "string"
+          },
+          "allowed_usage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Usage"
           },
           "attribution": {
             "anyOf": [
@@ -7281,9 +10510,28 @@
             "title": "Config",
             "type": "object"
           },
+          "config_schema": {
+            "description": "permitted configuration keys (PUT /config rejects anything else)",
+            "items": {
+              "$ref": "#/components/schemas/ConfigKeyOut"
+            },
+            "title": "Config Schema",
+            "type": "array"
+          },
           "configured": {
             "title": "Configured",
             "type": "boolean"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
           },
           "country_coverage": {
             "items": {
@@ -7292,9 +10540,27 @@
             "title": "Country Coverage",
             "type": "array"
           },
+          "credentials": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credentials"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
+          },
+          "fields_available": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fields Available",
+            "type": "array"
           },
           "health": {
             "$ref": "#/components/schemas/SourceHealthOut"
@@ -7374,6 +10640,22 @@
             "title": "Priority",
             "type": "integer"
           },
+          "rate_policy": {
+            "additionalProperties": true,
+            "title": "Rate Policy",
+            "type": "object"
+          },
+          "refresh_frequency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Frequency"
+          },
           "registered": {
             "title": "Registered",
             "type": "boolean"
@@ -7382,6 +10664,11 @@
             "default": false,
             "title": "Requires Config",
             "type": "boolean"
+          },
+          "retry_policy": {
+            "additionalProperties": true,
+            "title": "Retry Policy",
+            "type": "object"
           },
           "runs_failed": {
             "default": 0,
@@ -7475,6 +10762,113 @@
           }
         },
         "title": "SourcePolicySettings",
+        "type": "object"
+      },
+      "StateOut": {
+        "properties": {
+          "businesses_recovered": {
+            "default": 0,
+            "title": "Businesses Recovered",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "runs_failed": {
+            "default": 0,
+            "title": "Runs Failed",
+            "type": "integer"
+          },
+          "runs_ok": {
+            "default": 0,
+            "title": "Runs Ok",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "StateOut",
+        "type": "object"
+      },
+      "StatusesOut": {
+        "properties": {
+          "domain_mail": {
+            "title": "Domain Mail",
+            "type": "string"
+          },
+          "marketing": {
+            "title": "Marketing",
+            "type": "string"
+          },
+          "overall_reachability": {
+            "title": "Overall Reachability",
+            "type": "string"
+          },
+          "recipient_evidence": {
+            "title": "Recipient Evidence",
+            "type": "string"
+          },
+          "syntax": {
+            "title": "Syntax",
+            "type": "string"
+          }
+        },
+        "required": [
+          "syntax",
+          "domain_mail",
+          "recipient_evidence",
+          "overall_reachability",
+          "marketing"
+        ],
+        "title": "StatusesOut",
         "type": "object"
       },
       "StopCondition": {
@@ -7576,6 +10970,33 @@
           "businesses"
         ],
         "title": "SubdivisionRow",
+        "type": "object"
+      },
+      "SummaryOut": {
+        "properties": {
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueCount"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "generated_at",
+          "issues",
+          "total"
+        ],
+        "title": "SummaryOut",
         "type": "object"
       },
       "SuppressIn": {
@@ -8111,6 +11532,90 @@
         "title": "ThroughputPoint",
         "type": "object"
       },
+      "ToggleOut": {
+        "properties": {
+          "adapter_id": {
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "enabled"
+        ],
+        "title": "ToggleOut",
+        "type": "object"
+      },
+      "UkGeography": {
+        "properties": {
+          "cities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
+          "local_authorities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Local Authorities",
+            "type": "array"
+          },
+          "nations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Nations",
+            "type": "array"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "postcode_areas": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Postcode Areas",
+            "type": "array"
+          },
+          "regions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Regions",
+            "type": "array"
+          },
+          "uncertainty": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncertainty",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nations",
+          "regions",
+          "cities",
+          "postcode_areas",
+          "local_authorities",
+          "note",
+          "uncertainty"
+        ],
+        "title": "UkGeography",
+        "type": "object"
+      },
       "Uniqueness": {
         "enum": [
           "email",
@@ -8386,6 +11891,17 @@
             "additionalProperties": true,
             "title": "Detail",
             "type": "object"
+          },
+          "email_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Id"
           },
           "enhanced_status_code": {
             "anyOf": [
@@ -8861,6 +12377,161 @@
           "stale"
         ],
         "title": "WorkerSummary",
+        "type": "object"
+      },
+      "app__api__categories__ImportOut": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "dry_run"
+        ],
+        "title": "ImportOut",
+        "type": "object"
+      },
+      "app__api__source_explorer__ImportOut": {
+        "properties": {
+          "adapter_id": {
+            "title": "Adapter Id",
+            "type": "string"
+          },
+          "config_key": {
+            "default": "path",
+            "title": "Config Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "upload_id": {
+            "title": "Upload Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adapter_id",
+          "upload_id",
+          "kind",
+          "size",
+          "path"
+        ],
+        "title": "ImportOut",
+        "type": "object"
+      },
+      "app__api__source_explorer__PermissionOut": {
+        "properties": {
+          "basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basis"
+          },
+          "can_enable": {
+            "title": "Can Enable",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "description": "not_automatable | restricted | permission_declared | open_licence | permission_needed",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "can_enable",
+          "reason"
+        ],
+        "title": "PermissionOut",
+        "type": "object"
+      },
+      "app__api__verification__PermissionOut": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "granted_at": {
+            "format": "date-time",
+            "title": "Granted At",
+            "type": "string"
+          },
+          "granted_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted By"
+          },
+          "smtp_probe_allowed": {
+            "title": "Smtp Probe Allowed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "domain",
+          "smtp_probe_allowed",
+          "basis",
+          "granted_by",
+          "granted_at"
+        ],
+        "title": "PermissionOut",
         "type": "object"
       }
     }
@@ -9597,6 +13268,20 @@
     "/api/businesses/merge": {
       "post": {
         "operationId": "merge_businesses",
+        "parameters": [
+          {
+            "description": "preview only: count the rows that would move, change nothing",
+            "in": "query",
+            "name": "dry_run",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "preview only: count the rows that would move, change nothing",
+              "title": "Dry Run",
+              "type": "boolean"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -9985,7 +13670,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImportOut"
+                  "$ref": "#/components/schemas/app__api__categories__ImportOut"
                 }
               }
             },
@@ -11915,6 +15600,748 @@
         ]
       }
     },
+    "/api/data-quality/actions": {
+      "post": {
+        "description": "Apply one review action to up to 500 ids. Each id is processed in its own savepoint and audited with before / after / reason.",
+        "operationId": "data_quality_actions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Data Quality Actions",
+        "tags": [
+          "data-quality"
+        ]
+      }
+    },
+    "/api/data-quality/issues/{issue_type}": {
+      "get": {
+        "operationId": "list_issues",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "duplicate_companies",
+                "unconfirmed_domains",
+                "missing_websites",
+                "stale_emails",
+                "conflicting_evidence",
+                "incomplete_contacts",
+                "catchall_or_unknown",
+                "unresolved_identities"
+              ],
+              "title": "Issue Type",
+              "type": "string"
+            }
+          },
+          {
+            "description": "stale_emails only",
+            "in": "query",
+            "name": "stale_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "description": "stale_emails only",
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Stale Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "missing_websites only: incomplete_research | genuinely_unavailable | in_progress",
+            "in": "query",
+            "name": "classification",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "missing_websites only: incomplete_research | genuinely_unavailable | in_progress",
+              "title": "Classification"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "desc",
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_IssueRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Issues",
+        "tags": [
+          "data-quality"
+        ]
+      }
+    },
+    "/api/data-quality/summary": {
+      "get": {
+        "operationId": "data_quality_summary",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stale_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Stale Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Data Quality Summary",
+        "tags": [
+          "data-quality"
+        ]
+      }
+    },
+    "/api/discovery/effectiveness": {
+      "get": {
+        "description": "Measured counters + derived ratios per adapter (all-time and per run). A ratio is ``null`` below ``min_samples``.",
+        "operationId": "source_effectiveness",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_samples",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100000,
+              "minimum": 1,
+              "title": "Min Samples",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "runs",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Runs",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectivenessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source Effectiveness",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/monitors": {
+      "get": {
+        "operationId": "list_monitors",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "enabled",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Enabled"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_MonitorOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Monitors",
+        "tags": [
+          "discovery"
+        ]
+      },
+      "post": {
+        "operationId": "create_monitor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Monitor",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/monitors/{monitor_id}": {
+      "delete": {
+        "operationId": "delete_monitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "required": true,
+            "schema": {
+              "title": "Monitor Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Monitor",
+        "tags": [
+          "discovery"
+        ]
+      },
+      "get": {
+        "operationId": "get_monitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "required": true,
+            "schema": {
+              "title": "Monitor Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Monitor",
+        "tags": [
+          "discovery"
+        ]
+      },
+      "patch": {
+        "operationId": "update_monitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "required": true,
+            "schema": {
+              "title": "Monitor Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Monitor",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/monitors/{monitor_id}/run-now": {
+      "post": {
+        "description": "Make the monitor due and queue a ``monitor`` job for the worker (the recurring tick would pick it up as well).",
+        "operationId": "run_monitor_now",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "required": true,
+            "schema": {
+              "title": "Monitor Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunNowOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Monitor Now",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/overview": {
+      "get": {
+        "operationId": "discovery_overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Discovery Overview",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/scheduler": {
+      "get": {
+        "description": "Priority score per runnable source: static hierarchy x measured information gain (see ``scheduler.compute_priority``).",
+        "operationId": "scheduler_state",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulerOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scheduler State",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/similar": {
+      "post": {
+        "description": "Explainable lookalikes of a seed organisation / category / run (deterministic scoring; nothing is queued).",
+        "operationId": "similar_businesses",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeedIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimilarOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Similar Businesses",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
+    "/api/discovery/similar/expand": {
+      "post": {
+        "description": "Queue the best lookalikes into a run (``resolve_domain`` / ``crawl`` jobs; candidates already in the run are skipped).",
+        "operationId": "similar_expand",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimilarExpandIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimilarExpandOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Similar Expand",
+        "tags": [
+          "discovery"
+        ]
+      }
+    },
     "/api/exports": {
       "get": {
         "operationId": "list_exports",
@@ -12388,6 +16815,60 @@
               "title": "Countries",
               "type": "string"
             }
+          },
+          {
+            "description": "GB only: comma separated nations / regions",
+            "in": "query",
+            "name": "regions",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "GB only: comma separated nations / regions",
+              "title": "Regions"
+            }
+          },
+          {
+            "description": "GB only: comma separated cities / local authorities",
+            "in": "query",
+            "name": "localities",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "GB only: comma separated cities / local authorities",
+              "title": "Localities"
+            }
+          },
+          {
+            "description": "GB only: comma separated postcode areas / districts",
+            "in": "query",
+            "name": "postcodes",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "GB only: comma separated postcode areas / districts",
+              "title": "Postcodes"
+            }
           }
         ],
         "responses": {
@@ -12575,6 +17056,28 @@
         ]
       }
     },
+    "/api/geo/uk-geography": {
+      "get": {
+        "description": "Static UK nations / regions / cities / postcode areas for the coverage picker (hand-compiled; see ``uncertainty``).",
+        "operationId": "uk_geography",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UkGeography"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Uk Geography",
+        "tags": [
+          "geo"
+        ]
+      }
+    },
     "/api/me": {
       "get": {
         "operationId": "me",
@@ -12593,6 +17096,324 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/network/organisations/{org_id}/expand": {
+      "post": {
+        "description": "Queue a bounded ``network_expand`` job (system run). Needs an organisation with a confirmed official domain.",
+        "operationId": "expand_organisation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ExpandIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpandOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Expand Organisation",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/network/organisations/{org_id}/graph": {
+      "get": {
+        "description": "Neighbourhood around an organisation. ``limit`` is clamped to 300 nodes; ``truncated`` says when nodes were left out.",
+        "operationId": "organisation_graph",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 3,
+              "minimum": 1,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "comma separated relation filter",
+            "in": "query",
+            "name": "relations",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "comma separated relation filter",
+              "title": "Relations"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Organisation Graph",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/network/relationships": {
+      "get": {
+        "operationId": "list_relationships",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "relation",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Relation"
+            }
+          },
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_adapter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Adapter"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_confidence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_RelationshipOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Relationships",
+        "tags": [
+          "network"
+        ]
+      }
+    },
+    "/api/organisations/{org_id}/completeness": {
+      "get": {
+        "description": "Live evaluation (read-only; the stored row is refreshed by the worker at the end of each organisation's processing).",
+        "operationId": "organisation_completeness",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "title": "Org Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletenessOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Organisation Completeness",
+        "tags": [
+          "organisations"
         ]
       }
     },
@@ -14423,6 +19244,648 @@
         ]
       }
     },
+    "/api/signals": {
+      "get": {
+        "operationId": "list_signals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "in": "query",
+            "name": "industry",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Industry"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "description": "comma separated signal types",
+            "in": "query",
+            "name": "signal_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "comma separated signal types",
+              "title": "Signal Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "observed_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Observed From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "observed_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Observed To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_confidence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "observed_at",
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "desc",
+              "title": "Direction",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SignalOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Signals",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
+    "/api/signals/facets": {
+      "get": {
+        "operationId": "signal_facets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalFacets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Signal Facets",
+        "tags": [
+          "signals"
+        ]
+      }
+    },
+    "/api/source-explorer": {
+      "get": {
+        "description": "Deterministic ranked search; every result carries its ``score_breakdown`` (see ``catalogue_full.SCORE_WEIGHTS``).",
+        "operationId": "search_sources",
+        "parameters": [
+          {
+            "description": "ISO alpha-2 country the source must cover",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 2,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO alpha-2 country the source must cover",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "industry / business type the source should serve",
+            "in": "query",
+            "name": "business_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "industry / business type the source should serve",
+              "title": "Business Type"
+            }
+          },
+          {
+            "description": "bulk_file | api | manual_import | restricted",
+            "in": "query",
+            "name": "access_method",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "bulk_file | api | manual_import | restricted",
+              "title": "Access Method"
+            }
+          },
+          {
+            "description": "licence substring",
+            "in": "query",
+            "name": "licence",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "licence substring",
+              "title": "Licence"
+            }
+          },
+          {
+            "description": "free | free_registration | paid",
+            "in": "query",
+            "name": "cost",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "free | free_registration | paid",
+              "title": "Cost"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_ExplorerItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Sources",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
+    "/api/source-explorer/{source_id}": {
+      "get": {
+        "operationId": "get_source_detail",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplorerDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Source Detail",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
+    "/api/source-explorer/{source_id}/configure": {
+      "post": {
+        "operationId": "configure_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigureIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplorerDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Configure Source",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
+    "/api/source-explorer/{source_id}/disable": {
+      "post": {
+        "operationId": "disable_explorer_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disable Explorer Source",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
+    "/api/source-explorer/{source_id}/enable": {
+      "post": {
+        "operationId": "enable_explorer_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enable Explorer Source",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
+    "/api/source-explorer/{source_id}/import": {
+      "post": {
+        "description": "Upload a dataset file for a file-based adapter; its stored path becomes the adapter's ``path`` configuration.",
+        "operationId": "import_source_file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_source_file"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__api__source_explorer__ImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Source File",
+        "tags": [
+          "source-explorer"
+        ]
+      }
+    },
     "/api/sources": {
       "get": {
         "operationId": "list_sources",
@@ -14942,6 +20405,138 @@
         ]
       }
     },
+    "/api/system/failed-jobs": {
+      "get": {
+        "description": "Failed / dead jobs across all runs, hidden system runs and jobs without a run.",
+        "operationId": "failed_jobs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "stage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stage"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error Code"
+            }
+          },
+          {
+            "description": "comma separated job states",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "failed,dead",
+              "description": "comma separated job states",
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_JobRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Failed Jobs",
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/api/system/health": {
       "get": {
         "operationId": "system_health",
@@ -14958,6 +20553,48 @@
           }
         },
         "summary": "System Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/system/jobs/{job_id}/retry": {
+      "post": {
+        "operationId": "retry_any_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Any Job",
         "tags": [
           "system"
         ]
@@ -15582,6 +21219,181 @@
         ]
       }
     },
+    "/api/verification/batches/{batch_id}/jobs": {
+      "get": {
+        "description": "Jobs of a verification batch (its hidden system run): failures list for the batch detail page.",
+        "operationId": "batch_jobs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "comma separated job states",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "failed,dead",
+              "description": "comma separated job states",
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "stage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stage"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_JobRow_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Batch Jobs",
+        "tags": [
+          "verification"
+        ]
+      }
+    },
+    "/api/verification/batches/{batch_id}/jobs/{job_id}/retry": {
+      "post": {
+        "operationId": "retry_batch_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "title": "Batch Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRow"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Batch Job",
+        "tags": [
+          "verification"
+        ]
+      }
+    },
     "/api/verification/batches/{batch_id}/pause": {
       "post": {
         "operationId": "pause_batch",
@@ -15717,7 +21529,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/PermissionOut"
+                    "$ref": "#/components/schemas/app__api__verification__PermissionOut"
                   },
                   "title": "Response List Domain Permissions",
                   "type": "array"
@@ -15802,7 +21614,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PermissionOut"
+                  "$ref": "#/components/schemas/app__api__verification__PermissionOut"
                 }
               }
             },

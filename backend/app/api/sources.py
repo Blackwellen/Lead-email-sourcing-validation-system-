@@ -10,7 +10,7 @@ import secrets
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -66,6 +66,22 @@ class SourceOut(BaseModel):
     total_businesses: int = 0
     total_published_emails: int = 0
     health: SourceHealthOut = Field(default_factory=SourceHealthOut)
+    rate_policy: dict[str, Any] = Field(default_factory=dict)
+    retry_policy: dict[str, Any] = Field(default_factory=dict)
+    fields_available: list[str] = Field(default_factory=list)
+    cost: str | None = None
+    credentials: str | None = None
+    refresh_frequency: str | None = None
+    allowed_usage: str | None = None
+    access_method: str | None = None
+    config_schema: list[ConfigKeyOut] = Field(default_factory=list, description="permitted configuration keys (PUT /config rejects anything else)")
+
+
+class ConfigKeyOut(BaseModel):
+    key: str
+    type: Literal["string", "integer", "boolean", "path", "url", "list", "object"]
+    secret: bool = False
+    description: str = ""
 
 
 class PriorityIn(BaseModel):
@@ -83,6 +99,33 @@ class UploadOut(BaseModel):
     path: str
     suggested_source_params: dict[str, Any]
     report: dict[str, Any] | None = None
+
+
+_VOCAB: dict[str, str] = {
+    "path": "path", "file_path": "path", "rr_path": "path", "current_path": "path", "previous_path": "path", "previous_index": "path", "paths": "list",
+    "url": "url", "base_url": "url", "auto_download": "boolean", "authorised": "boolean", "country_code": "string", "sheet": "string",
+    "format": "string", "delta": "string", "mapping": "object", "days_back": "integer", "published_from": "string", "published_to": "string",
+    "notice_types": "list", "page_size": "integer", "start_date": "string", "end_date": "string", "award_type_codes": "list", "naics_codes": "list",
+    "recipient_search_text": "string", "max_pages": "integer", "min_awards": "integer", "min_award_years": "integer", "max_queries": "integer",
+    "max_keywords": "integer", "results_per_query": "integer", "authority_codes": "list", "api_key": "string", "limit": "integer",
+    "permission_basis": "string", "permission_note": "string",
+}
+
+
+def config_schema_for(info: dict[str, Any] | None) -> list[ConfigKeyOut]:
+    """Permitted config keys of an adapter: the keys its ``access_requirements`` text names (quoted or from the shared vocabulary),
+    credentials when it needs them, and the permission fields every source accepts."""
+    keys: dict[str, str] = {"permission_basis": "string", "permission_note": "string", "mapping": "object"}
+    text_ = (info or {}).get("access_requirements") or ""
+    for m in re.finditer(r"[A-Za-z_]{3,40}", text_):
+        w = m.group(0)
+        if w in _VOCAB:
+            keys.setdefault(w, _VOCAB[w])
+    for q in re.findall(r"'([a-z_]{2,40})'", text_):
+        keys.setdefault(q, _VOCAB.get(q, "string"))
+    if (info or {}).get("credentials") in ("required", "optional") or "api key" in text_.lower() or "api_key" in text_:
+        keys.setdefault("api_key", "string")
+    return [ConfigKeyOut(key=k, type=t, secret=bool(SECRET_KEY_RE.search(k))) for k, t in sorted(keys.items())]  # type: ignore[arg-type]
 
 
 def mask_config(cfg: dict[str, Any]) -> dict[str, Any]:
@@ -135,6 +178,10 @@ async def build_sources(session: AsyncSession) -> list[SourceOut]:
             config=mask_config(cfg), last_run_at=st.last_run_at if st else None, last_success_at=st.last_success_at if st else None,
             runs_ok=st.runs_ok if st else 0, runs_failed=st.runs_failed if st else 0, businesses_recovered=st.businesses_recovered if st else 0,
             last_error=st.last_error if st else None, total_businesses=biz.get(aid, 0), total_published_emails=em.get(aid, 0), health=await _health_of(session, aid),
+            rate_policy=(info or {}).get("rate_policy") or {}, retry_policy=(info or {}).get("retry_policy") or {},
+            fields_available=list((info or {}).get("fields_available") or []), cost=(info or {}).get("cost"), credentials=(info or {}).get("credentials"),
+            refresh_frequency=(info or {}).get("refresh_frequency"), allowed_usage=(info or {}).get("allowed_usage"), access_method=(info or {}).get("access_method"),
+            config_schema=config_schema_for(info),
         ))
     out.sort(key=lambda s: (s.priority, s.adapter_id))
     return out
@@ -214,7 +261,16 @@ async def set_source_config(adapter_id: str, body: ConfigIn, request: Request, u
     up = uploads_dir(app_settings(request))
     old = st.config or {}
     new: dict[str, Any] = {}
+    allowed = {c.key: c for c in config_schema_for((adapter_catalog() or {}).get(adapter_id))}
     for k, v in body.config.items():
+        spec = allowed.get(k)
+        if spec is None and not SECRET_KEY_RE.search(k):
+            raise ApiError(422, "invalid_config_key", f"'{k[:60]}' is not a permitted configuration key for this source (permitted: {', '.join(sorted(allowed))}).")
+        if spec is not None and v not in (None, "********"):
+            ok = {"integer": isinstance(v, int) and not isinstance(v, bool), "boolean": isinstance(v, bool), "list": isinstance(v, list), "object": isinstance(v, dict),
+                  "path": isinstance(v, str), "url": isinstance(v, str) and v.lower().startswith(("http://", "https://")), "string": isinstance(v, str | int | float)}[spec.type]
+            if not ok:
+                raise ApiError(422, "invalid_config_value", f"'{k}' must be of type {spec.type}.")
         if v == "********" and k in old:  # unchanged masked secret
             new[k] = old[k]
             continue

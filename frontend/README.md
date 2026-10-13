@@ -9,6 +9,10 @@ npm run gen:api      # regenerate lib/api-types.ts from ../backend/openapi.json
 npm run test:e2e     # Playwright (starts/reuses `npm run dev`; backend NOT required)
 ```
 
+### Backend URL (build-time)
+
+`/api/*` and `/healthz` are proxied to `BACKEND_URL` by `rewrites()` in `next.config.ts`. **The value is baked in at `next build`**: Next writes the rewrites into `.next/routes-manifest.json`, and `next start` / the standalone `server.js` read only that manifest. Changing `BACKEND_URL` on a running production server or container does nothing – rebuild (`BACKEND_URL=http://host:port npm run build`, or `docker build --build-arg BACKEND_URL=…`). The Dockerfile's `ARG BACKEND_URL` (default `http://api:8000`, as used by docker-compose) exists for this reason. In `npm run dev` the value is re-read on every restart.
+
 Dev-only visual QA page: **/design** (every primitive, 404 in production builds).
 Optional auth e2e: `E2E_ADMIN_EMAIL=… E2E_ADMIN_PASSWORD=… npx playwright test e2e/auth.spec.ts` (needs backend + admin created with `python -m app.cli create-admin`).
 

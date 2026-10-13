@@ -14,6 +14,12 @@ log = logging.getLogger("bootstrap")
 
 
 async def create_user(session: AsyncSession, email: str, password: str, role: str = "admin") -> User:
+    from email_validator import EmailNotValidError, validate_email
+
+    try:  # same validation as POST /api/users
+        email = validate_email(email.strip(), check_deliverability=False).normalized.lower()
+    except EmailNotValidError as e:
+        raise ValueError(f"'{email[:80]}' is not a valid email address ({e})") from None
     problems = validate_password_policy(password, email)
     if problems:
         raise ValueError(" ".join(problems))

@@ -40,7 +40,8 @@ export const NAV: NavGroup[] = [
       { href: '/data-quality', label: 'Data Quality', icon: BarChart3 },
       { href: '/exports', label: 'Exports', icon: Download },
       { href: '/system', label: 'System', icon: Activity, minRole: 'admin' },
-      { href: '/settings', label: 'Settings', icon: Settings, minRole: 'admin' },
+      // Visible to every role: Account & security (password, MFA) lives here; the page itself limits other tabs to admins.
+      { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];

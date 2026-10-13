@@ -9,17 +9,19 @@ from datetime import UTC, datetime
 from typing import Any
 
 import psutil
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import text
+from sqlalchemy import literal, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import jobqueue as jq
 from ..db import get_session
-from ..models import User
-from ..security import app_settings, audit, require_role
+from ..models import SourcingJob, User
+from ..security import ApiError, app_settings, audit, require_role
 from ..settings_store import get_setting, invalidate_maintenance_cache, set_setting
+from .common import Page
 from .dashboard import WorkerHealth
+from .runs import JobRow, job_row, page_jobs
 
 log = logging.getLogger("api.system")
 router = APIRouter(prefix="/api/system", tags=["system"], dependencies=[Depends(require_role("viewer"))])
@@ -218,3 +220,27 @@ async def set_maintenance(body: MaintenanceIn, user: User = Depends(require_role
     return MaintenanceOut(enabled=body.enabled, message=v["message"], since=v["since"])
 
 
+
+
+# --------------------------------------------------------------------------- failed jobs (any run, including run-less jobs)
+@router.get("/failed-jobs", response_model=Page[JobRow])
+async def failed_jobs(stage: str | None = Query(None, max_length=24), error_code: str | None = Query(None, max_length=80),
+                      state: str | None = Query("failed,dead", description="comma separated job states"), run_id: int | None = Query(None, ge=1),
+                      limit: int = Query(50, ge=1, le=200), cursor: str | None = None, session: AsyncSession = Depends(get_session)) -> Page[JobRow]:
+    """Failed / dead jobs across all runs, hidden system runs and jobs without a run."""
+    cond = SourcingJob.run_id == run_id if run_id else literal(True)
+    return await page_jobs(session, cond, state, stage, error_code, limit, cursor)
+
+
+@router.post("/jobs/{job_id}/retry", response_model=JobRow)
+async def retry_any_job(job_id: int, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> JobRow:
+    job = await session.get(SourcingJob, job_id)
+    if job is None:
+        raise ApiError(404, "not_found", "Job not found.")
+    if job.state not in ("failed", "dead"):
+        raise ApiError(409, "invalid_job_state", f"Only failed or dead jobs can be retried; this job is {job.state}.")
+    await jq.retry_jobs(session, job_ids=[job_id])
+    await audit(session, user, "system.retry_job", "job", job_id, {"run_id": job.run_id, "stage": job.stage})
+    await session.commit()
+    await session.refresh(job)
+    return job_row(job)

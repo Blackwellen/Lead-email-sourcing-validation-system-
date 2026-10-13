@@ -1,14 +1,13 @@
-import { PageHeader } from '@/components/composites/page-header';
-import { EmptyState } from '@/components/composites/empty-state';
-import { Construction } from 'lucide-react';
+import { Suspense } from 'react';
+import { LoadingState } from '@/components/composites/loading-state';
+import { DiscoveryPage } from '@/components/discovery/overview/discovery-page';
 
-export const metadata = { title: 'Discovery' };
+export const metadata = { title: 'Discovery Intelligence' };
 
 export default function Page() {
   return (
-    <>
-      <PageHeader title="Discovery" description="Discovery pipeline coverage and gaps." />
-      <EmptyState icon={Construction} title="Under construction" description="This page is being built." />
-    </>
+    <Suspense fallback={<LoadingState label="Loading discovery…" />}>
+      <DiscoveryPage />
+    </Suspense>
   );
 }

@@ -19,6 +19,7 @@ ADMIN_RULES = [
     ("POST", r"^/api/categories/(\d+/(disable|enable|merge)|import)$"), ("DELETE", r"^/api/categories/\d+$"),
     ("POST", r"^/api/businesses/merge$"), ("DELETE", r"^/api/contacts/\d+$"), ("DELETE", r"^/api/suppressions/\d+$"),
     ("POST", r"^/api/sources/[\w-]+/(enable|disable)$"), ("PUT", r"^/api/sources/[\w-]+/(priority|config)$"),
+    ("DELETE", r"^/api/discovery/monitors/\d+$"),  # destructive discovery operations
     ("PUT", r"^/api/verification/domain-permissions/[\w.-]+$"), ("DELETE", r"^/api/verification/domain-permissions/[\w.-]+$"),
 ]
 
@@ -35,7 +36,7 @@ def expected_min_role(method: str, path: str) -> int:
 def fill(path: str) -> str:
     def sub(m):
         name = m.group(1)
-        return {"domain": "example.com", "section": "validation", "adapter_id": "company_websites", "code": "GB"}.get(name, "999999")
+        return {"domain": "example.com", "section": "validation", "adapter_id": "company_websites", "code": "GB", "issue_type": "stale_emails"}.get(name, "999999")
 
     return re.sub(r"\{(\w+)\}", sub, path)
 

@@ -70,3 +70,21 @@ async def test_lease_expiry_recovery_and_dead_letter(session):
     assert await q.retry_jobs(session, run_id=rid) == 1
     await session.commit()
     assert (await session.execute(text("select state from sourcing_jobs"))).scalar() == "queued"
+
+
+async def test_claim_honours_maintenance_mode(session):
+    """Workers claim nothing while the admin-controlled maintenance flag is on (documented in app/jobqueue.claim)."""
+    from app import jobqueue as jq
+    from app.settings_store import invalidate_maintenance_cache, set_setting
+    from sqlalchemy import text
+
+    rid = (await session.execute(text("INSERT INTO sourcing_runs (name, configuration_snapshot, target_count, status) VALUES ('m','{}'::jsonb,1,'running') RETURNING id"))).scalar()
+    await jq.enqueue(session, run_id=rid, stage="verify", dedupe_key="mm", payload={})
+    await set_setting(session, "maintenance", {"enabled": True, "message": "x"})
+    await session.commit()
+    invalidate_maintenance_cache()
+    assert await jq.claim(session, "w", ["verify"], 5, 30) == []
+    await set_setting(session, "maintenance", {"enabled": False})
+    await session.commit()
+    invalidate_maintenance_cache()
+    assert len(await jq.claim(session, "w", ["verify"], 5, 30)) == 1

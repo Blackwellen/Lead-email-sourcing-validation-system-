@@ -439,7 +439,7 @@ async def import_source_file(source_id: str, request: Request, file: UploadFile 
     st.config = {**(st.config or {}), "path": str(path)}
     await audit(session, user, "source_explorer.import", "source", aid, {"upload_id": uid, "kind": kind, "size": len(data), "before_path": before})
     await session.commit()
-    return ImportOut(adapter_id=aid, upload_id=uid, kind=kind, size=len(data), path=str(path))
+    return ImportOut(adapter_id=aid, upload_id=uid, kind=IMPORT_EXTS.get(kind, kind), size=len(data), path=str(path))
 
 
 _ = (list_adapters, ACCESS_METHODS)

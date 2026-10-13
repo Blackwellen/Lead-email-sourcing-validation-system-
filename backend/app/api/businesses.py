@@ -183,6 +183,8 @@ class BusinessMergeOut(BaseModel):
     domains_moved: int
     contacts_moved: int
     emails_moved: int
+    dry_run: bool = False
+    would_move: dict[str, int] = Field(default_factory=dict, description="dry_run only: rows that WOULD be moved / collapsed")
 
 
 def normalise_domain(raw: str) -> tuple[str, str]:
@@ -419,7 +421,7 @@ async def bulk_businesses(body: BusinessBulkIn, user: User = Depends(require_rol
 
 
 @router.post("/merge", response_model=BusinessMergeOut)
-async def merge_businesses(body: BusinessMergeIn, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> BusinessMergeOut:
+async def merge_businesses(body: BusinessMergeIn, dry_run: bool = Query(False, description="preview only: count the rows that would move, change nothing"), user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> BusinessMergeOut:
     dups = sorted(set(body.duplicate_ids) - {body.primary_id})
     if not dups:
         raise ApiError(422, "invalid_merge", "Choose at least one duplicate different from the primary business.")
@@ -431,6 +433,18 @@ async def merge_businesses(body: BusinessMergeIn, user: User = Depends(require_r
         raise ApiError(404, "not_found", "One or more duplicates do not exist or were already merged.")
     stats = {"domains": 0, "contacts": 0, "emails": 0}
     p = body.primary_id
+    if dry_run:
+        wm = {}
+        for name, sql in (("domains", "SELECT count(*) FROM organisation_domains d WHERE d.organisation_id = ANY(:ds) AND NOT EXISTS (SELECT 1 FROM organisation_domains x WHERE x.organisation_id=:p AND x.domain=d.domain)"),
+                          ("domains_duplicate_dropped", "SELECT count(*) FROM organisation_domains d WHERE d.organisation_id = ANY(:ds) AND EXISTS (SELECT 1 FROM organisation_domains x WHERE x.organisation_id=:p AND x.domain=d.domain)"),
+                          ("contacts", "SELECT count(*) FROM contacts WHERE organisation_id = ANY(:ds)"),
+                          ("emails", "SELECT count(*) FROM email_addresses WHERE organisation_id = ANY(:ds)"),
+                          ("evidence", "SELECT count(*) FROM contact_evidence WHERE organisation_id = ANY(:ds)"),
+                          ("run_memberships", "SELECT count(*) FROM run_organisations WHERE organisation_id = ANY(:ds)"),
+                          ("yield_rows", "SELECT count(*) FROM run_yield WHERE organisation_id = ANY(:ds)")):
+            wm[name] = int((await session.execute(text(sql), {"ds": dups, "p": p})).scalar_one())
+        await session.rollback()
+        return BusinessMergeOut(primary_id=p, merged=dups, domains_moved=wm["domains"], contacts_moved=wm["contacts"], emails_moved=wm["emails"], dry_run=True, would_move=wm)
     for dup in dups:
         # domains: move those the primary lacks, drop exact duplicates
         stats["domains"] += (await session.execute(text(

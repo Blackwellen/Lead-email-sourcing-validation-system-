@@ -174,6 +174,7 @@ class JobRow(BaseModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     payload: dict[str, Any]
+    run_id: int | None = None
 
 
 class TabCounts(BaseModel):
@@ -554,6 +555,29 @@ async def get_run(run_id: int, request: Request, window_minutes: int = Query(15,
 
 # --------------------------------------------------------------------------- jobs / contacts / organisations
 JOB_STATES = {"queued", "leased", "done", "failed", "dead", "cancelled", "paused"}
+
+
+def job_row(j: SourcingJob) -> JobRow:
+    return JobRow(id=j.id, stage=j.stage, state=j.state, dedupe_key=j.dedupe_key, attempts=j.attempts, error_code=j.error_code, error_detail=j.error_detail,
+                  host_key=j.host_key, next_attempt_at=j.next_attempt_at, started_at=j.started_at, finished_at=j.finished_at, payload=j.payload,
+                  run_id=j.run_id)
+
+
+async def page_jobs(session: AsyncSession, run_cond, state: str | None, stage: str | None, error_code: str | None, limit: int, cursor: str | None) -> Page[JobRow]:
+    states = [x for x in (state or "").split(",") if x]
+    if any(x not in JOB_STATES for x in states):
+        raise ApiError(422, "invalid_filter", f"state must be a comma separated list of: {', '.join(sorted(JOB_STATES))}.")
+    sorts = {"id": SortSpec(SourcingJob.id, "int")}
+    stmt = select(SourcingJob, SourcingJob.id.label("_sv"), SourcingJob.id.label("_id")).where(run_cond)
+    if states:
+        stmt = stmt.where(SourcingJob.state.in_(states))
+    if stage:
+        stmt = stmt.where(SourcingJob.stage == stage)
+    if error_code:
+        stmt = stmt.where(SourcingJob.error_code == error_code)
+    stmt = apply_keyset(stmt, sorts, "id", "desc", SourcingJob.id, cursor, limit)
+    rows, nxt = finish_page((await session.execute(stmt)).all(), "id", "desc", limit)
+    return Page[JobRow](items=[job_row(j) for j, *_ in rows], next_cursor=nxt)
 
 
 @router.get("/{run_id}/jobs", response_model=Page[JobRow])

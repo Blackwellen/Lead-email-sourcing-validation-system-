@@ -27,6 +27,7 @@ from ..system_runs import new_system_run
 from .common import Ok, Page, SortSpec, apply_keyset, capped_count, finish_page
 from .contacts import ContactRow, _base_from, contact_rows, mask_pii_list
 from .dashboard import _from, _sample_pct, _scaled
+from .runs import JobRow, job_row, page_jobs
 from .filters import ContactFilterSpec, build_conditions, contact_filters
 from .registry import require
 from .uploads import read_limited, sniff
@@ -373,6 +374,34 @@ async def _get_batch(session: AsyncSession, batch_id: int) -> VerificationBatch:
 @router.get("/batches/{batch_id}", response_model=BatchOut)
 async def get_batch(batch_id: int, session: AsyncSession = Depends(get_session)) -> BatchOut:
     return await _batch_out(session, await _get_batch(session, batch_id))
+
+
+@router.get("/batches/{batch_id}/jobs", response_model=Page[JobRow])
+async def batch_jobs(batch_id: int, state: str | None = Query("failed,dead", description="comma separated job states"), stage: str | None = Query(None, max_length=24),
+                     error_code: str | None = Query(None, max_length=80), limit: int = Query(50, ge=1, le=200), cursor: str | None = None,
+                     session: AsyncSession = Depends(get_session)) -> Page[JobRow]:
+    """Jobs of a verification batch (its hidden system run): failures list for the batch detail page."""
+    b = await _get_batch(session, batch_id)
+    if b.run_id is None:
+        return Page[JobRow](items=[], next_cursor=None)
+    return await page_jobs(session, SourcingJob.run_id == b.run_id, state, stage, error_code, limit, cursor)
+
+
+@router.post("/batches/{batch_id}/jobs/{job_id}/retry", response_model=JobRow)
+async def retry_batch_job(batch_id: int, job_id: int, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> JobRow:
+    from .. import jobqueue as jq
+
+    b = await _get_batch(session, batch_id)
+    job = (await session.execute(select(SourcingJob).where(SourcingJob.id == job_id, SourcingJob.run_id == b.run_id))).scalar_one_or_none() if b.run_id else None
+    if job is None:
+        raise ApiError(404, "not_found", "Job not found in this batch.")
+    if job.state not in ("failed", "dead"):
+        raise ApiError(409, "invalid_job_state", f"Only failed or dead jobs can be retried; this job is {job.state}.")
+    await jq.retry_jobs(session, run_id=b.run_id, job_ids=[job_id])
+    await audit(session, user, "verification.retry_job", "job", job_id, {"batch_id": batch_id})
+    await session.commit()
+    await session.refresh(job)
+    return job_row(job)
 
 
 @router.post("/batches/{batch_id}/pause", response_model=BatchOut)

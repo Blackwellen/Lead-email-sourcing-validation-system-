@@ -14,7 +14,7 @@ from ..settings_schema import load_section
 from ..suppression import suppressed_expr
 from .common import prefix_pattern
 
-Reach = Literal["deliverable", "risky", "invalid", "unknown", "undeliverable", "valid"]
+Reach = Literal["safe", "risky", "invalid", "unknown"]  # the stored EmailAddress.overall_reachability values
 OriginGroup = Literal["published", "inferred", "corroborated", "pattern_inferred", "role_speculative"]
 Tri = Literal["yes", "no"]
 
@@ -30,7 +30,7 @@ class ContactFilterSpec(BaseModel):
     include_subcategories: bool = True
     industry: str | None = Field(None, max_length=200)
     origin: list[OriginGroup] = Field(default_factory=list)
-    reachability: list[str] = Field(default_factory=list, max_length=10)
+    reachability: list[Reach] = Field(default_factory=list, max_length=10)
     syntax_status: list[str] = Field(default_factory=list, max_length=10)
     domain_mail_status: list[str] = Field(default_factory=list, max_length=10)
     recipient_evidence_status: list[str] = Field(default_factory=list, max_length=10)

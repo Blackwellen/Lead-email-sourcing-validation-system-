@@ -6,6 +6,9 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# BACKEND_URL is BAKED INTO THE BUILD: Next compiles the /api/* and /healthz rewrites into .next/routes-manifest.json during
+# `npm run build`, and the standalone server.js only reads that manifest. Setting BACKEND_URL on the running container does
+# NOT change where /api is proxied; rebuild with `--build-arg BACKEND_URL=http://<host>:<port>` instead.
 ARG BACKEND_URL=http://api:8000
 ENV BACKEND_URL=$BACKEND_URL NEXT_TELEMETRY_DISABLED=1
 RUN npm run build

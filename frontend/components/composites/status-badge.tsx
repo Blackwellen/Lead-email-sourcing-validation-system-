@@ -94,6 +94,10 @@ const MAP: Record<StatusKind, Record<string, Meta>> = {
     degraded: m('Degraded', 'warning', TriangleAlert),
     down: m('Down', 'danger', CircleX),
     disabled: m('Disabled', 'neutral', Ban),
+    not_configured: m('Not configured', 'neutral', Pencil, 'Needs configuration (credentials / dataset) before use'),
+    restricted: m('Restricted', 'danger', ShieldAlert, 'Terms do not permit automated collection'),
+    info_only: m('Catalogue only', 'neutral', FileText, 'Listed for reference; no automated adapter'),
+    not_implemented: m('Not implemented', 'neutral', FileText, 'Catalogued; no adapter implemented yet'),
     unknown: m('Unknown', 'neutral', HelpCircle),
   },
 };

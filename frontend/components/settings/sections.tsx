@@ -170,7 +170,7 @@ export function NotificationsSection() {
     <SectionForm<z.infer<typeof notifSchema>, Schema<'NotificationSettings'>> name="notifications" title="Notifications" schema={notifSchema}
       description="Who should be told when runs finish or fail."
       toForm={(a) => ({ email_recipients: (a.email_recipients ?? []).join('\n'), notify_on_run_complete: a.notify_on_run_complete ?? false, notify_on_run_failure: a.notify_on_run_failure ?? true, webhook_url: a.webhook_url ?? '' })}
-      toApi={(v) => ({ email_recipients: v.email_recipients.split('\n').map((e) => e.trim()).filter(Boolean), notify_on_run_complete: v.notify_on_run_complete, notify_on_run_failure: v.notify_on_run_failure, webhook_url: v.webhook_url.trim() || null })}>
+      toApi={(v) => ({ informational: true, email_recipients: v.email_recipients.split('\n').map((e) => e.trim()).filter(Boolean), notify_on_run_complete: v.notify_on_run_complete, notify_on_run_failure: v.notify_on_run_failure, webhook_url: v.webhook_url.trim() || null })}>
       {({ register, control, formState: { errors } }) => (
         <>
           <p role="note" className="rounded-md border border-warning-border bg-warning-soft p-3 text-sm text-warning-foreground">These preferences are saved, but this version of the server does not deliver e-mail or webhook notifications yet. Watch the Runs page and the dashboard for run outcomes.</p>
@@ -196,7 +196,7 @@ export function BackupSection() {
     <SectionForm<z.infer<typeof backupSchema>, Schema<'BackupSettings'>> name="backups" title="Backup configuration" schema={backupSchema}
       description="Where your backup policy is documented. These fields are a record for operators; they do not schedule or run anything."
       toForm={(a) => ({ enabled: a.enabled ?? false, schedule_cron: a.schedule_cron ?? '', destination_note: a.destination_note ?? '', retention_days: a.retention_days ?? 14, last_verified_restore_at: a.last_verified_restore_at ? String(a.last_verified_restore_at).slice(0, 10) : '' })}
-      toApi={(v) => ({ ...v, last_verified_restore_at: v.last_verified_restore_at ? `${v.last_verified_restore_at}T00:00:00Z` : null })}>
+      toApi={(v) => ({ ...v, informational: true, last_verified_restore_at: v.last_verified_restore_at ? `${v.last_verified_restore_at}T00:00:00Z` : null })}>
       {({ register, control, formState: { errors } }) => (
         <>
           <div role="note" className="rounded-md border border-info-border bg-info-soft p-3 text-sm text-info-foreground space-y-1">

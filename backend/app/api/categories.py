@@ -43,6 +43,7 @@ class CategoryOut(BaseModel):
     default_sources: list[str]
     enabled: bool
     merged_into_id: int | None = None
+    updated_at: datetime | None = None
 
 
 class CategoryNode(CategoryOut):
@@ -116,7 +117,7 @@ class ImportOut(BaseModel):
 def _out(c: Category) -> CategoryOut:
     return CategoryOut(id=c.id, parent_id=c.parent_id, slug=c.slug, name=c.name, level=c.level, keywords=c.keywords or [], synonyms=c.synonyms or [],
                        excluded_keywords=c.excluded_keywords or [], sic_codes=c.sic_codes or [], osm_tags=c.osm_tags or [], default_sources=c.default_sources or [],
-                       enabled=c.enabled, merged_into_id=c.merged_into_id)
+                       enabled=c.enabled, merged_into_id=c.merged_into_id, updated_at=c.updated_at)
 
 
 def slugify(name: str) -> str:
@@ -350,6 +351,7 @@ async def create_category(body: CategoryIn, user: User = Depends(require_role("o
         raise ApiError(409, "slug_in_use", f"A category with slug '{slug}' already exists.") from None
     await audit(session, user, "category.create", "category", c.id, {"name": c.name, "parent_id": c.parent_id})
     await session.commit()
+    await session.refresh(c)
     return _out(c)
 
 
@@ -398,6 +400,7 @@ async def update_category(category_id: int, body: CategoryUpdateIn, user: User =
             setattr(c, f, list(dict.fromkeys(s.strip() for s in v if s.strip()))[:500])
     await audit(session, user, "category.update", "category", c.id, {"fields": sorted(body.model_dump(exclude_unset=True))})
     await session.commit()
+    await session.refresh(c)
     return _out(c)
 
 
@@ -407,6 +410,7 @@ async def set_category_synonyms(category_id: int, body: SynonymsIn, user: User =
     c.synonyms = body.synonyms
     await audit(session, user, "category.synonyms", "category", c.id, {"count": len(body.synonyms)})
     await session.commit()
+    await session.refresh(c)
     return _out(c)
 
 
@@ -416,6 +420,7 @@ async def _set_enabled(session: AsyncSession, user: User, category_id: int, enab
     await session.execute(text("UPDATE categories SET enabled=:e WHERE id = ANY(:ids)"), {"e": enabled, "ids": list(ids)})
     await audit(session, user, "category.enable" if enabled else "category.disable", "category", c.id, {"affected": len(ids)})
     await session.commit()
+    await session.refresh(c)
     await session.refresh(c)
     return _out(c)
 

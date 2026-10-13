@@ -11,11 +11,14 @@ export function KeyValueList({ items, columns = 1, className }: { items: KeyValu
       {items.map((it, i) => (
         <div key={i} className="min-w-0">
           <dt className="text-xs font-medium text-muted-foreground">{it.label}</dt>
-          <dd className={cn('mt-0.5 flex items-center gap-1 break-words text-sm', it.mono && 'font-mono text-xs')}>
-            <span className="min-w-0">{it.value === null || it.value === undefined || it.value === '' ? <span className="text-muted-foreground">—</span> : it.value}</span>
-            {it.copy && <CopyButton value={it.copy} label={`Copy ${typeof it.label === 'string' ? it.label : 'value'}`} />}
+          <dd className="mt-0.5 break-words text-sm">
+            <span className={cn('flex items-center gap-1', it.mono && 'font-mono text-xs')}>
+              <span className="min-w-0">{it.value === null || it.value === undefined || it.value === '' ? <span className="text-muted-foreground">—</span> : it.value}</span>
+              {it.copy && <CopyButton value={it.copy} label={`Copy ${typeof it.label === 'string' ? it.label : 'value'}`} />}
+            </span>
+            {/* hint lives inside <dd>: a <dl> group div may only contain dt/dd (axe definition-list) */}
+            {it.hint && <span className="mt-0.5 block text-xs text-muted-foreground">{it.hint}</span>}
           </dd>
-          {it.hint && <p className="mt-0.5 text-xs text-muted-foreground">{it.hint}</p>}
         </div>
       ))}
     </dl>

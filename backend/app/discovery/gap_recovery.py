@@ -128,9 +128,11 @@ class YieldTracker:
     def __init__(self, window: int = 50) -> None:
         self.window = window
         self._hist: dict[str, deque[bool]] = {}
+        self._new: dict[str, list[bool]] = {}  # observations since load: merged (not overwritten) on save, so concurrent jobs add up
 
     def record(self, step: str, useful: bool) -> None:
         self._hist.setdefault(step, deque(maxlen=self.window)).append(bool(useful))
+        self._new.setdefault(step, []).append(bool(useful))
 
     def attempts(self, step: str) -> int:
         return len(self._hist.get(step, ()))
@@ -161,13 +163,18 @@ class YieldTracker:
         return cls.from_dict(((run.counters or {}) if run else {}).get("gap_yield"))
 
     async def save(self, session: AsyncSession, run_id: int | None) -> None:
-        if run_id is None:
+        if run_id is None or not self._new:
             return
         import json
 
+        cur = (await session.execute(text("SELECT COALESCE(counters->'gap_yield','{}'::jsonb) FROM sourcing_runs WHERE id=:r FOR UPDATE"), {"r": run_id})).scalar_one_or_none()
+        merged = dict(cur or {})
+        for step, obs in self._new.items():
+            merged[step] = ([int(x) for x in merged.get(step, [])] + [int(x) for x in obs])[-self.window:]
+        self._new = {}
         await session.execute(text(
             "UPDATE sourcing_runs SET counters = jsonb_set(COALESCE(counters,'{}'::jsonb), '{gap_yield}', CAST(:v AS jsonb)) WHERE id=:r"),
-            {"v": json.dumps(self.to_dict()), "r": run_id})
+            {"v": json.dumps(merged), "r": run_id})
 
 
 # --------------------------------------------------------------------------- state helpers
@@ -219,7 +226,8 @@ async def _resolve(ctx: StepContext, cands: list[Candidate]) -> StepResult:
             if cr is not None and row.verified_match_status in ("confirmed", "high") and cr.observations:
                 made = await persist_observations(ctx.session, ctx.org.id, row, cr.observations, run_id=ctx.run_id, source_adapter="gap_recovery")
                 emails += len(made)
-    return StepResult("found" if website or emails else "none", website=website, emails=emails, domains=len(res.rows),
+    return StepResult("found" if website or emails else "none", website=website, emails=emails,
+                      domains=sum(1 for r, _m in res.rows if r.verified_match_status == "review"),  # probed-and-rejected guesses are not progress
                       requests=requests, detail={"candidates": [c.domain for c in cands]})
 
 

@@ -112,7 +112,6 @@ function TimeSeries({ d, loading }: { d?: Overview; loading: boolean }) {
   const rows = d?.time_series ?? [];
   return (
     <ChartCard
-      className="relative overflow-hidden"
       title="Discoveries and validations per day"
       description="Last 30 days"
       loading={loading}
@@ -139,7 +138,6 @@ function Distribution({ title, description, rows, loading, approximate, colorInd
   const data = rows ?? [];
   return (
     <ChartCard
-      className="relative overflow-hidden"
       title={title}
       description={description}
       loading={loading}
@@ -266,7 +264,7 @@ function Failures({ d, loading }: { d?: Overview; loading: boolean }) {
   return (
     <Panel title="Latest failures" description="Failed or dead jobs, newest first" className="lg:col-span-2">
       {loading ? <Skel /> : !d || d.latest_failed_jobs.length === 0 ? <EmptyState compact icon={BadgeCheck} title="No failed jobs" description="Nothing has failed recently." /> : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[32rem] text-left text-sm">
             <caption className="sr-only">Latest failed jobs</caption>
             <thead><tr className="text-xs text-muted-foreground">

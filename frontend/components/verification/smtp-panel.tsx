@@ -19,11 +19,11 @@ import { ConfirmDialog } from '@/components/ui/alert-dialog';
 
 export function SmtpPanel() {
   const st = useQuery({ queryKey: qk.custom('verification', 'smtp'), queryFn: ({ signal }) => api.get<Schema<'SmtpStatus'>>('/api/verification/smtp', { signal }) });
-  const perms = useQuery({ queryKey: qk.custom('verification', 'permissions'), queryFn: ({ signal }) => api.get<Schema<'PermissionOut'>[]>('/api/verification/domain-permissions', { signal }) });
+  const perms = useQuery({ queryKey: qk.custom('verification', 'permissions'), queryFn: ({ signal }) => api.get<Schema<'app__api__verification__PermissionOut'>[]>('/api/verification/domain-permissions', { signal }) });
   const [domain, setDomain] = React.useState('');
   const [basis, setBasis] = React.useState('');
   const [err, setErr] = React.useState<Record<string, string>>({});
-  const save = useApiMutation<Schema<'PermissionOut'>, void>({
+  const save = useApiMutation<Schema<'app__api__verification__PermissionOut'>, void>({
     mutationFn: () => api.put(`/api/verification/domain-permissions/${encodeURIComponent(domain.trim().toLowerCase())}`, { smtp_probe_allowed: true, basis: basis.trim() }),
     successMessage: 'Domain authorised for SMTP diagnostics (audited)', errorMessage: false,
     invalidate: [qk.custom('verification', 'permissions'), qk.custom('verification', 'smtp')],

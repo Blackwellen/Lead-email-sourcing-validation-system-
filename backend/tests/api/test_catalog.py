@@ -157,8 +157,8 @@ async def test_sources_listing_state_and_admin_controls(operator_client, admin_c
     assert (await admin_client.put("/api/sources/csv_import/priority", json={"priority": 7})).json()["priority"] == 7
     assert (await admin_client.put("/api/sources/csv_import/priority", json={"priority": -1})).status_code == 422
     assert (await admin_client.post("/api/sources/does_not_exist/enable")).status_code == 404
-    r = await admin_client.put("/api/sources/csv_import/config", json={"config": {"country_code": "GB", "api_key": "sk-supersecret", "nested": {"token": "abc"}}})
-    assert r.status_code == 200 and r.json()["config"] == {"country_code": "GB", "api_key": "********", "nested": {"token": "********"}}
+    r = await admin_client.put("/api/sources/csv_import/config", json={"config": {"country_code": "GB", "api_key": "sk-supersecret", "mapping": {"token": "abc"}}})
+    assert r.status_code == 200 and r.json()["config"] == {"country_code": "GB", "api_key": "********", "mapping": {"token": "********"}}
     r = await admin_client.put("/api/sources/csv_import/config", json={"config": {"country_code": "IE", "api_key": "********"}})
     async with sessionmaker()() as s:
         cfg = (await s.execute(text("SELECT config FROM source_adapter_state WHERE adapter_id='csv_import'"))).scalar_one()

@@ -157,7 +157,7 @@ async def test_presets_audit_columns_and_uniqueness(operator_client):
     assert roles["row_count"] == 2
     pub = await make_export(c, "published_business_emails", filters={"min_confidence": 90})
     assert pub["row_count"] == 2
-    cust = await make_export(c, filters={"country": ["GB"], "exclude_catch_all": True, "exclude_suppressed": True, "contact_type": "role", "reachability": ["deliverable"]})
+    cust = await make_export(c, filters={"country": ["GB"], "exclude_catch_all": True, "exclude_suppressed": True, "contact_type": "role", "reachability": ["safe"]})
     assert cust["row_count"] == 2
     assert (await c.post("/api/exports", json={"preset": "nope", "format": "csv"})).status_code == 422
     assert (await c.post("/api/exports", json={"preset": "full_intelligence", "format": "pdf"})).status_code == 422

@@ -186,7 +186,7 @@ async def test_dashboard_overview_aggregates(operator_client):
         o1 = await seed_org(s, "A Ltd", country="GB", region="Kent", source="companies_house_bulk")
         o2 = await seed_org(s, "B Ltd", country="IE", region="Cork", source="osm_geofabrik")
         await s.execute(text("INSERT INTO organisation_domains (organisation_id, domain, registrable_domain, verified_match_status) VALUES (:o,'a.example.com','a.example.com','confirmed')"), {"o": o1})
-        await seed_email(s, o1, "x@a.example.com", reachability="deliverable")
+        await seed_email(s, o1, "x@a.example.com", reachability="safe")
         await seed_email(s, o1, "y@a.example.com", reachability="unknown", catch_all="confirmed", origin="pattern_inferred")
         await seed_email(s, o2, "z@b.example.com", reachability="invalid", validated=False)
         await s.execute(text("INSERT INTO sourcing_jobs (stage, dedupe_key, state, error_code, error_detail) VALUES ('crawl','k','dead','http_500','boom')"))
@@ -197,7 +197,7 @@ async def test_dashboard_overview_aggregates(operator_client):
     assert d["approximate"] is False
     assert d["total_businesses"]["value"] == 2 and d["businesses_with_confirmed_domains"]["value"] == 1
     assert d["published_contacts"]["value"] == 2 and d["inferred_candidates"]["value"] == 1
-    assert {b["key"]: b["count"] for b in d["reachability_distribution"]} == {"deliverable": 1, "unknown": 1, "invalid": 1}
+    assert {b["key"]: b["count"] for b in d["reachability_distribution"]} == {"safe": 1, "unknown": 1, "invalid": 1}
     assert d["catch_all_count"]["value"] == 1 and d["unknown_count"]["value"] == 1
     assert d["active_runs_count"] == 1 and d["active_runs"][0]["target_count"] == 100
     assert {b["key"]: b["count"] for b in d["validation_freshness"]}["never"] == 1 and {b["key"]: b["count"] for b in d["validation_freshness"]}["<7d"] == 2

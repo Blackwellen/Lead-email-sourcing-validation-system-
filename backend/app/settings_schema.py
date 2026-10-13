@@ -86,6 +86,7 @@ class ExportSettings(_S):
 
 
 class NotificationSettings(_S):
+    informational: bool = Field(True, description="These settings are stored for the operator's reference only; nothing in the worker or API sends notifications yet.")
     email_recipients: list[str] = Field(default_factory=list, max_length=50)
     notify_on_run_complete: bool = False
     notify_on_run_failure: bool = True
@@ -100,6 +101,7 @@ class NotificationSettings(_S):
 
 
 class BackupSettings(_S):
+    informational: bool = Field(True, description="Stored for the operator's reference only; the application does not run or verify backups (use pg_dump / your platform).")
     enabled: bool = False
     schedule_cron: str = Field("", max_length=100)
     destination_note: str = Field("", max_length=500)

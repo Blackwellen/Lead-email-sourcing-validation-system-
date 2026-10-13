@@ -123,7 +123,7 @@ async def seed_org(session, name="Acme Plumbing Ltd", country="GB", region="Grea
     return row[0]
 
 
-async def seed_email(session, org_id: int, email: str, *, origin="published", confidence=80.0, role_type=None, reachability="deliverable", marketing="eligible",
+async def seed_email(session, org_id: int, email: str, *, origin="published", confidence=80.0, role_type=None, reachability="safe", marketing="eligible",
                      catch_all="not_catch_all", validated=True, contact_id=None, domain_status="accepts_mail", suppressed=False) -> int:
     local, domain = email.split("@")
     row = (await session.execute(text(
@@ -155,7 +155,7 @@ async def seed_bulk_emails(session, n: int, org_id: int | None = None) -> int:
         """INSERT INTO email_addresses (organisation_id, email_original, email_normalised, local_part, domain, registrable_domain, source_type, origin, confidence,
               overall_reachability, marketing_status, syntax_status, domain_mail_status, last_validated_at)
            SELECT (SELECT min(id) FROM organisations WHERE canonical_identity LIKE 'bulk|%') + (g % GREATEST(1, :orgs)), 'user' || g || '@bulk' || (g % 997) || '.example.com', 'user' || g || '@bulk' || (g % 997) || '.example.com',
-                  'user' || g, 'bulk' || (g % 997) || '.example.com', 'bulk' || (g % 997) || '.example.com', 'website', 'published', 50 + (g % 50), 'deliverable', 'eligible', 'valid', 'accepts_mail', now()
+                  'user' || g, 'bulk' || (g % 997) || '.example.com', 'bulk' || (g % 997) || '.example.com', 'website', 'published', 50 + (g % 50), 'safe', 'eligible', 'valid', 'accepts_mail', now()
            FROM generate_series(1, :n) g"""), {"n": n, "orgs": max(1, n // 5)})
     await session.commit()
     await session.execute(text("ANALYZE email_addresses"))  # fresh bulk loads have no statistics yet (autovacuum would do this)

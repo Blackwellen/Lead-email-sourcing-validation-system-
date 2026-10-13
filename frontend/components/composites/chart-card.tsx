@@ -43,7 +43,7 @@ export function ChartCard({ title, description, children, table, height = 260, l
   const [asTable, setAsTable] = React.useState(false);
   const id = React.useId();
   return (
-    <Card className={className} role="figure" aria-labelledby={`${id}-t`} aria-describedby={description ? `${id}-d` : undefined}>
+    <Card className={cn('relative min-w-0', className)} role="figure" aria-labelledby={`${id}-t`} aria-describedby={description ? `${id}-d` : undefined}>
       <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
         <div className="space-y-1">
           <CardTitle id={`${id}-t`}>{title}</CardTitle>
@@ -73,11 +73,15 @@ export function ChartCard({ title, description, children, table, height = 260, l
           </div>
         )}
         {!asTable && table && !loading && !empty && (
-          <table className="sr-only">
-            <caption>{title}</caption>
-            <thead><tr>{table.columns.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
-            <tbody>{table.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c ?? ''}</td>)}</tr>)}</tbody>
-          </table>
+          // `sr-only` on a <table> itself does not clip (tables size to their content), so a wide fallback table used to push the
+          // page wider than a 375px viewport. Clip it inside a 1px sr-only box; the Card is `relative` so the box is anchored here.
+          <div className="sr-only">
+            <table>
+              <caption>{title}</caption>
+              <thead><tr>{table.columns.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
+              <tbody>{table.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c ?? ''}</td>)}</tr>)}</tbody>
+            </table>
+          </div>
         )}
         {footer && <div className="mt-3 text-xs text-muted-foreground">{footer}</div>}
       </CardContent>

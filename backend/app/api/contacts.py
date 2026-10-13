@@ -85,6 +85,8 @@ class ContactRow(BaseModel):
     city: str | None = None
     category_id: int | None = None
     category_name: str | None = None
+    website: str | None = Field(None, description="website URL of the organisation's best-matching domain")
+    discovery_source: str | None = None
 
 
 class EvidenceOut(BaseModel):
@@ -103,6 +105,7 @@ class EvidenceOut(BaseModel):
 
 class ValidationOut(BaseModel):
     id: int
+    email_id: int | None = None
     check_type: str
     result: str
     reason_code: str | None = None
@@ -135,6 +138,81 @@ class SuppressionOut(BaseModel):
     created_at: datetime
 
 
+class StatusesOut(BaseModel):
+    syntax: str
+    domain_mail: str
+    recipient_evidence: str
+    overall_reachability: str
+    marketing: str
+
+
+class CatchAllOut(BaseModel):
+    status: str
+    domain: str
+
+
+class FlagsOut(BaseModel):
+    needs_review: bool
+    previously_bounced: bool
+    free_provider: bool
+    disposable: bool
+    role_type: str | None = None
+
+
+class ContactProfileOut(BaseModel):
+    id: int
+    full_name: str | None = None
+    given_name: str | None = None
+    family_name: str | None = None
+    job_title: str | None = None
+    department: str | None = None
+    identity_confidence: float
+
+
+class OrganisationBrief(BaseModel):
+    id: int
+    legal_name: str | None = None
+    trading_name: str | None = None
+    company_number: str | None = None
+    legal_type: str | None = None
+    status: str | None = None
+    country_code: str
+    region: str | None = None
+    city: str | None = None
+    postal_code: str | None = None
+    phone: str | None = None
+    industry: str | None = None
+    category_id: int | None = None
+    category_name: str | None = None
+    discovery_source: str | None = None
+
+
+class DomainBrief(BaseModel):
+    id: int
+    domain: str
+    website_url: str | None = None
+    status: str
+    confidence: float
+    parked: bool
+    manual_override: bool
+
+
+class FreshnessOut(BaseModel):
+    last_validated_at: datetime | None = None
+    age_days: int | None = None
+    validity_days: int
+    stale: bool
+    next_expiry: datetime | None = None
+
+
+class MarketingOut(BaseModel):
+    status: str
+    eligible: bool
+    suppressed: bool
+    suppressed_at: datetime | None = None
+    note: str
+
+
 class ContactDetail(BaseModel):
     id: int
     email: str
@@ -143,19 +221,19 @@ class ContactDetail(BaseModel):
     published_or_inferred: str
     confidence: float
     confidence_breakdown: dict[str, Any]
-    statuses: dict[str, str]
-    catch_all: dict[str, Any]
-    flags: dict[str, Any]
-    contact_profile: dict[str, Any] | None = None
-    organisation: dict[str, Any]
-    domains: list[dict[str, Any]]
+    statuses: StatusesOut
+    catch_all: CatchAllOut
+    flags: FlagsOut
+    contact_profile: ContactProfileOut | None = None
+    organisation: OrganisationBrief
+    domains: list[DomainBrief]
     sources: list[EvidenceOut]
     validation_latest: list[ValidationOut]
     validation_history: list[ValidationOut]
     delivery_history: list[DeliveryOut]
     delivery_counts: dict[str, int]
-    freshness: dict[str, Any]
-    marketing: dict[str, Any]
+    freshness: FreshnessOut
+    marketing: MarketingOut
     suppressions: list[SuppressionOut]
     first_seen_at: datetime
     last_seen_at: datetime
@@ -248,7 +326,14 @@ def _row(r) -> ContactRow:
         last_validated_at=m["last_validated_at"], last_seen_at=m["last_seen_at"], domain=m["domain"], contact_id=m["contact_id"],
         full_name=m["full_name"], job_title=m["job_title"], organisation_id=m["organisation_id"], company_name=m["legal_name"] or m["trading_name"],
         country_code=m["country_code"], region=m["region"], city=m["city"], category_id=m["category_id"], category_name=m["category_name"],
+        website=m["website"], discovery_source=m["discovery_source"],
     )
+
+
+def _website_expr():
+    d = OrganisationDomain
+    return (select(func.coalesce(d.website_url, d.domain)).where(d.organisation_id == Org.id, d.parked.is_(False), d.verified_match_status != "mismatch")
+            .order_by(d.confidence.desc(), d.id).limit(1).correlate(Org).scalar_subquery())
 
 
 def _base_from():
@@ -266,7 +351,7 @@ async def contact_rows(
             E.id, E.email_normalised.label("email"), E.origin, E.confidence, E.role_type, E.overall_reachability, E.syntax_status, E.domain_mail_status,
             E.recipient_evidence_status, E.catch_all_status, E.marketing_status, E.needs_review, E.suppressed_at, E.last_validated_at, E.last_seen_at,
             E.domain, E.contact_id, C.full_name, C.job_title, E.organisation_id, Org.legal_name, Org.trading_name, Org.country_code, Org.region, Org.city,
-            Org.category_id, Cat.name.label("category_name"), spec.column.label("_sv"), E.id.label("_id"),
+            Org.category_id, Cat.name.label("category_name"), _website_expr().label("website"), Org.discovery_source, spec.column.label("_sv"), E.id.label("_id"),
         )
         .select_from(_base_from())
         .where(*conds)
@@ -295,7 +380,7 @@ async def list_contacts(
 # --------------------------------------------------------------------------- detail
 def _validation_out(v: ValidationResult, now: datetime) -> ValidationOut:
     return ValidationOut(
-        id=v.id, check_type=v.check_type, result=v.result, reason_code=v.reason_code, detail=v.detail or {}, response_code=v.response_code,
+        id=v.id, email_id=v.email_id, check_type=v.check_type, result=v.result, reason_code=v.reason_code, detail=v.detail or {}, response_code=v.response_code,
         enhanced_status_code=v.enhanced_status_code, provider=v.provider, observed_at=v.observed_at, expires_at=v.expires_at,
         expired=bool(v.expires_at and v.expires_at < now), verifier_version=v.verifier_version, permission_context=v.permission_context,
     )
@@ -335,8 +420,8 @@ def explain(e: EmailAddress, org: Organisation, contact: Contact | None, sources
         if s:
             out.append(s)
     rs = {"untested": "The mailbox itself has not been tested.", "inconclusive": "Tests of the mailbox were inconclusive (the server gave no reliable answer).",
-          "accepted": "The mail server accepted the recipient during diagnostics (this is evidence, not a guarantee of delivery).",
-          "rejected": "The mail server rejected the recipient during diagnostics."}
+          "smtp_recipient_accepted": "The mail server accepted the recipient during diagnostics (this is evidence, not a guarantee of delivery).",
+          "smtp_recipient_rejected": "The mail server rejected the recipient during diagnostics."}
     if e.recipient_evidence_status in rs:
         out.append(rs[e.recipient_evidence_status])
     ca = {"confirmed": "The domain accepts all recipients (catch-all), so mailbox existence cannot be proven.", "suspected": "The domain looks like a catch-all, so mailbox existence cannot be proven.",

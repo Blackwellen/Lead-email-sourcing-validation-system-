@@ -104,7 +104,6 @@ export function PerformanceCharts({ d, buffer }: { d: RunDetail; buffer: LivePoi
         title="Throughput"
         description="Jobs finished and results qualified per minute"
         height={240}
-        className="relative overflow-hidden"
         table={{ columns: ['Time', 'Jobs/min (history)', 'Qualified/min (history)', 'Jobs/min (live)', 'Qualified/min (live)'], rows: merged.map((r) => [minuteClock(r.t), 'serverJobs' in r ? (r as { serverJobs: number }).serverJobs : null, 'serverQualified' in r ? (r as { serverQualified: number }).serverQualified : null, 'liveJobs' in r ? (r as { liveJobs: number }).liveJobs : null, 'liveQualified' in r ? (r as { liveQualified: number }).liveQualified : null]) }}
         empty={merged.length === 0 ? <EmptyState compact icon={Clock} title="No throughput yet" description="Per-minute history appears once jobs finish." /> : undefined}
         footer="History comes from the server (last 30 minutes). Live points are rolling one-minute counts."
@@ -122,7 +121,6 @@ export function PerformanceCharts({ d, buffer }: { d: RunDetail; buffer: LivePoi
         </ComposedChart>
       </ChartCard>
       <ChartCard
-        className="relative overflow-hidden"
         title="Success and failure"
         description="Cumulative finished and failed jobs (live)"
         height={240}
@@ -141,7 +139,6 @@ export function PerformanceCharts({ d, buffer }: { d: RunDetail; buffer: LivePoi
         </LineChart>
       </ChartCard>
       <ChartCard
-        className="relative overflow-hidden"
         title="Queue length"
         description="Jobs waiting and running (live)"
         height={240}

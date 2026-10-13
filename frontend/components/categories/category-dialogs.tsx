@@ -148,11 +148,11 @@ export function MergeCategoryDialog({ open, onOpenChange, category, onDone }: { 
 
 export function ImportTaxonomyDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [file, setFile] = React.useState<File | null>(null);
-  const [preview, setPreview] = React.useState<Schema<'ImportOut'> | null>(null);
+  const [preview, setPreview] = React.useState<Schema<'app__api__categories__ImportOut'> | null>(null);
   const [problems, setProblems] = React.useState<string[]>([]);
   const ref = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (open) { setFile(null); setPreview(null); setProblems([]); } }, [open]);
-  const run = useApiMutation<Schema<'ImportOut'>, boolean>({
+  const run = useApiMutation<Schema<'app__api__categories__ImportOut'>, boolean>({
     mutationFn: (dry) => { const fd = new FormData(); fd.append('file', file!); return api.post('/api/categories/import', fd, { query: { dry_run: dry } }); },
     errorMessage: false, invalidate: INVALIDATE,
     onError: (e: ApiError) => setProblems(Array.isArray(e.detail) && e.detail.every((x) => typeof x === 'string') ? (e.detail as string[]) : [e.message]),
