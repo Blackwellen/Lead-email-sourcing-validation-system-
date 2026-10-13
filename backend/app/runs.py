@@ -144,7 +144,11 @@ async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
             text(
                 """SELECT e.id, e.organisation_id, e.registrable_domain, e.email_normalised, e.origin, e.role_type, e.confidence,
                           e.overall_reachability, e.catch_all_status, e.recipient_evidence_status, e.is_free_provider, e.is_disposable,
-                          e.previously_bounced, e.suppressed_at, e.marketing_status, e.syntax_status, e.domain_mail_status, e.contact_id
+                          e.previously_bounced, e.suppressed_at, e.marketing_status, e.syntax_status, e.domain_mail_status, e.contact_id,
+                          EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id = ce.evidence_id
+                                  WHERE ce.email_id = e.id AND es.historical) AS has_historical,
+                          EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id = ce.evidence_id
+                                  WHERE ce.email_id = e.id AND NOT es.historical) AS has_live
                    FROM email_addresses e WHERE e.id=:id"""
             ),
             {"id": email_id},
@@ -154,6 +158,8 @@ async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
         return False
     if row["syntax_status"] == "invalid" or row["is_disposable"] or row["overall_reachability"] == "invalid":
         return False
+    if row["has_historical"] and not row["has_live"]:
+        return False  # archived (Common Crawl) evidence only: unconfirmed until a live crawl re-observes the address
     if t.published_only and row["origin"] not in ("published", "corroborated"):
         return False
     if not t.allow_inferred and row["origin"] in ("pattern_inferred", "role_speculative"):

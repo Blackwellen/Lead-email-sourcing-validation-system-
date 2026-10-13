@@ -53,7 +53,7 @@ async def test_kill_and_recover(tmp_path):
 
     p2 = _spawn(env)
     try:
-        for _ in range(300):
+        for _ in range(1500):  # discovery resolves every record against known companies (~20 ms each): allow up to 5 minutes
             await asyncio.sleep(0.2)
             async with dbmod.sessionmaker()() as s:
                 st = (await s.execute(text("select state, attempts from sourcing_jobs where stage='discover' and run_id=:r"), {"r": rid})).one()

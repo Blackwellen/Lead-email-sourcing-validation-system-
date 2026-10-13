@@ -73,7 +73,7 @@ function Detail({ s }: { s: Source }) {
           { label: 'Licence', value: s.licence },
           { label: 'Attribution to display', value: s.attribution },
           { label: 'Source URL', value: s.source_url ? <a className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline" href={s.source_url} target="_blank" rel="noreferrer noopener">{s.source_url}<ExternalLink className="size-3" aria-hidden /><span className="sr-only"> (opens in a new tab)</span></a> : null },
-          { label: 'Access requirements, rate and usage policy', value: <span className="whitespace-pre-wrap">{s.access_requirements}</span>, hint: 'Per-source request limits are applied by the worker; the API exposes this free-text policy only.' },
+          { label: 'Access requirements, rate and usage policy', value: <span className="whitespace-pre-wrap">{s.access_requirements}<span className="mt-1 block text-xs text-muted-foreground">Per-source request limits are applied by the worker; the API exposes this free-text policy only.</span></span> },
           { label: 'Terms notes', value: <span className="whitespace-pre-wrap">{s.notes}</span> },
           { label: 'Country coverage', value: s.country_coverage.includes('*') ? 'All countries (*)' : s.country_coverage.join(', ') },
         ]} />
@@ -85,7 +85,7 @@ function Detail({ s }: { s: Source }) {
         <KeyValueList columns={2} items={[
           { label: 'Last run', value: s.last_run_at ? <RelativeTime value={s.last_run_at} /> : null },
           { label: 'Last success', value: s.last_success_at ? formatDateTime(s.last_success_at) : null },
-          { label: 'Successful / failed runs', value: `${s.runs_ok} / ${s.runs_failed}`, hint: rate === null ? 'No runs yet' : `${formatPercent(rate * 100, 0)} success` },
+          { label: 'Successful / failed runs', value: `${s.runs_ok} / ${s.runs_failed} (${rate === null ? 'no runs yet' : `${formatPercent(rate * 100, 0)} success`})` },
           { label: 'Businesses recovered (all runs)', value: formatNumber(s.businesses_recovered) },
           { label: 'Businesses in database', value: formatNumber(s.total_businesses) },
           { label: 'Published emails', value: formatNumber(s.total_published_emails) },

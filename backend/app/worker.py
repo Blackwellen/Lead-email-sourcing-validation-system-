@@ -54,7 +54,14 @@ class JobContext:
 
 class Worker:
     # per-stage concurrency ceilings (backpressure); tuned by run performance presets via settings
-    DEFAULT_STAGE_LIMITS = {"discover": 2, "import_domain": 8, "resolve_domain": 8, "crawl": 8, "verify": 16, "revalidate": 16, "export": 1, "import": 1}
+    DEFAULT_STAGE_LIMITS = {
+        "discover": 2, "import_domain": 8, "resolve_domain": 8, "crawl": 8, "verify": 16, "revalidate": 16, "export": 1, "import": 1,
+        # discovery layer: network / archive / recovery work is deliberately narrower than plain crawling
+        "network_expand": 2, "gap_recovery": 4, "signals": 4, "change_check": 4, "similar_expand": 1, "monitor": 1, "cc_lookup": 2,
+        "completeness": 4,
+    }
+    REBALANCE_EVERY_S = 30.0  # scheduler.rebalance per running run (rate limited)
+    MONITOR_EVERY_S = 300.0  # recurring-monitor tick (run_due_monitors) enqueued from the supervisor
 
     def __init__(self, concurrency: int | None = None, stages: list[str] | None = None, worker_id: str | None = None):
         self.settings = get_settings()
@@ -65,6 +72,8 @@ class Worker:
         self.tasks: set[asyncio.Task] = set()
         self.stage_sems = {st: asyncio.Semaphore(min(self.concurrency, self.DEFAULT_STAGE_LIMITS.get(st, 4))) for st in self.stages}
         self._status_cache: dict[int, tuple[float, str]] = {}
+        self._last_rebalance: dict[int, float] = {}
+        self._last_monitor_tick = 0.0
         self.proc = psutil.Process()
         self.max_rss_mb: float | None = None
         self.started = time.time()
@@ -171,12 +180,53 @@ class Worker:
                         if n:
                             log.warning("recovered %d expired leases", n)
                         await runs.start_due_scheduled(s)
-                        for rid in await runs.active_run_ids(s):
+                        active = await runs.active_run_ids(s)
+                        for rid in active:
                             await runs.evaluate_run(s, rid)
+                        await self._scheduler_tick(s, active)
                         await s.commit()
             except Exception:
                 log.exception("supervisor tick failed")
             await self._sleep(2.0)
+
+    async def _scheduler_tick(self, s: AsyncSession, active: list[int]) -> None:
+        """Rate-limited discovery maintenance inside the supervisor transaction: source-scheduler rebalance per running run and the
+        recurring-monitor tick. Failures are isolated in savepoints; they never stop run supervision."""
+        now = time.monotonic()
+        if active:
+            running = set((await s.execute(text(
+                "SELECT id FROM sourcing_runs WHERE id = ANY(:ids) AND status='running' AND COALESCE(configuration_snapshot->>'system','false') <> 'true'"),
+                {"ids": active})).scalars())
+            for rid in active:
+                if rid not in running or now - self._last_rebalance.get(rid, -1e9) < self.REBALANCE_EVERY_S:
+                    continue
+                self._last_rebalance[rid] = now
+                try:
+                    from .discovery.scheduler import rebalance
+
+                    async with s.begin_nested():
+                        await rebalance(s, rid)
+                except Exception:
+                    log.exception("scheduler rebalance failed for run %s", rid)
+            for rid in [r for r in self._last_rebalance if r not in running]:
+                self._last_rebalance.pop(rid, None)
+        if now - self._last_monitor_tick >= self.MONITOR_EVERY_S:
+            self._last_monitor_tick = now
+            try:
+                async with s.begin_nested():
+                    await self._enqueue_monitor_tick(s)
+            except Exception:
+                log.exception("monitor tick failed")
+
+    async def _enqueue_monitor_tick(self, s: AsyncSession) -> None:
+        from .discovery.monitor import due_monitors
+        from .system_runs import ensure_system_run
+
+        if not await due_monitors(s):
+            return
+        rid = await ensure_system_run(s, "discovery-monitors")
+        bucket = int(time.time() // self.MONITOR_EVERY_S)
+        await jq.enqueue(s, run_id=rid, stage="monitor", dedupe_key=f"tick:{bucket}", payload={"limit": 20}, priority=95)
 
     async def _sleep(self, secs: float):
         try:

@@ -27,6 +27,9 @@ export function availableActions(status: string, archived = false): Record<Lifec
   };
 }
 
+/** Lists, tab counts and run details; per-row detail caches (qk 'row-detail') refresh on their own interval so the mutation does not wait on them. */
+const RUN_KEYS = [[...qk.all('runs'), 'list'], qk.custom('runs', 'tab-counts'), [...qk.all('runs'), 'detail'], qk.all('dashboard')];
+
 const SUCCESS: Record<LifecycleAction, string> = {
   start: 'Run started',
   pause: 'Run paused',
@@ -49,7 +52,7 @@ export function useRunLifecycle() {
     mutationFn: ({ id, action }) => api.post(`/api/runs/${id}/${action}`),
     successMessage: (_d, v) => SUCCESS[v.action],
     errorMessage: 'Run action failed',
-    invalidate: [qk.all('runs'), qk.all('dashboard')],
+    invalidate: RUN_KEYS,
     onSuccess: (data, v) => {
       if (v.action === 'duplicate') {
         const copy = data as RunSummary;
@@ -61,7 +64,7 @@ export function useRunLifecycle() {
     mutationFn: ({ id }) => api.delete(`/api/runs/${id}`),
     successMessage: 'Draft deleted',
     errorMessage: 'Could not delete draft',
-    invalidate: [qk.all('runs')],
+    invalidate: RUN_KEYS,
   });
   const exportRun = useApiMutation<Schema<'ExportOut'>, { id: number }>({
     mutationFn: ({ id }) => api.post<Schema<'ExportOut'>>('/api/exports', { preset: 'full_intelligence', format: 'csv', run_id: id, wait: false }),

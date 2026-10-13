@@ -247,8 +247,16 @@ async def _candidates_by_name(session: AsyncSession, rec: BusinessRecord, names:
         conds.append(Organisation.postal_code == pc)
     if not conds:
         return []
-    q = select(Organisation).where(Organisation.merged_into_id.is_(None), Organisation.country_code == cc, or_(*conds)).order_by(
-        Organisation.id).limit(limit)
+    q = select(Organisation).where(Organisation.merged_into_id.is_(None), Organisation.country_code == cc, or_(*conds))
+    cn = _norm_company_number(rec.company_number)
+    if cn:
+        # organisations that carry a DIFFERENT registration number are proven different legal entities and can never be merged
+        # with this record, so only those with the very same name (kept for the audit trail) are worth loading: without this a
+        # bulk register load would score every similarly named company for every row
+        same = [func.lower(col) == v.lower() for col in (Organisation.legal_name, Organisation.trading_name)
+                for v in (rec.legal_name, rec.trading_name) if v]
+        q = q.where(or_(Organisation.company_number.is_(None), Organisation.company_number == cn, *same))
+    q = q.order_by(Organisation.id).limit(limit)
     return list((await session.execute(q)).scalars())
 
 
@@ -415,6 +423,14 @@ async def resolve_record(
     for org in await _candidates_by_name(session, rec, names) if names else []:
         if org.id in conflict_orgs:
             continue
+        if _cn_conflict(rec_cn, org, cc):
+            # proven different legal entity: only an EXACT name clash is worth an audit trail; skipping the fuzzy scoring of
+            # every similarly named company keeps bulk loads linear (a similar name never changed the outcome here)
+            if set(names) & set(_org_names(org)):
+                conflicts.append({"type": "company_number", "record": rec_cn, "organisation": org.company_number, "org_id": org.id,
+                                  "name_score": 1.0})
+                conflict_orgs.append(org.id)
+            continue
         best, exact, similar = _best_similarity(names, _org_names(org))
         if not similar:
             continue
@@ -469,6 +485,9 @@ async def _review(session, adapter_id, source_ref, idents, cands, basis, conf, p
 
 
 async def _reject(session, rec, adapter_id, source_ref, org_ids, conflict, persist) -> Resolution:
+    # audit links are bounded like review links: a common name must not write one 'rejected' row per similarly named company
+    # (that made bulk loads quadratic); the decision itself and the first conflicting organisations stay recorded.
+    org_ids = list(dict.fromkeys(org_ids))[:MAX_REVIEW_LINKS]
     res = Resolution(None, "rejected", "conflicting_identifier", 1.0,
                      candidates=[{"org_id": o, "basis": "conflict"} for o in dict.fromkeys(org_ids)], detail={"conflict": conflict})
     if persist:

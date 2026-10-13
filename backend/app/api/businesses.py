@@ -23,6 +23,7 @@ from ..models import (
     EmailAddress,
     EvidenceSource,
     Organisation,
+    OrganisationCompleteness,
     OrganisationDomain,
     User,
     ValidationResult,
@@ -80,6 +81,17 @@ class BusinessRow(BaseModel):
     last_checked_at: datetime | None
     updated_at: datetime
     merged_into_id: int | None = None
+    # additive: stored research-completeness summary (null until the worker has assessed the business)
+    completeness_score: int | None = None
+    official_website_state: str | None = None
+    published_email_state: str | None = None
+
+
+class CompletenessBrief(BaseModel):
+    score: int
+    flags: dict[str, str]
+    needs_review: bool
+    updated_at: datetime | None = None
 
 
 class DomainOut(BaseModel):
@@ -134,6 +146,7 @@ class BusinessDetail(BaseModel):
     validation_history: list[ValidationOut]
     runs: list[RunLink]
     duplicates_of: int | None = None
+    completeness: CompletenessBrief | None = None
 
 
 class DomainDecisionIn(BaseModel):
@@ -247,9 +260,13 @@ async def list_businesses(
     n_all = select(func.count()).select_from(e).where(e.organisation_id == Org.id).correlate(Org).scalar_subquery()
     n_pub = select(func.count()).select_from(e).where(e.organisation_id == Org.id, e.origin.in_(("published", "corroborated"))).correlate(Org).scalar_subquery()
     best_conf = select(func.max(e.confidence)).where(e.organisation_id == Org.id).correlate(Org).scalar_subquery()
+    oc = aliased(OrganisationCompleteness)
+    c_score = select(oc.score).where(oc.organisation_id == Org.id).correlate(Org).scalar_subquery()
+    c_site = select(oc.official_website).where(oc.organisation_id == Org.id).correlate(Org).scalar_subquery()
+    c_mail = select(oc.published_email).where(oc.organisation_id == Org.id).correlate(Org).scalar_subquery()
     stmt = (
         select(Org, Cat.name.label("cat_name"), best.c.domain, best.c.verified_match_status, n_all.label("n_all"), n_pub.label("n_pub"), best_conf.label("best_conf"),
-               SORTS[sort].column.label("_sv"), Org.id.label("_id"))
+               c_score.label("c_score"), c_site.label("c_site"), c_mail.label("c_mail"), SORTS[sort].column.label("_sv"), Org.id.label("_id"))
         .select_from(orm_join(Org, Cat, Cat.id == Org.category_id, isouter=True).outerjoin(best, literal(True)))
         .where(*conds)
     )
@@ -265,7 +282,8 @@ async def list_businesses(
         BusinessRow(id=r[0].id, legal_name=r[0].legal_name, trading_name=r[0].trading_name, company_number=r[0].company_number, legal_type=r[0].legal_type,
                     country_code=r[0].country_code, region=r[0].region, city=r[0].city, category_id=r[0].category_id, category_name=r.cat_name,
                     discovery_source=r[0].discovery_source, domain=r.domain, domain_status=r.verified_match_status, email_count=r.n_all, published_email_count=r.n_pub,
-                    best_confidence=r.best_conf, last_checked_at=r[0].last_checked_at, updated_at=r[0].updated_at, merged_into_id=r[0].merged_into_id)
+                    best_confidence=r.best_conf, last_checked_at=r[0].last_checked_at, updated_at=r[0].updated_at, merged_into_id=r[0].merged_into_id,
+                    completeness_score=r.c_score, official_website_state=r.c_site, published_email_state=r.c_mail)
         for r in rows
     ]
     return Page[BusinessRow](items=items, next_cursor=nxt, total_estimate=total, approximate=approx)
@@ -299,7 +317,11 @@ async def get_business(business_id: int, session: AsyncSession = Depends(get_ses
         .order_by(ValidationResult.observed_at.desc()).limit(100))).scalars().all()
     runs = (await session.execute(
         text("SELECT r.id, r.name, r.status, ro.stage FROM run_organisations ro JOIN sourcing_runs r ON r.id = ro.run_id WHERE ro.organisation_id=:o ORDER BY r.id DESC LIMIT 50"), {"o": o.id})).all()
+    comp = await session.get(OrganisationCompleteness, o.id)
     return BusinessDetail(
+        completeness=CompletenessBrief(score=comp.score, needs_review=comp.needs_review, updated_at=comp.updated_at, flags={
+            k: getattr(comp, k) for k in ("official_website", "contact_page_inspected", "published_email", "contact_person_corroborated",
+                                          "email_infrastructure_checked", "recipient_evidence", "campaign_eligibility", "recently_checked")}) if comp else None,
         organisation={c.name: getattr(o, c.name) for c in Organisation.__table__.columns}, category_name=cat.name if cat else None,
         domains=[_domain_out(d) for d in domains],
         contacts=[ContactBrief(id=c.id, full_name=c.full_name, job_title=c.job_title, department=c.department, identity_confidence=c.identity_confidence) for c in contacts],

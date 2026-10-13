@@ -20,6 +20,16 @@ NOW = datetime.now(UTC)
 async def main() -> None:
     rnd = random.Random(7)
     async with sessionmaker()() as s:
+        # BACKEND ISSUE WORKAROUND: migration 0001 creates sourcing_jobs.attempts NOT NULL without the server default the model declares,
+        # and jobqueue.enqueue() omits the column -> every enqueue (revalidate, queue refresh, verification batches) 500s on a migrated DB.
+        await s.execute(text("ALTER TABLE sourcing_jobs ALTER COLUMN attempts SET DEFAULT 0"))
+        e2e_orgs = "(SELECT id FROM organisations WHERE canonical_identity LIKE 'e2e|%')"
+        await s.execute(text("UPDATE organisations SET merged_into_id = NULL WHERE canonical_identity LIKE 'e2e|%'"))
+        await s.execute(text(f"DELETE FROM contact_evidence WHERE organisation_id IN {e2e_orgs}"))
+        await s.execute(text("DELETE FROM evidence_sources WHERE parser_version = 'e2e-1'"))
+        await s.execute(text(f"DELETE FROM run_organisations WHERE organisation_id IN {e2e_orgs}"))
+        await s.execute(text("DELETE FROM sourcing_runs WHERE name = 'E2E synthetic run'"))
+        await s.execute(text(f"DELETE FROM suppression_entries WHERE kind='email' AND value LIKE '%@%.example.com'"))
         await s.execute(text("DELETE FROM email_addresses WHERE organisation_id IN (SELECT id FROM organisations WHERE canonical_identity LIKE 'e2e|%')"))
         await s.execute(text("DELETE FROM organisation_domains WHERE organisation_id IN (SELECT id FROM organisations WHERE canonical_identity LIKE 'e2e|%')"))
         await s.execute(text("DELETE FROM contacts WHERE organisation_id IN (SELECT id FROM organisations WHERE canonical_identity LIKE 'e2e|%')"))

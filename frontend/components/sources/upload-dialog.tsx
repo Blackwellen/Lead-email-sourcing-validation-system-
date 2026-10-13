@@ -79,7 +79,7 @@ export function UploadSourceDialog({ onApply }: { onApply?: (u: UploadOut) => vo
                 <KeyValueList columns={2} items={[
                   { label: 'Rows read', value: formatNumber(report.rows_read ?? 0) },
                   { label: 'Accepted', value: formatNumber(report.accepted ?? 0) },
-                  { label: 'Rejected', value: formatNumber(report.rejected ?? 0), hint: report.reasons && Object.keys(report.reasons).length ? Object.entries(report.reasons).map(([k, v]) => `${k}: ${v}`).join('; ') : undefined },
+                  { label: 'Rejected', value: `${formatNumber(report.rejected ?? 0)}${report.reasons && Object.keys(report.reasons).length ? ` (${Object.entries(report.reasons).map(([k, v]) => `${k}: ${v}`).join('; ')})` : ''}` },
                   { label: 'Duplicates', value: formatNumber(report.duplicates ?? 0) },
                   { label: 'Formula cells dropped', value: formatNumber(report.formula_cells_dropped ?? 0) },
                   { label: 'Encoding', value: report.encoding },

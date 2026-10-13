@@ -59,6 +59,9 @@ class CrawlOptions:
     max_rate_wait_s: float = 20.0
     guess_standard_paths: bool = True
     link_limit: int = 30
+    capture_html: bool = False  # keep the HTML of fetched pages on the result (signals / documents reuse it: no refetch)
+    capture_max_pages: int = 12
+    capture_max_bytes: int = 400_000
 
 
 @dataclass(slots=True)
@@ -141,6 +144,7 @@ class CrawlResult:
     health: DomainHealth = field(default_factory=DomainHealth)
     stats: CrawlStats = field(default_factory=CrawlStats)
     stopped_reason: str = "completed"
+    captured_html: list[tuple[str, str]] = field(default_factory=list)  # (final_url, html) when CrawlOptions.capture_html
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     finished_at: datetime | None = None
     _extractions: list[PageExtraction] = field(default_factory=list, repr=False)
@@ -497,6 +501,13 @@ class _Crawler:
             if rec.error_code and rec.error_code != "extract_error":
                 self._count_error(rec.error_code)
         self._absorb(rec, x)
+        if (self.o.capture_html and result is not None and kind == "page" and x is not None and rec.status is not None
+                and 200 <= rec.status < 300 and "html" in (rec.content_type or "html").lower()
+                and len(self.res.captured_html) < self.o.capture_max_pages):
+            try:
+                self.res.captured_html.append((rec.final_url, result.text()[:self.o.capture_max_bytes]))
+            except Exception:  # capturing is best effort and must never break the crawl
+                pass
         self.res.pages.append(rec)
         await self._emit(rec, x)
         self._last_extraction = x

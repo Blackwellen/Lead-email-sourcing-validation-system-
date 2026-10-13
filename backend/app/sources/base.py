@@ -399,7 +399,9 @@ async def ordered_adapters(
         if source_types and info.source_type not in source_types:
             continue
         prio = st.priority if st is not None else info.default_priority
-        out.append((get_adapter(info.adapter_id, st.config if st else None), prio))
+        from .secret_config import open_config
+
+        out.append((get_adapter(info.adapter_id, open_config(st.config) if st else None), prio))
     out.sort(key=lambda t: (t[1], t[0].info.adapter_id))
     return out
 

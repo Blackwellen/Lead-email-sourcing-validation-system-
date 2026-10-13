@@ -1,6 +1,9 @@
 import type { Schema } from '@/lib/api';
 
-export type Source = Schema<'SourceOut'>;
+type Raw = Schema<'SourceOut'>;
+type Health = Schema<'SourceHealthOut'>;
+/** OpenAPI marks defaulted response fields optional; the API always sends them, so narrow here once. */
+export type Source = Omit<Raw, 'health'> & Required<Pick<Raw, 'country_coverage' | 'requires_config' | 'info_only' | 'live_verified' | 'config' | 'runs_ok' | 'runs_failed' | 'businesses_recovered' | 'total_businesses' | 'total_published_emails'>> & { health: Required<Pick<Health, 'status' | 'message'>> & Health };
 
 export type AccessKind = 'manual_only' | 'catalogue' | 'needs_config' | 'enabled' | 'disabled' | 'unregistered';
 

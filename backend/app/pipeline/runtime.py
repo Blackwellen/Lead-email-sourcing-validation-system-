@@ -30,3 +30,26 @@ async def close_net() -> None:
     _state.pop("robots", None)
     if f is not None:
         await f.aclose()  # type: ignore[attr-defined]
+
+
+# --------------------------------------------------------------------------- per-source gates (rate policy + concurrency)
+_gates: dict[str, object] = {}
+
+
+def adapter_gate(info):
+    """Process-wide :class:`~app.discovery.scheduler.SourceBudget` for one adapter, built from its ``AdapterInfo.rate_policy``.
+
+    ``try_acquire`` takes one request token + one concurrency slot (sliding 60 s window AND token bucket: never more than
+    ``requests_per_minute`` grants in any 60 s span); ``release`` frees the slot. Quotas are enforced separately from measured
+    counters (``flow.QuotaGuard``) so they survive restarts."""
+    from ..discovery.scheduler import SourceBudget
+
+    g = _gates.get(info.adapter_id)
+    if g is None:
+        rp = info.rate_policy
+        g = _gates[info.adapter_id] = SourceBudget(info.adapter_id, rp.requests_per_minute, rp.concurrency)
+    return g
+
+
+def reset_gates() -> None:
+    _gates.clear()

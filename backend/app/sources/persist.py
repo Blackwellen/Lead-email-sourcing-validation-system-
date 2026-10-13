@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from functools import lru_cache
 from datetime import UTC, datetime
 from typing import Any
 
@@ -23,6 +24,7 @@ _STOP_LEADING = {"the"}
 _ALNUM = re.compile(r"[^a-z0-9]+")
 
 
+@lru_cache(maxsize=131072)  # pure function; resolution re-normalises the same candidate names for every record
 def normalise_name(name: str | None) -> str:
     """Lower-case, accent-fold, '&'->'and', strip punctuation, drop legal-form suffixes and a leading 'the'."""
     if not name:

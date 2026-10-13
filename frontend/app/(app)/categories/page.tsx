@@ -1,14 +1,7 @@
-import { PageHeader } from '@/components/composites/page-header';
-import { EmptyState } from '@/components/composites/empty-state';
-import { Construction } from 'lucide-react';
+import { CategoriesPage } from '@/components/categories/categories-page';
 
 export const metadata = { title: 'Categories' };
 
 export default function Page() {
-  return (
-    <>
-      <PageHeader title="Categories" description="Business category taxonomy." />
-      <EmptyState icon={Construction} title="Under construction" description="This page is being built." />
-    </>
-  );
+  return <CategoriesPage />;
 }
