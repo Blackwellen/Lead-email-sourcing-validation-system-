@@ -49,8 +49,59 @@ async def due_monitors(session: AsyncSession, now: datetime | None = None) -> li
     return list((await session.execute(q)).scalars())
 
 
+SERVER_DERIVED_KEYS = ("store_index",)  # never taken from the stored (user) configuration; derived per monitor below
+
+
+def monitor_store_index(mon: MonitorSchedule) -> str:
+    """Server-side fingerprint store of a new-registrations monitor (persists between runs so diffs work)."""
+    from pathlib import Path
+
+    from ..config import get_settings
+
+    d = Path(get_settings().data_dir) / "monitors"
+    d.mkdir(parents=True, exist_ok=True)
+    return str(d / f"{mon.id}.sqlite")
+
+
+class _ScheduleView:
+    """The schedule as handed to an adapter's ``run_monitor``: every attribute is the real row's, except ``config``, which is the
+    policy-checked configuration plus server-derived keys (never written back to the row)."""
+
+    def __init__(self, mon: MonitorSchedule, config: dict[str, Any]):
+        object.__setattr__(self, "_mon", mon)
+        object.__setattr__(self, "config", config)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(object.__getattribute__(self, "_mon"), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "config":
+            object.__setattr__(self, name, value)
+        else:
+            setattr(object.__getattribute__(self, "_mon"), name, value)
+
+
+def checked_config(mon: MonitorSchedule) -> dict[str, Any]:
+    """The monitor's stored configuration after the single source-configuration policy (raises ``NotPermitted``)."""
+    from ..sources.access_policy import config_problems
+    from ..sources.base import NotPermitted
+
+    cfg = {k: v for k, v in dict(mon.config or {}).items() if k not in SERVER_DERIVED_KEYS}
+    problems = config_problems(cfg)
+    if problems:
+        field, msg = problems[0]
+        raise NotPermitted(f"monitor configuration refused: {field}: {msg}")
+    return cfg
+
+
 async def _dispatch(session: AsyncSession, fetcher: SafeFetcher, mon: MonitorSchedule, now: datetime, limiter: RateLimiter,
                     robots: RobotsCache) -> dict[str, Any]:
+    from ..sources.base import NotPermitted
+
+    try:
+        cfg = checked_config(mon)
+    except NotPermitted as e:
+        return {"status": "error", "error": str(e)[:300], "code": "not_permitted"}
     if mon.kind == "website_changes":
         from . import changes
         return await changes.run_monitor(session, fetcher, mon, limiter=limiter, robots=robots)
@@ -63,7 +114,9 @@ async def _dispatch(session: AsyncSession, fetcher: SafeFetcher, mon: MonitorSch
             fn = mod.run_monitor
         except (ImportError, AttributeError):
             return {"status": "unavailable", "reason": "app.sources.new_registrations.run_monitor is not installed"}
-        avail = {"session": session, "fetcher": fetcher, "monitor": mon, "schedule": mon, "config": dict(mon.config or {}), "now": now,
+        cfg["store_index"] = monitor_store_index(mon)
+        view = _ScheduleView(mon, cfg)
+        avail = {"session": session, "fetcher": fetcher, "monitor": view, "schedule": view, "config": cfg, "now": now,
                  "limiter": limiter, "robots": robots}
         params = inspect.signature(fn).parameters
         missing = [n for n, p in params.items() if p.default is inspect.Parameter.empty and p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)

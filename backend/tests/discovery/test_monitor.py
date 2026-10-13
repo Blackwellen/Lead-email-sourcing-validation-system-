@@ -108,3 +108,41 @@ async def test_new_registrations_dispatch_to_other_module(session, fetcher):
             sys.modules["app.sources.new_registrations"] = prev
         else:
             sys.modules.pop("app.sources.new_registrations", None)
+
+
+async def test_monitor_config_policy_and_server_side_store_index(session, fetcher):
+    """Monitor configuration passes the source-configuration policy before any adapter sees it; the new-registrations fingerprint
+    store is derived server-side (per monitor, under data_dir/monitors) and a user-supplied store_index is ignored."""
+    from pathlib import Path
+
+    from app.config import get_settings
+
+    seen = {}
+
+    async def run_monitor(session, schedule, now):
+        seen["store_index"] = schedule.config.get("store_index")
+        seen["days"] = schedule.config.get("days")
+        schedule.last_result = {"touched": True}  # attribute writes go to the real row
+        return {"new": 1}
+
+    prev = sys.modules.get("app.sources.new_registrations")
+    mod = types.ModuleType("app.sources.new_registrations")
+    mod.run_monitor = run_monitor
+    sys.modules["app.sources.new_registrations"] = mod
+    try:
+        mon = MonitorSchedule(kind="new_registrations", name="nr", frequency="daily", config={"store_index": "/etc/evil.sqlite", "days": 3})
+        bad = MonitorSchedule(kind="new_registrations", name="bad", frequency="daily", config={"current_path": "/etc/passwd"})
+        session.add_all([mon, bad])
+        await session.flush()
+        res = {r["id"]: r for r in await run_due_monitors(session, fetcher, now=NOW)}
+        expected = Path(get_settings().data_dir) / "monitors" / f"{mon.id}.sqlite"
+        assert res[mon.id]["status"] == "ok" and seen == {"store_index": str(expected), "days": 3}
+        assert expected.parent.is_dir()
+        assert mon.config == {"store_index": "/etc/evil.sqlite", "days": 3}  # the derived value is never written back
+        assert res[bad.id]["status"] == "error" and "refused" in res[bad.id]["result"]["error"]
+        assert bad.last_result["status"] == "error"
+    finally:
+        if prev is not None:
+            sys.modules["app.sources.new_registrations"] = prev
+        else:
+            sys.modules.pop("app.sources.new_registrations", None)
