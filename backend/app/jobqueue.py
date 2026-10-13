@@ -68,7 +68,14 @@ async def enqueue(
 
 
 async def claim(s: AsyncSession, worker_id: str, stages: list[str], limit: int, lease_s: int) -> list[Job]:
-    """Lease up to ``limit`` runnable jobs. Jobs of paused/draft runs are not handed out."""
+    """Lease up to ``limit`` runnable jobs. Jobs of paused/draft runs are not handed out.
+
+    Nothing is handed out while the admin-controlled maintenance flag is on (cached ~2 s)."""
+    from .settings_store import maintenance_active
+
+    if await maintenance_active(s):
+        await s.rollback()
+        return []
     rows = (
         await s.execute(
             text(

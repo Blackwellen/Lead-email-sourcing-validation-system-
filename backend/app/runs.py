@@ -236,6 +236,8 @@ def progress_value(definition: str, c: dict[str, Any]) -> int:
 async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
     """Refresh counters and apply stop conditions. Returns the new status if it changed."""
     run = await _get(s, run_id)
+    if (run.configuration_snapshot or {}).get("system"):
+        return None  # hidden system runs (refresh / verification batches / exports) never auto-complete
     c = await compute_counters(s, run_id)
     cfg = RunConfig.model_validate(run.configuration_snapshot)
     c["progress"] = progress_value(run.target_definition, c)

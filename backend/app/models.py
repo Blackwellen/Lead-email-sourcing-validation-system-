@@ -224,6 +224,8 @@ class EvidenceSource(Base):
     parser_version: Mapped[str] = mapped_column(String(40), default="1", server_default=sa_text("'1'"))
     content_hash: Mapped[str | None] = mapped_column(String(64))
     source_reliability: Mapped[float] = mapped_column(Float, default=0.5, server_default=sa_text('0.5'))
+    historical: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_text("false"))  # e.g. Common Crawl archive, unconfirmed against live site
+    archive_timestamp: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint("source_adapter", "source_url", "evidence_type", "content_hash", name="uq_evidence_identity"),
     )
@@ -509,3 +511,158 @@ class OrganisationSource(Base):
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
     __table_args__ = (UniqueConstraint("organisation_id", "adapter_id", "source_ref", name="uq_orgsource"),)
+
+
+# --------------------------------------------------------------------------- discovery intelligence (addendum)
+class BusinessRelationship(Base):
+    """Edge in the business graph. Legal entity, trading brand, branch and domain are separate linked records."""
+
+    __tablename__ = "business_relationships"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    from_org_id: Mapped[int] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), index=True)
+    to_org_id: Mapped[int] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), index=True)
+    # branch_of|brand_of|subsidiary_of|supplier_of|partner_of|franchise_of|member_of_group|exhibits_with|awarded_by|same_group
+    relation: Mapped[str] = mapped_column(String(24))
+    source_adapter: Mapped[str] = mapped_column(String(80))
+    source_url: Mapped[str | None] = mapped_column(Text)
+    depth: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    confidence: Mapped[float] = mapped_column(Float, default=0.5, server_default=sa_text("0.5"))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+    __table_args__ = (
+        UniqueConstraint("from_org_id", "to_org_id", "relation", "source_adapter", name="uq_bizrel"),
+        CheckConstraint("from_org_id <> to_org_id", name="ck_bizrel_noself"),
+    )
+
+
+class OrganisationRecordLink(Base):
+    """Cross-source resolution: every source record that was merged into / linked to an organisation (never silently lost)."""
+
+    __tablename__ = "organisation_record_links"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    organisation_id: Mapped[int] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), index=True)
+    source_adapter: Mapped[str] = mapped_column(String(80))
+    source_ref: Mapped[str] = mapped_column(String(300))
+    identifier_type: Mapped[str | None] = mapped_column(String(30))  # company_number|lei|abn|charity_no|osm|wikidata|ted|...
+    identifier_value: Mapped[str | None] = mapped_column(String(120))
+    match_basis: Mapped[str] = mapped_column(String(40))  # registration_number|lei|domain|name_geo|manual
+    match_confidence: Mapped[float] = mapped_column(Float, default=0.5, server_default=sa_text("0.5"))
+    status: Mapped[str] = mapped_column(String(16), default="linked", server_default=sa_text("'linked'"))  # linked|review|rejected
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+    __table_args__ = (
+        UniqueConstraint("organisation_id", "source_adapter", "source_ref", name="uq_orglink"),
+        Index("ix_orglink_ident", "identifier_type", "identifier_value"),
+    )
+
+
+class BusinessSignal(Base):
+    __tablename__ = "business_signals"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    organisation_id: Mapped[int] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), index=True)
+    # new_location|new_service|expansion|hiring|contract_award|supplier_partnership|event|accreditation|new_registration|exhibitor|sponsor
+    signal_type: Mapped[str] = mapped_column(String(24), index=True)
+    title: Mapped[str] = mapped_column(String(400))
+    detail: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
+    source_adapter: Mapped[str] = mapped_column(String(80))
+    source_url: Mapped[str] = mapped_column(Text)  # mandatory: no source URL, no signal
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now(), index=True)
+    confidence: Mapped[float] = mapped_column(Float, default=0.5, server_default=sa_text("0.5"))
+    dedupe_hash: Mapped[str] = mapped_column(String(64))
+    __table_args__ = (UniqueConstraint("organisation_id", "dedupe_hash", name="uq_signal_dedupe"),)
+
+
+class WebsiteSnapshot(Base):
+    """Content fingerprints of monitored pages (DISC-10)."""
+
+    __tablename__ = "website_snapshots"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    domain_id: Mapped[int] = mapped_column(ForeignKey("organisation_domains.id", ondelete="CASCADE"), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    page_kind: Mapped[str] = mapped_column(String(16))  # contact|team|locations|services|home|other
+    content_hash: Mapped[str] = mapped_column(String(64))
+    emails_hash: Mapped[str | None] = mapped_column(String(64))
+    emails: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default=sa_text("'[]'::jsonb"))
+    etag: Mapped[str | None] = mapped_column(String(300))
+    last_modified: Mapped[str | None] = mapped_column(String(100))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+    changed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_text("false"))
+    change_summary: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
+    __table_args__ = (Index("ix_snapshot_url_time", "domain_id", "url", "observed_at"),)
+
+
+class DocumentRecord(Base):
+    """DISC-11: extracted record <-> exact source document location."""
+
+    __tablename__ = "document_records"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    source_adapter: Mapped[str] = mapped_column(String(80))
+    source_url: Mapped[str | None] = mapped_column(Text)
+    file_name: Mapped[str | None] = mapped_column(String(300))
+    file_sha256: Mapped[str] = mapped_column(String(64))
+    doc_type: Mapped[str] = mapped_column(String(12))  # pdf|csv|xlsx|xml|json|vcard|html
+    locator: Mapped[str] = mapped_column(String(200))  # page 3 / sheet1!B7 / row 42 / xpath
+    organisation_id: Mapped[int | None] = mapped_column(ForeignKey("organisations.id", ondelete="SET NULL"), index=True)
+    email_id: Mapped[int | None] = mapped_column(ForeignKey("email_addresses.id", ondelete="SET NULL"))
+    extracted: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
+    parser_version: Mapped[str] = mapped_column(String(20), default="1", server_default=sa_text("'1'"))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+    __table_args__ = (UniqueConstraint("file_sha256", "locator", name="uq_docrec"),)
+
+
+class OrganisationCompleteness(Base):
+    """DISC-14: independent research-completeness flags; tri-state so 'not yet researched' != 'unavailable'."""
+
+    __tablename__ = "organisation_completeness"
+    organisation_id: Mapped[int] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), primary_key=True)
+    # each: unknown (not researched) | yes | no (researched, genuinely not found / unavailable) | in_progress
+    official_website: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    contact_page_inspected: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    published_email: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    contact_person_corroborated: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    email_infrastructure_checked: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    recipient_evidence: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    campaign_eligibility: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    recently_checked: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
+    gap_steps_tried: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default=sa_text("'[]'::jsonb"))  # DISC-13 memory
+    score: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now(), onupdate=_now())
+
+
+class SourceEffectiveness(Base):
+    """Rolling per-source (and per source+run) counters used by the scheduler; computed from measured work only."""
+
+    __tablename__ = "source_effectiveness"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    adapter_id: Mapped[str] = mapped_column(String(80))
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("sourcing_runs.id", ondelete="CASCADE"))
+    records_seen: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    unique_businesses: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    duplicates: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    confirmed_domains: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    published_emails: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    eligible_contacts: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    http_requests: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    failures: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    jobs: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
+    cpu_seconds: Mapped[float] = mapped_column(Float, default=0.0, server_default=sa_text("0"))
+    wall_seconds: Mapped[float] = mapped_column(Float, default=0.0, server_default=sa_text("0"))
+    peak_rss_mb: Mapped[float] = mapped_column(Float, default=0.0, server_default=sa_text("0"))
+    priority_score: Mapped[float] = mapped_column(Float, default=1.0, server_default=sa_text("1"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now(), onupdate=_now())
+    __table_args__ = (UniqueConstraint("adapter_id", "run_id", name="uq_srceff"),)
+
+
+class MonitorSchedule(Base):
+    """DISC-08/10 recurring monitoring subscriptions (new registrations, website change checks)."""
+
+    __tablename__ = "monitor_schedules"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(24))  # new_registrations|website_changes|signals
+    name: Mapped[str] = mapped_column(String(200))
+    frequency: Mapped[str] = mapped_column(String(10))  # daily|weekly|monthly
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_text("true"))
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_result: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

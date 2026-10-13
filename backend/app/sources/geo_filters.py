@@ -120,11 +120,9 @@ def classify_uk_selector(selector: str) -> str | None:
         return "area"
     if UK_OUTWARD_RE.match(s):
         return "district"
-    if UK_SECTOR_RE.match(s) and " " in s or re.match(r"^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9]$", s) and False:
-        return "sector"
     if UK_POSTCODE_RE.match(_nospace(s)):
         return "full"
-    if re.match(r"^[A-Z]{1,2}[0-9][A-Z0-9]?\s[0-9]$", s):
+    if UK_SECTOR_RE.match(s) and " " in s:
         return "sector"
     return None
 
