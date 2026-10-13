@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Kbd } from '@/components/ui/kbd';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { GlobalSearchDialog } from './global-search';
 import { ROLE_LABEL, useLogout, useMe } from '@/lib/auth';
 import { Brand, NavList } from './sidebar';
 import { ThemeToggle } from './theme-toggle';
@@ -37,14 +37,7 @@ function GlobalSearch() {
         <span className="sr-only">Open search (shortcut: slash)</span>
       </button>
       <Button variant="ghost" size="icon" className="sm:hidden" aria-label="Search" onClick={() => setOpen(true)}><Search /></Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Global search</DialogTitle>
-            <DialogDescription>Cross-entity search is not available yet. Use the search box on each list page for now.</DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+      <GlobalSearchDialog open={open} onOpenChange={setOpen} />
     </>
   );
 }

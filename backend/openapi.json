@@ -871,6 +871,35 @@
         "title": "BusinessDetail",
         "type": "object"
       },
+      "BusinessHit": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "BusinessHit",
+        "type": "object"
+      },
       "BusinessMergeIn": {
         "properties": {
           "duplicate_ids": {
@@ -2687,6 +2716,40 @@
           }
         },
         "title": "ContactFilterSpec",
+        "type": "object"
+      },
+      "ContactHit": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "organisation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organisation"
+          },
+          "organisation_id": {
+            "title": "Organisation Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "organisation_id"
+        ],
+        "title": "ContactHit",
         "type": "object"
       },
       "ContactProfileOut": {
@@ -9427,6 +9490,29 @@
         "title": "RunEstimateOut",
         "type": "object"
       },
+      "RunHit": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status"
+        ],
+        "title": "RunHit",
+        "type": "object"
+      },
       "RunLink": {
         "properties": {
           "name": {
@@ -9769,6 +9855,43 @@
           "rate_policy"
         ],
         "title": "SchedulerRow",
+        "type": "object"
+      },
+      "SearchOut": {
+        "properties": {
+          "businesses": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessHit"
+            },
+            "title": "Businesses",
+            "type": "array"
+          },
+          "contacts": {
+            "items": {
+              "$ref": "#/components/schemas/ContactHit"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunHit"
+            },
+            "title": "Runs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query",
+          "businesses",
+          "contacts",
+          "runs"
+        ],
+        "title": "SearchOut",
         "type": "object"
       },
       "SeedIn": {
@@ -18865,6 +18988,62 @@
         "summary": "Stop Run",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/search": {
+      "get": {
+        "operationId": "global_search",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 120,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search businesses, contacts and runs",
+        "tags": [
+          "search"
         ]
       }
     },

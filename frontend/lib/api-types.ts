@@ -1372,6 +1372,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search businesses, contacts and runs */
+        get: operations["global_search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings": {
         parameters: {
             query?: never;
@@ -2711,6 +2728,15 @@ export interface components {
             /** Validation History */
             validation_history: components["schemas"]["ValidationOut"][];
         };
+        /** BusinessHit */
+        BusinessHit: {
+            /** Detail */
+            detail?: string | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** BusinessMergeIn */
         BusinessMergeIn: {
             /** Duplicate Ids */
@@ -3269,6 +3295,17 @@ export interface components {
             validated_after?: string | null;
             /** Validated Before */
             validated_before?: string | null;
+        };
+        /** ContactHit */
+        ContactHit: {
+            /** Email */
+            email: string;
+            /** Id */
+            id: number;
+            /** Organisation */
+            organisation?: string | null;
+            /** Organisation Id */
+            organisation_id: number;
         };
         /** ContactProfileOut */
         ContactProfileOut: {
@@ -5617,6 +5654,15 @@ export interface components {
             /** Warnings */
             warnings?: string[];
         };
+        /** RunHit */
+        RunHit: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+        };
         /** RunLink */
         RunLink: {
             /** Name */
@@ -5738,6 +5784,17 @@ export interface components {
              * @description value written by the last scheduler.rebalance for the run (if any)
              */
             stored_priority_score?: number | null;
+        };
+        /** SearchOut */
+        SearchOut: {
+            /** Businesses */
+            businesses: components["schemas"]["BusinessHit"][];
+            /** Contacts */
+            contacts: components["schemas"]["ContactHit"][];
+            /** Query */
+            query: string;
+            /** Runs */
+            runs: components["schemas"]["RunHit"][];
         };
         /** SeedIn */
         SeedIn: {
@@ -9878,6 +9935,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    global_search: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchOut"];
                 };
             };
             /** @description Validation Error */

@@ -212,6 +212,7 @@ class EmailAddress(Base, TimestampMixin):
         Index("ix_email_reach", "overall_reachability", "origin"),
         Index("ix_email_lastval", "last_validated_at"),
         Index("ix_email_keyset", "id"),
+        Index("ix_email_prefix", text("email_normalised text_pattern_ops")),  # global search prefix lookups
         CheckConstraint("origin in ('published','corroborated','pattern_inferred','role_speculative')", name="ck_email_origin"),
     )
 
