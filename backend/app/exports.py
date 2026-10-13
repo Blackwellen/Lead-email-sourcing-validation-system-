@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import Field
-from sqlalchemy import and_, case, func, literal_column, select
+from sqlalchemy import and_, case, exists, func, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -127,6 +127,10 @@ async def filter_conditions(session: AsyncSession, f: ExportFilters) -> list:
     conds = await build_conditions(session, f)
     if f.published_only:
         conds.append(E.origin.in_(("published", "corroborated")))
+        # archived (Common Crawl) evidence only = unconfirmed historical contact: never exported as "published"
+        hist = exists().where(ContactEvidence.email_id == E.id).where(ContactEvidence.evidence_id.in_(select(EvidenceSource.id).where(EvidenceSource.historical.is_(True))))
+        live = exists().where(ContactEvidence.email_id == E.id).where(ContactEvidence.evidence_id.in_(select(EvidenceSource.id).where(EvidenceSource.historical.is_(False))))
+        conds.append(or_(~hist, live))
     if f.exclude_suppressed:
         conds.extend(not_suppressed_conds(E))
     if f.marketing_eligible_only:

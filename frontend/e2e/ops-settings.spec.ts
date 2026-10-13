@@ -1,8 +1,9 @@
 import { test, expect, request as pwRequest, type APIRequestContext } from '@playwright/test';
-import { API, apiAs, loginAs, resetSystemState, totp, USERS } from './support/ops';
+import { API, apiAs, loginAs, resetSystemState, totp, USERS, isBackendUp, requireBackend } from './support/ops';
 
 /** DASH-014 /settings (+ RBAC for the ops pages) against the real backend. Run with --workers=1. */
 test.describe.configure({ mode: 'serial' });
+requireBackend();
 
 const stamp = Date.now();
 const created: string[] = [];
@@ -16,6 +17,7 @@ async function makeUser(admin: APIRequestContext, role: 'operator' | 'viewer' | 
 }
 
 test.afterAll(async () => {
+  if (!isBackendUp()) return;
   const a = await apiAs('admin');
   await a.put('/api/settings/worker', { data: { concurrency: 8, poll_interval_s: 1, lease_seconds: 120, max_job_attempts: 4, max_rss_mb: null } });
   const v = await (await a.get('/api/settings/validation')).json();

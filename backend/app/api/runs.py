@@ -68,6 +68,11 @@ class RunSummary(BaseModel):
     stop_reason: str | None = None
     category_id: int | None = None
     destination_category_id: int | None = None
+    # list-friendly measured summary (no per-run detail fetch needed)
+    countries: list[str] = Field(default_factory=list)
+    collected: int = Field(0, description="distinct addresses with evidence in this run (counter snapshot)")
+    eligible: int = Field(0, description="addresses counted toward the target (qualified)")
+    speed: float | None = Field(None, description="qualified addresses per hour since the run started; null while there is too little data")
 
 
 class StopCondition(BaseModel):
@@ -196,10 +201,21 @@ def _pct(progress: int, target: int) -> float:
     return round(min(100.0, 100.0 * progress / target), 1) if target else 0.0
 
 
+def _speed(run: SourcingRun, qualified: int) -> float | None:
+    if run.started_at is None or qualified <= 0:
+        return None
+    end = run.finished_at or datetime.now(UTC)
+    secs = (end - run.started_at).total_seconds()
+    return round(qualified * 3600.0 / secs, 2) if secs >= 60 else None
+
+
 def summary(run: SourcingRun) -> RunSummary:
     c = run.counters or {}
     prog = int(c.get("progress", core.progress_value(run.target_definition, c)) if c else 0)
+    snap = run.configuration_snapshot or {}
     return RunSummary(
+        countries=[str(x) for x in (snap.get("countries") or [])], collected=int(c.get("emails_found", 0) or 0), eligible=int(c.get("qualified", 0) or 0),
+        speed=_speed(run, int(c.get("qualified", 0) or 0)),
         id=run.id, name=run.name, status=run.status, archived=run.archived, target_count=run.target_count,
         target_definition=run.target_definition, uniqueness=run.uniqueness, progress=prog, percent=_pct(prog, run.target_count),
         created_at=run.created_at, created_by=run.created_by, scheduled_for=run.scheduled_for, started_at=run.started_at,

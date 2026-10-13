@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { apiAs, loginAs, resetSystemState } from './support/ops';
+import { apiAs, loginAs, resetSystemState, isBackendUp, requireBackend } from './support/ops';
 
 /** DASH-011 /sources against the real backend (see e2e/support/ops-backend.sh). Run with --workers=1. */
 test.describe.configure({ mode: 'serial' });
+requireBackend();
 
 const CSV_OK = 'name,country,website,city\nZeta Ltd,GB,https://zeta.example.com,Leeds\nEta GmbH,DE,eta.example.org,Berlin\n=cmd|calc,GB,,\n';
 
 test.afterAll(async () => {
+  if (!isBackendUp()) return;
   const a = await apiAs('admin');
   await a.post('/api/sources/csv_import/disable');
   await a.put('/api/sources/csv_import/config', { data: { config: {} } });

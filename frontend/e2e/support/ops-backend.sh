@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 # Starts the REAL backend for the ops e2e suite (DB lead_fe_c, port 8103). Usage: ops-backend.sh start|stop
+#
+# One-time setup (synthetic data only):
+#   PGPASSWORD=lead psql -h localhost -U lead -d postgres -c 'create database lead_fe_c'
+#   cd backend && export LEAD_DATABASE_URL=postgresql+asyncpg://lead:lead@localhost:5432/lead_fe_c
+#   ../.venv/bin/python -m app.cli migrate && ../.venv/bin/python -m app.cli seed
+#   echo 'Adm1n-Passw0rd-xyz!Q'     | ../.venv/bin/python -m app.cli create-admin --email admin@e2e.test    --password-stdin --role admin
+#   echo 'Op3rator-Passw0rd-xyz!Q'  | ../.venv/bin/python -m app.cli create-admin --email operator@e2e.test --password-stdin --role operator
+#   echo 'V1ewer-Passw0rd-xyz!Q'    | ../.venv/bin/python -m app.cli create-admin --email viewer@e2e.test   --password-stdin --role viewer
+#   PGPASSWORD=lead psql -h localhost -U lead -d lead_fe_c -f frontend/e2e/support/ops-seed.sql
+# Then: ops-backend.sh start; BACKEND_URL=http://localhost:8103 npx next dev -p 3103 (or build + start);
+#   E2E_BASE_URL=http://localhost:3103 E2E_NO_SERVER=1 npx playwright test --workers=1 e2e/ops-*.spec.ts
+# The specs skip themselves when the API on :8103 is not reachable.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BACKEND="$HERE/../../../backend"

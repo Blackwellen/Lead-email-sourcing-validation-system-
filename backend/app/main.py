@@ -29,6 +29,7 @@ log = logging.getLogger("api")
 ROUTER_MODULES = (
     "auth", "dashboard", "runs", "presets", "categories", "geo", "sources", "businesses", "contacts",
     "verification", "exports", "system", "settings",
+    "source_explorer", "discovery", "network", "signals", "data_quality", "organisations",
 )
 
 _HTTP_CODES = {

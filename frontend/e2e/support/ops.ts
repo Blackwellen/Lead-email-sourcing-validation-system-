@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
-import { expect, request as pwRequest, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, request as pwRequest, test, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
@@ -95,4 +95,14 @@ export function parseCsv(text: string): string[][] {
   }
   if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
   return rows.filter((r) => !(r.length === 1 && r[0] === ''));
+}
+
+let backendUp = false;
+export const isBackendUp = () => backendUp;
+/** Skip the whole spec file (instead of failing) when the real backend is not running. Call once at the top of each ops spec. */
+export function requireBackend() {
+  test.beforeAll(async () => {
+    backendUp = await fetch(`${API}/healthz`).then((r) => r.ok).catch(() => false);
+    test.skip(!backendUp, `ops e2e needs the real backend at ${API}; start it with e2e/support/ops-backend.sh (see its header)`);
+  });
 }

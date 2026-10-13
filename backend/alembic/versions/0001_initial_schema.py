@@ -1,13 +1,13 @@
-"""initial schema
+"""initial schema (squashed: generated from app.models)
 
-Revision ID: 0001
+Revision ID: 0001_initial_schema
 Revises: 
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = '0001'
+revision = '0001_initial_schema'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -20,14 +20,14 @@ def upgrade() -> None:
     sa.Column('parent_id', sa.BigInteger(), nullable=True),
     sa.Column('slug', sa.String(length=120), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('level', sa.String(length=16), nullable=False),
-    sa.Column('keywords', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('synonyms', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('excluded_keywords', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('sic_codes', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('osm_tags', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('default_sources', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('enabled', sa.Boolean(), nullable=False),
+    sa.Column('level', sa.String(length=16), server_default=sa.text("'category'"), nullable=False),
+    sa.Column('keywords', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('synonyms', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('excluded_keywords', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('sic_codes', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('osm_tags', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('default_sources', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('enabled', sa.Boolean(), server_default=sa.text('true'), nullable=False),
     sa.Column('merged_into_id', sa.BigInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -51,9 +51,9 @@ def upgrade() -> None:
     op.create_table('domain_cache',
     sa.Column('domain', sa.String(length=255), nullable=False),
     sa.Column('mail_status', sa.String(length=24), nullable=False),
-    sa.Column('mx', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('mx', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
     sa.Column('provider', sa.String(length=80), nullable=True),
-    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('checked_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('domain')
@@ -66,9 +66,11 @@ def upgrade() -> None:
     sa.Column('licence', sa.String(length=200), nullable=True),
     sa.Column('evidence_type', sa.String(length=40), nullable=False),
     sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('parser_version', sa.String(length=40), nullable=False),
+    sa.Column('parser_version', sa.String(length=40), server_default=sa.text("'1'"), nullable=False),
     sa.Column('content_hash', sa.String(length=64), nullable=True),
-    sa.Column('source_reliability', sa.Float(), nullable=False),
+    sa.Column('source_reliability', sa.Float(), server_default=sa.text('0.5'), nullable=False),
+    sa.Column('historical', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('archive_timestamp', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('source_adapter', 'source_url', 'evidence_type', 'content_hash', name='uq_evidence_identity')
     )
@@ -80,26 +82,26 @@ def upgrade() -> None:
     )
     op.create_table('source_adapter_state',
     sa.Column('adapter_id', sa.String(length=80), nullable=False),
-    sa.Column('enabled', sa.Boolean(), nullable=False),
-    sa.Column('priority', sa.Integer(), nullable=False),
+    sa.Column('enabled', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+    sa.Column('priority', sa.Integer(), server_default=sa.text('100'), nullable=False),
     sa.Column('last_run_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_success_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('runs_ok', sa.Integer(), nullable=False),
-    sa.Column('runs_failed', sa.Integer(), nullable=False),
-    sa.Column('businesses_recovered', sa.Integer(), nullable=False),
+    sa.Column('runs_ok', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('runs_failed', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('businesses_recovered', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.Column('last_error', sa.Text(), nullable=True),
-    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.PrimaryKeyConstraint('adapter_id')
     )
     op.create_table('users',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('email', sa.String(length=320), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
-    sa.Column('role', sa.String(length=16), nullable=False),
+    sa.Column('role', sa.String(length=16), server_default=sa.text("'operator'"), nullable=False),
     sa.Column('totp_secret_enc', sa.Text(), nullable=True),
-    sa.Column('totp_enabled', sa.Boolean(), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('failed_logins', sa.Integer(), nullable=False),
+    sa.Column('totp_enabled', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+    sa.Column('failed_logins', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.Column('locked_until', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -115,8 +117,8 @@ def upgrade() -> None:
     sa.Column('last_seen_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('rss_mb', sa.Float(), nullable=True),
     sa.Column('cpu_percent', sa.Float(), nullable=True),
-    sa.Column('active_jobs', sa.Integer(), nullable=False),
-    sa.Column('stats', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('active_jobs', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('stats', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.PrimaryKeyConstraint('worker_id')
     )
     op.create_table('audit_events',
@@ -126,7 +128,7 @@ def upgrade() -> None:
     sa.Column('action', sa.String(length=80), nullable=False),
     sa.Column('object_type', sa.String(length=40), nullable=True),
     sa.Column('object_id', sa.String(length=64), nullable=True),
-    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -134,12 +136,26 @@ def upgrade() -> None:
     op.create_index(op.f('ix_audit_events_at'), 'audit_events', ['at'], unique=False)
     op.create_table('domain_permissions',
     sa.Column('domain', sa.String(length=255), nullable=False),
-    sa.Column('smtp_probe_allowed', sa.Boolean(), nullable=False),
+    sa.Column('smtp_probe_allowed', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('basis', sa.String(length=300), nullable=False),
     sa.Column('granted_by', sa.BigInteger(), nullable=True),
     sa.Column('granted_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['granted_by'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('domain')
+    )
+    op.create_table('monitor_schedules',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('kind', sa.String(length=24), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('frequency', sa.String(length=10), nullable=False),
+    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('enabled', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+    sa.Column('last_run_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('next_run_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('last_result', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('created_by', sa.BigInteger(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['users.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('organisations',
     sa.Column('id', sa.BigInteger(), nullable=False),
@@ -157,7 +173,7 @@ def upgrade() -> None:
     sa.Column('industry', sa.String(length=200), nullable=True),
     sa.Column('subcategory', sa.String(length=200), nullable=True),
     sa.Column('category_id', sa.BigInteger(), nullable=True),
-    sa.Column('sic_codes', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('sic_codes', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
     sa.Column('first_discovered_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('last_checked_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('canonical_identity', sa.String(length=500), nullable=False),
@@ -172,14 +188,17 @@ def upgrade() -> None:
     sa.UniqueConstraint('canonical_identity', name='uq_org_canonical_identity')
     )
     op.create_index('ix_org_company_number', 'organisations', ['country_code', 'company_number'], unique=False, postgresql_where=sa.text('company_number is not null'))
+    op.create_index('ix_org_country_postcode', 'organisations', ['country_code', 'postal_code'], unique=False)
     op.create_index('ix_org_country_region_city', 'organisations', ['country_code', 'region', 'city'], unique=False)
     op.create_index('ix_org_name_trgm_prefix', 'organisations', [sa.literal_column('lower(legal_name) text_pattern_ops')], unique=False)
+    op.create_index('ix_org_sic_gin', 'organisations', ['sic_codes'], unique=False, postgresql_using='gin')
+    op.create_index('ix_org_trading_prefix', 'organisations', [sa.literal_column('lower(trading_name) text_pattern_ops')], unique=False)
     op.create_index(op.f('ix_organisations_category_id'), 'organisations', ['category_id'], unique=False)
     op.create_table('presets',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('kind', sa.String(length=20), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('created_by', sa.BigInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -204,19 +223,19 @@ def upgrade() -> None:
     sa.Column('category_id', sa.BigInteger(), nullable=True),
     sa.Column('destination_category_id', sa.BigInteger(), nullable=True),
     sa.Column('created_by', sa.BigInteger(), nullable=True),
-    sa.Column('configuration_snapshot', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('target_count', sa.Integer(), nullable=False),
-    sa.Column('target_definition', sa.String(length=40), nullable=False),
-    sa.Column('uniqueness', sa.String(length=24), nullable=False),
-    sa.Column('status', sa.String(length=16), nullable=False),
+    sa.Column('configuration_snapshot', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('target_count', sa.Integer(), server_default=sa.text('100'), nullable=False),
+    sa.Column('target_definition', sa.String(length=40), server_default=sa.text("'distinct_published_emails'"), nullable=False),
+    sa.Column('uniqueness', sa.String(length=24), server_default=sa.text("'email'"), nullable=False),
+    sa.Column('status', sa.String(length=16), server_default=sa.text("'draft'"), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('scheduled_for', sa.DateTime(timezone=True), nullable=True),
     sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('paused_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('stop_reason', sa.String(length=60), nullable=True),
-    sa.Column('counters', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('archived', sa.Boolean(), nullable=False),
+    sa.Column('counters', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('archived', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['destination_category_id'], ['categories.id'], ondelete='SET NULL'),
@@ -235,6 +254,43 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('kind', 'value', name='uq_suppression')
     )
+    op.create_table('business_relationships',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('from_org_id', sa.BigInteger(), nullable=False),
+    sa.Column('to_org_id', sa.BigInteger(), nullable=False),
+    sa.Column('relation', sa.String(length=24), nullable=False),
+    sa.Column('source_adapter', sa.String(length=80), nullable=False),
+    sa.Column('source_url', sa.Text(), nullable=True),
+    sa.Column('depth', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('confidence', sa.Float(), server_default=sa.text('0.5'), nullable=False),
+    sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.CheckConstraint('from_org_id <> to_org_id', name='ck_bizrel_noself'),
+    sa.ForeignKeyConstraint(['from_org_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['to_org_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('from_org_id', 'to_org_id', 'relation', 'source_adapter', name='uq_bizrel')
+    )
+    op.create_index(op.f('ix_business_relationships_from_org_id'), 'business_relationships', ['from_org_id'], unique=False)
+    op.create_index(op.f('ix_business_relationships_to_org_id'), 'business_relationships', ['to_org_id'], unique=False)
+    op.create_table('business_signals',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('organisation_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_type', sa.String(length=24), nullable=False),
+    sa.Column('title', sa.String(length=400), nullable=False),
+    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('source_adapter', sa.String(length=80), nullable=False),
+    sa.Column('source_url', sa.Text(), nullable=False),
+    sa.Column('occurred_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('confidence', sa.Float(), server_default=sa.text('0.5'), nullable=False),
+    sa.Column('dedupe_hash', sa.String(length=64), nullable=False),
+    sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('organisation_id', 'dedupe_hash', name='uq_signal_dedupe')
+    )
+    op.create_index(op.f('ix_business_signals_observed_at'), 'business_signals', ['observed_at'], unique=False)
+    op.create_index(op.f('ix_business_signals_organisation_id'), 'business_signals', ['organisation_id'], unique=False)
+    op.create_index(op.f('ix_business_signals_signal_type'), 'business_signals', ['signal_type'], unique=False)
     op.create_table('contacts',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('organisation_id', sa.BigInteger(), nullable=False),
@@ -244,7 +300,7 @@ def upgrade() -> None:
     sa.Column('job_title', sa.String(length=300), nullable=True),
     sa.Column('department', sa.String(length=200), nullable=True),
     sa.Column('country_code', sa.String(length=2), nullable=True),
-    sa.Column('identity_confidence', sa.Float(), nullable=False),
+    sa.Column('identity_confidence', sa.Float(), server_default=sa.text('0.0'), nullable=False),
     sa.Column('identity_key', sa.String(length=400), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -259,9 +315,9 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('preset', sa.String(length=40), nullable=False),
     sa.Column('format', sa.String(length=8), nullable=False),
-    sa.Column('filters', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('status', sa.String(length=12), nullable=False),
-    sa.Column('row_count', sa.Integer(), nullable=False),
+    sa.Column('filters', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('status', sa.String(length=12), server_default=sa.text("'queued'"), nullable=False),
+    sa.Column('row_count', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.Column('file_path', sa.Text(), nullable=True),
     sa.Column('file_size', sa.BigInteger(), nullable=True),
     sa.Column('error', sa.Text(), nullable=True),
@@ -270,17 +326,36 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('organisation_completeness',
+    sa.Column('organisation_id', sa.BigInteger(), nullable=False),
+    sa.Column('official_website', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('contact_page_inspected', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('published_email', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('contact_person_corroborated', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('email_infrastructure_checked', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('recipient_evidence', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('campaign_eligibility', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('recently_checked', sa.String(length=12), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('gap_steps_tried', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('gap_log', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('gap_exhausted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('needs_review', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('score', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('organisation_id')
+    )
     op.create_table('organisation_domains',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('organisation_id', sa.BigInteger(), nullable=False),
     sa.Column('domain', sa.String(length=255), nullable=False),
     sa.Column('registrable_domain', sa.String(length=255), nullable=False),
     sa.Column('website_url', sa.Text(), nullable=True),
-    sa.Column('verified_match_status', sa.String(length=16), nullable=False),
-    sa.Column('confidence', sa.Float(), nullable=False),
-    sa.Column('evidence', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('parked', sa.Boolean(), nullable=False),
-    sa.Column('manual_override', sa.Boolean(), nullable=False),
+    sa.Column('verified_match_status', sa.String(length=16), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('confidence', sa.Float(), server_default=sa.text('0.0'), nullable=False),
+    sa.Column('evidence', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('parked', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('manual_override', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('last_checked_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_crawled_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -291,11 +366,56 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_organisation_domains_organisation_id'), 'organisation_domains', ['organisation_id'], unique=False)
     op.create_index(op.f('ix_organisation_domains_registrable_domain'), 'organisation_domains', ['registrable_domain'], unique=False)
+    op.create_table('organisation_record_links',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('organisation_id', sa.BigInteger(), nullable=False),
+    sa.Column('source_adapter', sa.String(length=80), nullable=False),
+    sa.Column('source_ref', sa.String(length=300), nullable=False),
+    sa.Column('identifier_type', sa.String(length=30), nullable=True),
+    sa.Column('identifier_value', sa.String(length=120), nullable=True),
+    sa.Column('match_basis', sa.String(length=40), nullable=False),
+    sa.Column('match_confidence', sa.Float(), server_default=sa.text('0.5'), nullable=False),
+    sa.Column('status', sa.String(length=16), server_default=sa.text("'linked'"), nullable=False),
+    sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('candidate_org_id', sa.BigInteger(), nullable=True),
+    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.ForeignKeyConstraint(['candidate_org_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('organisation_id', 'source_adapter', 'source_ref', name='uq_orglink')
+    )
+    op.create_index(op.f('ix_organisation_record_links_candidate_org_id'), 'organisation_record_links', ['candidate_org_id'], unique=False)
+    op.create_index(op.f('ix_organisation_record_links_organisation_id'), 'organisation_record_links', ['organisation_id'], unique=False)
+    op.create_index('ix_orglink_ident', 'organisation_record_links', ['identifier_type', 'identifier_value'], unique=False)
+    op.create_index('ix_orglink_status', 'organisation_record_links', ['status', 'id'], unique=False)
+    op.create_table('organisation_sources',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('organisation_id', sa.BigInteger(), nullable=False),
+    sa.Column('adapter_id', sa.String(length=80), nullable=False),
+    sa.Column('source_ref', sa.String(length=300), server_default=sa.text("''"), nullable=False),
+    sa.Column('source_url', sa.Text(), nullable=True),
+    sa.Column('licence', sa.String(length=200), nullable=True),
+    sa.Column('attribution', sa.Text(), nullable=True),
+    sa.Column('observed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('website', sa.Text(), nullable=True),
+    sa.Column('email_published', sa.String(length=320), nullable=True),
+    sa.Column('lat', sa.Float(), nullable=True),
+    sa.Column('lon', sa.Float(), nullable=True),
+    sa.Column('run_id', sa.BigInteger(), nullable=True),
+    sa.Column('raw', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('first_seen_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('last_seen_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('organisation_id', 'adapter_id', 'source_ref', name='uq_orgsource')
+    )
+    op.create_index(op.f('ix_organisation_sources_organisation_id'), 'organisation_sources', ['organisation_id'], unique=False)
     op.create_table('run_metrics',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('run_id', sa.BigInteger(), nullable=True),
     sa.Column('bucket', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('metrics', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('metrics', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('run_id', 'bucket', name='uq_runmetric_bucket')
@@ -304,21 +424,44 @@ def upgrade() -> None:
     op.create_table('run_organisations',
     sa.Column('run_id', sa.BigInteger(), nullable=False),
     sa.Column('organisation_id', sa.BigInteger(), nullable=False),
-    sa.Column('stage', sa.String(length=24), nullable=False),
+    sa.Column('stage', sa.String(length=24), server_default=sa.text("'discovered'"), nullable=False),
     sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('run_id', 'organisation_id')
     )
+    op.create_table('source_effectiveness',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('adapter_id', sa.String(length=80), nullable=False),
+    sa.Column('run_id', sa.BigInteger(), nullable=True),
+    sa.Column('records_seen', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('unique_businesses', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('duplicates', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('confirmed_domains', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('published_emails', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('eligible_contacts', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('http_requests', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('failures', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('jobs', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('cpu_seconds', sa.Float(), server_default=sa.text('0'), nullable=False),
+    sa.Column('wall_seconds', sa.Float(), server_default=sa.text('0'), nullable=False),
+    sa.Column('peak_rss_mb', sa.Float(), server_default=sa.text('0'), nullable=False),
+    sa.Column('priority_score', sa.Float(), server_default=sa.text('1'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('adapter_id', 'run_id', name='uq_srceff')
+    )
+    op.create_index('uq_srceff_global', 'source_effectiveness', ['adapter_id'], unique=True, postgresql_where=sa.text('run_id is null'))
     op.create_table('sourcing_jobs',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('run_id', sa.BigInteger(), nullable=True),
     sa.Column('stage', sa.String(length=24), nullable=False),
     sa.Column('dedupe_key', sa.String(length=400), nullable=False),
-    sa.Column('payload', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('checkpoint', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('state', sa.String(length=12), nullable=False),
-    sa.Column('priority', sa.Integer(), nullable=False),
-    sa.Column('attempts', sa.Integer(), nullable=False),
+    sa.Column('payload', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('checkpoint', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('state', sa.String(length=12), server_default=sa.text("'queued'"), nullable=False),
+    sa.Column('priority', sa.Integer(), server_default=sa.text('100'), nullable=False),
+    sa.Column('attempts', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.Column('leased_until', sa.DateTime(timezone=True), nullable=True),
     sa.Column('next_attempt_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('worker_id', sa.String(length=80), nullable=True),
@@ -340,12 +483,12 @@ def upgrade() -> None:
     sa.Column('created_by', sa.BigInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
-    sa.Column('mode', sa.String(length=10), nullable=False),
-    sa.Column('status', sa.String(length=12), nullable=False),
-    sa.Column('total', sa.Integer(), nullable=False),
-    sa.Column('done', sa.Integer(), nullable=False),
+    sa.Column('mode', sa.String(length=10), server_default=sa.text("'fast'"), nullable=False),
+    sa.Column('status', sa.String(length=12), server_default=sa.text("'queued'"), nullable=False),
+    sa.Column('total', sa.Integer(), server_default=sa.text('0'), nullable=False),
+    sa.Column('done', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.Column('run_id', sa.BigInteger(), nullable=True),
-    sa.Column('settings', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('settings', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['run_id'], ['sourcing_runs.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
@@ -360,20 +503,20 @@ def upgrade() -> None:
     sa.Column('domain', sa.String(length=255), nullable=False),
     sa.Column('registrable_domain', sa.String(length=255), nullable=False),
     sa.Column('source_type', sa.String(length=40), nullable=False),
-    sa.Column('origin', sa.String(length=24), nullable=False),
+    sa.Column('origin', sa.String(length=24), server_default=sa.text("'published'"), nullable=False),
     sa.Column('role_type', sa.String(length=40), nullable=True),
-    sa.Column('is_free_provider', sa.Boolean(), nullable=False),
-    sa.Column('is_disposable', sa.Boolean(), nullable=False),
-    sa.Column('confidence', sa.Float(), nullable=False),
-    sa.Column('confidence_breakdown', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('syntax_status', sa.String(length=16), nullable=False),
-    sa.Column('domain_mail_status', sa.String(length=24), nullable=False),
-    sa.Column('recipient_evidence_status', sa.String(length=32), nullable=False),
-    sa.Column('catch_all_status', sa.String(length=32), nullable=False),
-    sa.Column('overall_reachability', sa.String(length=16), nullable=False),
-    sa.Column('marketing_status', sa.String(length=24), nullable=False),
-    sa.Column('needs_review', sa.Boolean(), nullable=False),
-    sa.Column('previously_bounced', sa.Boolean(), nullable=False),
+    sa.Column('is_free_provider', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('is_disposable', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('confidence', sa.Float(), server_default=sa.text('0.0'), nullable=False),
+    sa.Column('confidence_breakdown', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('syntax_status', sa.String(length=16), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('domain_mail_status', sa.String(length=24), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('recipient_evidence_status', sa.String(length=32), server_default=sa.text("'untested'"), nullable=False),
+    sa.Column('catch_all_status', sa.String(length=32), server_default=sa.text("'untested'"), nullable=False),
+    sa.Column('overall_reachability', sa.String(length=16), server_default=sa.text("'unknown'"), nullable=False),
+    sa.Column('marketing_status', sa.String(length=24), server_default=sa.text("'needs_review'"), nullable=False),
+    sa.Column('needs_review', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('previously_bounced', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('first_seen_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('last_seen_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('last_validated_at', sa.DateTime(timezone=True), nullable=True),
@@ -394,6 +537,24 @@ def upgrade() -> None:
     op.create_index('ix_email_lastval', 'email_addresses', ['last_validated_at'], unique=False)
     op.create_index('ix_email_org', 'email_addresses', ['organisation_id', 'origin'], unique=False)
     op.create_index('ix_email_reach', 'email_addresses', ['overall_reachability', 'origin'], unique=False)
+    op.create_table('website_snapshots',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('domain_id', sa.BigInteger(), nullable=False),
+    sa.Column('url', sa.Text(), nullable=False),
+    sa.Column('page_kind', sa.String(length=16), nullable=False),
+    sa.Column('content_hash', sa.String(length=64), nullable=False),
+    sa.Column('emails_hash', sa.String(length=64), nullable=True),
+    sa.Column('emails', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'[]'::jsonb"), nullable=False),
+    sa.Column('etag', sa.String(length=300), nullable=True),
+    sa.Column('last_modified', sa.String(length=100), nullable=True),
+    sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('changed', sa.Boolean(), server_default=sa.text('false'), nullable=False),
+    sa.Column('change_summary', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.ForeignKeyConstraint(['domain_id'], ['organisation_domains.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('ix_snapshot_url_time', 'website_snapshots', ['domain_id', 'url', 'observed_at'], unique=False)
+    op.create_index(op.f('ix_website_snapshots_domain_id'), 'website_snapshots', ['domain_id'], unique=False)
     op.create_table('contact_evidence',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('email_id', sa.BigInteger(), nullable=True),
@@ -402,7 +563,7 @@ def upgrade() -> None:
     sa.Column('evidence_id', sa.BigInteger(), nullable=False),
     sa.Column('run_id', sa.BigInteger(), nullable=True),
     sa.Column('extraction_method', sa.String(length=40), nullable=True),
-    sa.Column('context', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('context', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['contact_id'], ['contacts.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['email_id'], ['email_addresses.id'], ondelete='CASCADE'),
@@ -428,13 +589,32 @@ def upgrade() -> None:
     sa.UniqueConstraint('email_id', 'event_type', 'campaign', 'occurred_at', name='uq_delivery_event')
     )
     op.create_index(op.f('ix_delivery_events_email_id'), 'delivery_events', ['email_id'], unique=False)
+    op.create_table('document_records',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('source_adapter', sa.String(length=80), nullable=False),
+    sa.Column('source_url', sa.Text(), nullable=True),
+    sa.Column('file_name', sa.String(length=300), nullable=True),
+    sa.Column('file_sha256', sa.String(length=64), nullable=False),
+    sa.Column('doc_type', sa.String(length=12), nullable=False),
+    sa.Column('locator', sa.String(length=200), nullable=False),
+    sa.Column('organisation_id', sa.BigInteger(), nullable=True),
+    sa.Column('email_id', sa.BigInteger(), nullable=True),
+    sa.Column('extracted', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+    sa.Column('parser_version', sa.String(length=20), server_default=sa.text("'1'"), nullable=False),
+    sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['email_id'], ['email_addresses.id'], ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('file_sha256', 'locator', name='uq_docrec')
+    )
+    op.create_index(op.f('ix_document_records_organisation_id'), 'document_records', ['organisation_id'], unique=False)
     op.create_table('run_yield',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('run_id', sa.BigInteger(), nullable=False),
     sa.Column('unique_key', sa.String(length=400), nullable=False),
     sa.Column('email_id', sa.BigInteger(), nullable=False),
     sa.Column('organisation_id', sa.BigInteger(), nullable=False),
-    sa.Column('qualified', sa.Boolean(), nullable=False),
+    sa.Column('qualified', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['email_id'], ['email_addresses.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['organisation_id'], ['organisations.id'], ondelete='CASCADE'),
@@ -449,13 +629,13 @@ def upgrade() -> None:
     sa.Column('check_type', sa.String(length=32), nullable=False),
     sa.Column('result', sa.String(length=32), nullable=False),
     sa.Column('reason_code', sa.String(length=80), nullable=True),
-    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('detail', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
     sa.Column('response_code', sa.Integer(), nullable=True),
     sa.Column('enhanced_status_code', sa.String(length=12), nullable=True),
     sa.Column('provider', sa.String(length=80), nullable=True),
     sa.Column('observed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('verifier_version', sa.String(length=20), nullable=False),
+    sa.Column('verifier_version', sa.String(length=20), server_default=sa.text("'1'"), nullable=False),
     sa.Column('permission_context', sa.String(length=60), nullable=True),
     sa.ForeignKeyConstraint(['email_id'], ['email_addresses.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -470,6 +650,8 @@ def downgrade() -> None:
     op.drop_table('validation_results')
     op.drop_index('ix_runyield_run_email', table_name='run_yield')
     op.drop_table('run_yield')
+    op.drop_index(op.f('ix_document_records_organisation_id'), table_name='document_records')
+    op.drop_table('document_records')
     op.drop_index(op.f('ix_delivery_events_email_id'), table_name='delivery_events')
     op.drop_table('delivery_events')
     op.drop_index(op.f('ix_contact_evidence_run_id'), table_name='contact_evidence')
@@ -477,6 +659,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_contact_evidence_email_id'), table_name='contact_evidence')
     op.drop_index(op.f('ix_contact_evidence_contact_id'), table_name='contact_evidence')
     op.drop_table('contact_evidence')
+    op.drop_index(op.f('ix_website_snapshots_domain_id'), table_name='website_snapshots')
+    op.drop_index('ix_snapshot_url_time', table_name='website_snapshots')
+    op.drop_table('website_snapshots')
     op.drop_index('ix_email_reach', table_name='email_addresses')
     op.drop_index('ix_email_org', table_name='email_addresses')
     op.drop_index('ix_email_lastval', table_name='email_addresses')
@@ -491,15 +676,32 @@ def downgrade() -> None:
     op.drop_index('ix_job_run_state', table_name='sourcing_jobs')
     op.drop_index('ix_job_claim', table_name='sourcing_jobs')
     op.drop_table('sourcing_jobs')
+    op.drop_index('uq_srceff_global', table_name='source_effectiveness', postgresql_where=sa.text('run_id is null'))
+    op.drop_table('source_effectiveness')
     op.drop_table('run_organisations')
     op.drop_index(op.f('ix_run_metrics_run_id'), table_name='run_metrics')
     op.drop_table('run_metrics')
+    op.drop_index(op.f('ix_organisation_sources_organisation_id'), table_name='organisation_sources')
+    op.drop_table('organisation_sources')
+    op.drop_index('ix_orglink_status', table_name='organisation_record_links')
+    op.drop_index('ix_orglink_ident', table_name='organisation_record_links')
+    op.drop_index(op.f('ix_organisation_record_links_organisation_id'), table_name='organisation_record_links')
+    op.drop_index(op.f('ix_organisation_record_links_candidate_org_id'), table_name='organisation_record_links')
+    op.drop_table('organisation_record_links')
     op.drop_index(op.f('ix_organisation_domains_registrable_domain'), table_name='organisation_domains')
     op.drop_index(op.f('ix_organisation_domains_organisation_id'), table_name='organisation_domains')
     op.drop_table('organisation_domains')
+    op.drop_table('organisation_completeness')
     op.drop_table('exports')
     op.drop_index(op.f('ix_contacts_organisation_id'), table_name='contacts')
     op.drop_table('contacts')
+    op.drop_index(op.f('ix_business_signals_signal_type'), table_name='business_signals')
+    op.drop_index(op.f('ix_business_signals_organisation_id'), table_name='business_signals')
+    op.drop_index(op.f('ix_business_signals_observed_at'), table_name='business_signals')
+    op.drop_table('business_signals')
+    op.drop_index(op.f('ix_business_relationships_to_org_id'), table_name='business_relationships')
+    op.drop_index(op.f('ix_business_relationships_from_org_id'), table_name='business_relationships')
+    op.drop_table('business_relationships')
     op.drop_table('suppression_entries')
     op.drop_index(op.f('ix_sourcing_runs_status'), table_name='sourcing_runs')
     op.drop_table('sourcing_runs')
@@ -507,10 +709,14 @@ def downgrade() -> None:
     op.drop_table('sessions')
     op.drop_table('presets')
     op.drop_index(op.f('ix_organisations_category_id'), table_name='organisations')
+    op.drop_index('ix_org_trading_prefix', table_name='organisations')
+    op.drop_index('ix_org_sic_gin', table_name='organisations', postgresql_using='gin')
     op.drop_index('ix_org_name_trgm_prefix', table_name='organisations')
     op.drop_index('ix_org_country_region_city', table_name='organisations')
+    op.drop_index('ix_org_country_postcode', table_name='organisations')
     op.drop_index('ix_org_company_number', table_name='organisations', postgresql_where=sa.text('company_number is not null'))
     op.drop_table('organisations')
+    op.drop_table('monitor_schedules')
     op.drop_table('domain_permissions')
     op.drop_index(op.f('ix_audit_events_at'), table_name='audit_events')
     op.drop_index(op.f('ix_audit_events_action'), table_name='audit_events')

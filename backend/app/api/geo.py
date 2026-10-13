@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import SourceAdapterState
 from ..security import ApiError, require_role
-from .common import clean_q, country_code, escape_like
+from .common import clean_q, country_code, csv_strs, escape_like
 from .registry import adapter_catalog, optional
 
 router = APIRouter(prefix="/api/geo", tags=["geo"], dependencies=[Depends(require_role("viewer"))])
@@ -201,11 +201,15 @@ async def source_availability(countries: str | None = Query(None, description="c
     for cc in ccs:
         src = await _avail(session, cc)
         out.append(CountryAvailability(country=cc, name=_name(cc), sources=src, usable=sum(1 for s in src if s.status == "available")))
-    return AvailabilityOut(registry_loaded=adapter_catalog() is not None, countries=out, detail=await _delegate("source_availability", ccs))
+    detail = {cc: await _delegate("source_availability", cc) for cc in ccs}  # app.geo.source_availability takes ONE country code
+    return AvailabilityOut(registry_loaded=adapter_catalog() is not None, countries=out, detail=detail)
 
 
 @router.get("/coverage-plan", response_model=CoveragePlan)
-async def coverage_plan(countries: str = Query(..., description="comma separated ISO codes"), session: AsyncSession = Depends(get_session)) -> CoveragePlan:
+async def coverage_plan(countries: str = Query(..., description="comma separated ISO codes"),
+                        regions: str | None = Query(None, description="GB only: comma separated nations / regions"),
+                        localities: str | None = Query(None, description="GB only: comma separated cities / local authorities"),
+                        postcodes: str | None = Query(None, description="GB only: comma separated postcode areas / districts"), session: AsyncSession = Depends(get_session)) -> CoveragePlan:
     ccs = [country_code(c) for c in countries.split(",")[:30] if c.strip()]
     if not ccs:
         raise ApiError(422, "invalid_filter", "Provide at least one country code.")
@@ -224,4 +228,28 @@ async def coverage_plan(countries: str = Query(..., description="comma separated
         if not plan:
             warnings.append(f"{cc}: no usable sources.")
         out.append(CoverageCountry(country=cc, name=_name(cc), plan=plan, existing_businesses=row[0], existing_published_emails=row[1], gaps=gaps))
-    return CoveragePlan(countries=out, warnings=warnings, detail=await _delegate("plan_coverage", ccs))
+    detail = None
+    if "GB" in ccs:  # app.geo.plan_coverage takes a SELECTION dict (UK geography); an empty selection = the whole country
+        sel = {"regions": csv_strs(regions, "regions"), "localities": csv_strs(localities, "localities"), "postcodes": csv_strs(postcodes, "postcodes")}
+        detail = {"GB": await _delegate("plan_coverage", sel)}
+    return CoveragePlan(countries=out, warnings=warnings, detail=detail)
+
+
+class UkGeography(BaseModel):
+    nations: list[dict[str, Any]]
+    regions: list[dict[str, Any]]
+    cities: list[dict[str, Any]]
+    postcode_areas: list[dict[str, Any]]
+    local_authorities: list[dict[str, Any]]
+    note: str
+    uncertainty: list[str]
+
+
+@router.get("/uk-geography", response_model=UkGeography)
+async def uk_geography() -> UkGeography:
+    """Static UK nations / regions / cities / postcode areas for the coverage picker (hand-compiled; see ``uncertainty``)."""
+    from ..geo import load_uk_geography
+
+    g = load_uk_geography()
+    return UkGeography(nations=g["nations"], regions=g["regions"], cities=g["cities"], postcode_areas=g["postcode_areas"],
+                       local_authorities=g["local_authorities"], note=g.get("generated_note", ""), uncertainty=g.get("uncertainty", []))

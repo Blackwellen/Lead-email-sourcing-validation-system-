@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { expectNoHorizontalScroll, expectNoSeriousA11y, loginAs, sql } from './support/ops';
+import { expectNoHorizontalScroll, expectNoSeriousA11y, loginAs, sql, isBackendUp, requireBackend } from './support/ops';
 
 /** Accessibility (axe: 0 serious/critical) and 375px layout for the ops pages, light and dark. Run with --workers=1. */
 test.describe.configure({ mode: 'serial' });
+requireBackend();
 
 const PAGES: { name: string; url: string; ready: (p: Page) => Promise<void>; prep?: (p: Page) => Promise<void> }[] = [
   { name: 'sources', url: '/sources', ready: async (p) => { await expect(p.getByTestId('sources-table')).toBeVisible(); } },
@@ -29,7 +30,7 @@ test.beforeAll(() => {
   const id = sql(`INSERT INTO sourcing_runs (name, configuration_snapshot, target_count, target_definition, uniqueness, status, counters, archived) VALUES ('e2e-ops-quality', '{}', 5, 'emails', 'email', 'paused', '{}', false) RETURNING id`).split('\n')[0];
   sql(`INSERT INTO sourcing_jobs (run_id, stage, dedupe_key, payload, checkpoint, state, priority, attempts, error_code, error_detail, finished_at) VALUES (${id}, 'verify', 'q-1', '{}', '{}', 'failed', 10, 2, 'dns_timeout', 'synthetic', now()), (${id}, 'crawl', 'q-2', '{}', '{}', 'queued', 10, 0, NULL, NULL, NULL)`);
 });
-test.afterAll(() => { sql(`DELETE FROM sourcing_runs WHERE name='e2e-ops-quality'`); });
+test.afterAll(() => { if (isBackendUp()) sql(`DELETE FROM sourcing_runs WHERE name='e2e-ops-quality'`); });
 
 for (const theme of ['light', 'dark'] as const) {
   test.describe(`axe, ${theme}`, () => {

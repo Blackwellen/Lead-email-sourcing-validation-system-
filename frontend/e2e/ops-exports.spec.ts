@@ -1,10 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { apiAs, loginAs, parseCsv, sql, USERS } from './support/ops';
+import { apiAs, loginAs, parseCsv, sql, USERS, requireBackend } from './support/ops';
 import { request as pwRequest } from '@playwright/test';
 
 /** DASH-012 /exports against the real backend. Run with --workers=1; seed: e2e/support/ops-seed.sql. */
 test.describe.configure({ mode: 'serial' });
+requireBackend();
 
 async function pickPreset(page: Page, id: string) {
   await page.getByTestId(`preset-${id}`).click();

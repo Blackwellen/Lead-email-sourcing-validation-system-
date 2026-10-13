@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { apiAs, loginAs, resetSystemState, sql } from './support/ops';
+import { apiAs, loginAs, resetSystemState, sql, isBackendUp, requireBackend } from './support/ops';
 
 /** DASH-013 /system against the real backend. Run with --workers=1. No worker process runs in this environment, which is itself the outage scenario. */
 test.describe.configure({ mode: 'serial' });
+requireBackend();
 
 const RUN = `INSERT INTO sourcing_runs (name, configuration_snapshot, target_count, target_definition, uniqueness, status, counters, archived, started_at) VALUES ('e2e-ops-run', '{}', 10, 'emails', 'email', 'running', '{}', false, now()) RETURNING id`;
 
@@ -11,7 +12,7 @@ function cleanup() {
   sql(`DELETE FROM sourcing_runs WHERE name='e2e-ops-run'`); // jobs cascade
 }
 test.beforeAll(cleanup);
-test.afterAll(async () => { cleanup(); await resetSystemState(); });
+test.afterAll(async () => { if (!isBackendUp()) return; cleanup(); await resetSystemState(); });
 
 const heartbeat = (id: string, agoSeconds: number, rss = 512, cpu = 33, jobs = 2) =>
   sql(`INSERT INTO worker_heartbeats (worker_id, hostname, pid, last_seen_at, rss_mb, cpu_percent, active_jobs, stats) VALUES ('${id}', 'host-${id}', 1, now() - interval '${agoSeconds} seconds', ${rss}, ${cpu}, ${jobs}, '{}') ON CONFLICT (worker_id) DO UPDATE SET last_seen_at = EXCLUDED.last_seen_at`);

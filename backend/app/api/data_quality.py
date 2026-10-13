@@ -270,7 +270,7 @@ async def data_quality_summary(stale_days: int = Query(90, ge=1, le=3650), sessi
     out = []
     for it in ISSUE_TYPES:
         st, key, _mp = _builder(it, stale_days=stale_days, classification=None)
-        n, capped = await capped_count(session, select(key.label("x")).select_from(st.get_final_froms()[0]) if False else st.with_only_columns(key.label("x")), cap=CAP, timeout_ms=3000)
+        n, capped = await capped_count(session, st.with_only_columns(key.label("x")), cap=CAP, timeout_ms=3000)
         out.append(IssueCount(issue_type=it, count=n, capped=capped, action_hint=HINTS[it]))
     return SummaryOut(generated_at=datetime.now(UTC), issues=out, total=sum(i.count or 0 for i in out))
 
@@ -319,7 +319,7 @@ async def _act_link(session: AsyncSession, user: User, action: str, rid: int, re
         res = await resolution.resolve_review(session, rid, accept=True, user_id=user.id)
     except (ValueError, resolution.MergeConflict) as e:
         return "error", before, {}, str(e)[:300]
-    return "ok", before, {"link_id": rid, **{k: v for k, v in res.items() if k in ("status", "kept", "dropped", "keep_id", "drop_id")} or {"result": res.get("status")}}, "merged"
+    return "ok", before, {"link_id": rid, "result": res.get("status"), "detail": {k: v for k, v in res.items() if isinstance(v, int | str)}}, "merged"
 
 
 async def _act_domain(session: AsyncSession, user: User, action: str, rid: int, reason: str) -> tuple[str, dict, dict, str]:

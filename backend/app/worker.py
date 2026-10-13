@@ -182,7 +182,8 @@ class Worker:
                         await runs.start_due_scheduled(s)
                         active = await runs.active_run_ids(s)
                         for rid in active:
-                            await runs.evaluate_run(s, rid)
+                            if await runs.evaluate_run(s, rid) == "completed":
+                                await self._final_completeness(s, rid)
                         await self._scheduler_tick(s, active)
                         await s.commit()
             except Exception:
@@ -194,6 +195,7 @@ class Worker:
         recurring-monitor tick. Failures are isolated in savepoints; they never stop run supervision."""
         now = time.monotonic()
         if active:
+            await self._write_run_metrics(s, active, now)
             running = set((await s.execute(text(
                 "SELECT id FROM sourcing_runs WHERE id = ANY(:ids) AND status='running' AND COALESCE(configuration_snapshot->>'system','false') <> 'true'"),
                 {"ids": active})).scalars())
@@ -217,6 +219,44 @@ class Worker:
                     await self._enqueue_monitor_tick(s)
             except Exception:
                 log.exception("monitor tick failed")
+
+    METRICS_EVERY_S = 15.0
+    FINAL_COMPLETENESS_MAX_ORGS = 5000
+
+    async def _final_completeness(self, s: AsyncSession, run_id: int) -> None:
+        """Safety net behind the per-organisation refresh (two sibling jobs finishing together can each see the other as pending):
+        when a run completes, bring the completeness rows of its organisations up to date (bounded)."""
+        try:
+            from .discovery.completeness import refresh_completeness
+
+            async with s.begin_nested():
+                ids = list((await s.execute(text("SELECT organisation_id FROM run_organisations WHERE run_id=:r ORDER BY organisation_id LIMIT :n"),
+                                            {"r": run_id, "n": self.FINAL_COMPLETENESS_MAX_ORGS})).scalars())
+                await refresh_completeness(s, ids)
+        except Exception:
+            log.exception("final completeness refresh failed for run %s", run_id)
+
+    async def _write_run_metrics(self, s: AsyncSession, active: list[int], now: float) -> None:
+        """One ``run_metrics`` row per run and minute (upserted while the minute is open): measured throughput, queue depth, failures."""
+        if now - getattr(self, "_last_metrics", -1e9) < self.METRICS_EVERY_S:
+            return
+        self._last_metrics = now
+        try:
+            async with s.begin_nested():
+                await s.execute(text(
+                    """INSERT INTO run_metrics (run_id, bucket, metrics)
+                       SELECT r.id, date_trunc('minute', now()), jsonb_build_object(
+                           'jobs_done', count(*) FILTER (WHERE j.state='done' AND j.finished_at >= date_trunc('minute', now())),
+                           'jobs_failed', count(*) FILTER (WHERE j.state IN ('failed','dead') AND j.finished_at >= date_trunc('minute', now())),
+                           'queue_depth', count(*) FILTER (WHERE j.state='queued'),
+                           'in_flight', count(*) FILTER (WHERE j.state='leased'),
+                           'qualified', (SELECT count(*) FROM run_yield y WHERE y.run_id = r.id),
+                           'qualified_this_minute', (SELECT count(*) FROM run_yield y WHERE y.run_id = r.id AND y.created_at >= date_trunc('minute', now())))
+                       FROM sourcing_runs r LEFT JOIN sourcing_jobs j ON j.run_id = r.id
+                       WHERE r.id = ANY(:ids) AND r.status IN ('running','stopping') GROUP BY r.id
+                       ON CONFLICT (run_id, bucket) DO UPDATE SET metrics = EXCLUDED.metrics"""), {"ids": active})
+        except Exception:
+            log.exception("run metrics write failed")
 
     async def _enqueue_monitor_tick(self, s: AsyncSession) -> None:
         from .discovery.monitor import due_monitors

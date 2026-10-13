@@ -15,9 +15,19 @@ from app.models import Base
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _schema():
     engine = dbmod.get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+    if os.environ.get("LEAD_TEST_SCHEMA") == "migrations":
+        # build the schema ONLY with alembic (proves the migrations are complete: server defaults, indexes ...)
+        import subprocess
+        import sys
+
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP SCHEMA public CASCADE"))
+            await conn.execute(text("CREATE SCHEMA public"))
+        subprocess.run([sys.executable, "-m", "app.cli", "migrate"], check=True, capture_output=True)
+    else:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
     yield
     await dbmod.dispose_engine()
 
