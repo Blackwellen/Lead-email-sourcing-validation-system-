@@ -1,0 +1,175 @@
+{
+  "machine": {
+    "python": "3.13.16",
+    "cpus": 4,
+    "ram_gb": 16.9,
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39"
+  },
+  "started": "2026-10-13T18:16:09Z",
+  "sizes": {
+    "10000": {
+      "ingest": {
+        "emails": 10000,
+        "seconds": 53.44,
+        "emails_per_s": 187.1,
+        "note": "full provenance path: org+domain+email+contact+evidence rows per observation"
+      },
+      "fixture": {
+        "rows": 10000,
+        "seconds": 0.35,
+        "rows_per_s": 28794,
+        "note": "SQL generate_series fixture load (PostgreSQL bulk insert speed)"
+      },
+      "verify": {
+        "emails": 10000,
+        "seconds": 128.22,
+        "emails_per_s": 78.0,
+        "dns_cache_hits": 27,
+        "dns_cache_misses": 9973,
+        "dns_cache_hit_rate": 0.003,
+        "concurrency": 16,
+        "resolver": "in-memory fake (no network)"
+      },
+      "api": {
+        "contacts_first_page_ms_p50": 19.3,
+        "contacts_deep_page_ms_avg": 12.0,
+        "contacts_filtered_ms_p50": 14.2,
+        "businesses_first_page_ms_p50": 30.6,
+        "dashboard_overview_ms_p50": 62.6,
+        "dashboard_approximate": false
+      },
+      "export": {
+        "rows": 10000,
+        "seconds": 0.66,
+        "rows_per_s": 15050,
+        "file_mb": 2.3,
+        "process_peak_rss_mb": 189.3,
+        "rss_growth_during_export_mb": 27.3,
+        "status": "done"
+      },
+      "queue": {
+        "jobs": 10000,
+        "bulk_enqueue_s": 0.13,
+        "claim_complete_s": 3.61,
+        "jobs_per_s": 2770,
+        "workers": 4,
+        "note": "queue overhead only (no-op handlers): claim batch 100 with FOR UPDATE SKIP LOCKED"
+      }
+    },
+    "100000": {
+      "ingest": {
+        "emails": 20000,
+        "seconds": 93.55,
+        "emails_per_s": 213.8,
+        "note": "full provenance path: org+domain+email+contact+evidence rows per observation"
+      },
+      "fixture": {
+        "rows": 100000,
+        "seconds": 3.45,
+        "rows_per_s": 28992,
+        "note": "SQL generate_series fixture load (PostgreSQL bulk insert speed)"
+      },
+      "verify": {
+        "emails": 20000,
+        "seconds": 221.74,
+        "emails_per_s": 90.2,
+        "dns_cache_hits": 10027,
+        "dns_cache_misses": 9973,
+        "dns_cache_hit_rate": 0.501,
+        "concurrency": 16,
+        "resolver": "in-memory fake (no network)"
+      },
+      "api": {
+        "contacts_first_page_ms_p50": 26.5,
+        "contacts_deep_page_ms_avg": 13.9,
+        "contacts_filtered_ms_p50": 38.5,
+        "businesses_first_page_ms_p50": 22.3,
+        "dashboard_overview_ms_p50": 205.8,
+        "dashboard_approximate": false
+      },
+      "export": {
+        "rows": 100000,
+        "seconds": 5.12,
+        "rows_per_s": 19538,
+        "file_mb": 23.2,
+        "process_peak_rss_mb": 207.8,
+        "rss_growth_during_export_mb": 0.4,
+        "status": "done"
+      },
+      "queue": {
+        "jobs": 100000,
+        "bulk_enqueue_s": 1.48,
+        "claim_complete_s": 53.04,
+        "jobs_per_s": 1885,
+        "workers": 4,
+        "note": "queue overhead only (no-op handlers): claim batch 100 with FOR UPDATE SKIP LOCKED"
+      }
+    },
+    "1000000": {
+      "ingest": {
+        "emails": 20000,
+        "seconds": 101.88,
+        "emails_per_s": 196.3,
+        "note": "full provenance path: org+domain+email+contact+evidence rows per observation"
+      },
+      "fixture": {
+        "rows": 1000000,
+        "seconds": 35.41,
+        "rows_per_s": 28244,
+        "note": "SQL generate_series fixture load (PostgreSQL bulk insert speed)"
+      },
+      "verify": {
+        "emails": 20000,
+        "seconds": 223.22,
+        "emails_per_s": 89.6,
+        "dns_cache_hits": 10027,
+        "dns_cache_misses": 9973,
+        "dns_cache_hit_rate": 0.501,
+        "concurrency": 16,
+        "resolver": "in-memory fake (no network)"
+      },
+      "api": {
+        "contacts_first_page_ms_p50": 14.7,
+        "contacts_deep_page_ms_avg": 11.5,
+        "contacts_filtered_ms_p50": 62.6,
+        "businesses_first_page_ms_p50": 34.4,
+        "dashboard_overview_ms_p50": 4.8,
+        "dashboard_approximate": true
+      },
+      "export": {
+        "rows": 1000000,
+        "seconds": 42.76,
+        "rows_per_s": 23388,
+        "file_mb": 235.5,
+        "process_peak_rss_mb": 211.7,
+        "rss_growth_during_export_mb": 0.0,
+        "status": "done"
+      },
+      "queue": {
+        "jobs": 100000,
+        "bulk_enqueue_s": 1.48,
+        "claim_complete_s": 49.73,
+        "jobs_per_s": 2011,
+        "workers": 4,
+        "note": "queue overhead only (no-op handlers): claim batch 100 with FOR UPDATE SKIP LOCKED"
+      }
+    }
+  },
+  "syntax": {
+    "n": 200000,
+    "seconds": 20.126,
+    "checks_per_s": 9937,
+    "valid": 200000
+  },
+  "extract": {
+    "pages": 300,
+    "seconds": 0.846,
+    "pages_per_s": 354.7,
+    "emails_per_s": 2570,
+    "mb_per_s": 2.85,
+    "expected_emails": 2174,
+    "found_emails": 2174
+  },
+  "peak_rss_mb_process": 265.4,
+  "finished": "2026-10-13T18:33:41Z"
+}

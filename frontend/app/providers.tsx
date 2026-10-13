@@ -4,6 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiError } from '@/lib/api';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/toast';
+import { z } from 'zod';
+
+// The CSP has no 'unsafe-eval' (next.config.ts). Zod 4 probes `new Function` to JIT-compile object parsers; jitless mode skips the
+// probe (and the CSP violation report it triggers) and uses the regular interpreter.
+z.config({ jitless: true });
 
 function makeClient() {
   return new QueryClient({

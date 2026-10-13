@@ -16,10 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import Settings
 from ..models import Category, SourceAdapterState
 from ..run_config import RunConfig
+from ..sources.access_policy import config_problems
 from .registry import adapter_catalog
 
 _HOST = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
-PATH_KEYS = {"path", "file", "file_path", "filename", "csv_path", "upload"}
 
 
 class FieldError(BaseModel):
@@ -63,18 +63,6 @@ def uploads_dir(settings: Settings) -> Path:
     return (Path(settings.data_dir) / "uploads").resolve()
 
 
-def _walk_paths(params: Any, prefix: str = ""):
-    if isinstance(params, dict):
-        for k, v in params.items():
-            if isinstance(v, str) and str(k).lower() in PATH_KEYS:
-                yield f"{prefix}{k}", v
-            else:
-                yield from _walk_paths(v, f"{prefix}{k}.")
-    elif isinstance(params, list):
-        for i, v in enumerate(params):
-            yield from _walk_paths(v, f"{prefix}{i}.")
-
-
 def _pydantic_errors(e: ValidationError) -> list[FieldError]:
     return [FieldError(field=".".join(str(p) for p in err["loc"]), message=str(err["msg"]).removeprefix("Value error, ")) for err in e.errors()]
 
@@ -107,15 +95,9 @@ async def validate_config(session: AsyncSession, raw: dict[str, Any], settings: 
                 errors.append(FieldError(field="schedule_at", message="The scheduled time must be in the future."))
         except ValueError:
             errors.append(FieldError(field="schedule_at", message="schedule_at must be an ISO 8601 timestamp, e.g. 2030-01-31T09:00:00Z."))
-    up = uploads_dir(settings)
     for adapter_id, params in cfg.source_params.items():
-        for where, p in _walk_paths(params, f"source_params.{adapter_id}."):
-            try:
-                ok = Path(p).resolve().is_relative_to(up)
-            except (OSError, ValueError):
-                ok = False
-            if not ok:
-                errors.append(FieldError(field=where, message="Files must be uploaded through the Sources page first; arbitrary server paths are not allowed."))
+        for where, msg in config_problems(params, settings, prefix=f"source_params.{adapter_id}."):
+            errors.append(FieldError(field=where, message=msg))
     catalog = adapter_catalog()
     states = {r.adapter_id: r for r in (await session.execute(select(SourceAdapterState))).scalars()}
     for i, sid in enumerate(cfg.sources):

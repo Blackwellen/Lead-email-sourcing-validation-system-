@@ -44,7 +44,7 @@ test.describe('in the browser', () => {
     const violations: string[] = [];
     await page.exposeFunction('__cspViolation', (v: string) => { violations.push(v); });
     await page.addInitScript(() => {
-      document.addEventListener('securitypolicyviolation', (e) => (window as unknown as { __cspViolation: (v: string) => void }).__cspViolation(`${e.violatedDirective} ${e.blockedURI}`));
+      document.addEventListener('securitypolicyviolation', (e) => (window as unknown as { __cspViolation: (v: string) => void }).__cspViolation(`${e.violatedDirective} ${e.blockedURI} ${location.pathname} ${e.sourceFile}:${e.lineNumber}:${e.columnNumber}`));
     });
     await login(page, 'admin');
     const res = await page.goto('/dashboard');

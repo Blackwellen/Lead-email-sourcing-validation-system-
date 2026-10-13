@@ -156,7 +156,7 @@ function OperatorControls({ d }: { d: ExplorerDetail }) {
         )}
         {!d.state.enabled && blockReason && <p id="ex-enable-why" className="text-xs text-muted-foreground">{blockReason}</p>}
       </div>
-      <ConfigureForm d={d} key={`${d.id}:${JSON.stringify(d.config)}:${d.permission.basis ?? ''}`} />
+      <ConfigureForm d={d} key={d.id} />
       {d.requirements.accepts_file_upload && <ImportForm d={d} />}
       {me.user && <p className="text-xs text-muted-foreground">Every change is recorded in the audit log as {me.user.email}.</p>}
     </section>
@@ -212,7 +212,12 @@ function ConfigureForm({ d }: { d: ExplorerDetail }) {
     save.mutate(body, {
       onSuccess: () => {
         setSaved([...Object.keys(config), ...remove.map((k) => `${k} (removed)`)]);
-        setRows((rs) => rs.map((r) => (r.secret ? { ...r, value: '', isSet: !r.remove && (r.isSet || !!config[r.key]) } : r)));
+        setRows((rs) => rs.map((r) => {
+          if (r.remove) return { ...r, remove: false, isSet: false, value: '' };
+          if (r.secret) return { ...r, value: '', isSet: r.isSet || r.key in config }; // never keep a typed secret around
+          return { ...r, isSet: r.value.trim() !== '' ? true : r.isSet && !remove.includes(r.key), custom: false };
+        }));
+
       },
     });
   };
