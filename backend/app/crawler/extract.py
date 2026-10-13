@@ -40,7 +40,7 @@ except Exception:  # pragma: no cover
 
 # --------------------------------------------------------------------------- e-mail syntax / garbage
 _EMAIL_RE = re.compile(
-    r"(?<![A-Za-z0-9._%+\-/=])([A-Za-z0-9_][A-Za-z0-9._%+\-]{0,63})@((?:[^\W_]|-)+(?:\.(?:[^\W_]|-)+)+)",
+    r"(?<![A-Za-z0-9._%+\-/=])([A-Za-z0-9_][A-Za-z0-9._%+\-']{0,63})@((?:[^\W_]|-)+(?:\.(?:[^\W_]|-)+)+)",
     re.UNICODE,
 )
 _AT = (r"(?:\s*\[\s*at\s*\]\s*|\s*\(\s*at\s*\)\s*|\s*\{\s*at\s*\}\s*|\s*<\s*at\s*>\s*"
@@ -87,7 +87,9 @@ _JSON_ESCAPE_PREFIXES = ("u003e", "u003c", "u0026", "u0022", "u0027", "u002f", "
 
 def valid_email_parts(local: str, domain: str) -> str | None:
     """Return the canonical-case address ``local@domain`` or None if it is syntactically junk."""
-    local = local.strip(".-_%+")
+    local = local.strip(".-_%+'")
+    if "'" in local and not re.search(r"(?:^|[._-])[od]'[a-z]", local, re.I):
+        local = local.rsplit("'", 1)[1]  # French elision such as l'info@ -> info@
     domain = domain.strip(".-").lower()
     if not local or len(local) > 64 or ".." in local:
         return None
@@ -247,7 +249,7 @@ def looks_like_person_name(s: str | None) -> bool:
             return False
         if not _NAME_TOKEN.match(t):
             return False
-        if t[0].isupper():
+        if not t[0].islower():  # capitalised, or caseless script (CJK, Arabic ...)
             caps += 1
         elif not (i > 0 and tl in _PARTICLES):
             return False
@@ -352,7 +354,8 @@ _JSONLD_CLEAN_COMMA = re.compile(r",\s*([}\]])")
 
 def _loads_lenient(s: str):
     s = s.strip()
-    s = re.sub(r"^\s*(?://)?\s*<!\[CDATA\[|\]\]>\s*(?://)?\s*$", "", s).strip()
+    s = re.sub(r"^\s*(?://)?\s*<!\[CDATA\[", "", s)
+    s = re.sub(r"(?://)?\s*\]\]>\s*$", "", s).strip()
     s = re.sub(r"^<!--|-->$", "", s).strip()
     for candidate in (s, _JSONLD_CLEAN_COMMA.sub(r"\1", s)):
         try:

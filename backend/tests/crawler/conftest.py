@@ -1,6 +1,7 @@
 """Local fixture HTTP server (127.0.0.1, ephemeral port) for crawler tests. No real internet."""
 from __future__ import annotations
 
+import asyncio
 import gzip
 import threading
 import time
@@ -9,7 +10,11 @@ from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
+import pytest_asyncio
+from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError
 
+from app import db as dbmod
 from app.config import get_settings
 from app.crawler.safe_http import SafeFetcher
 
@@ -22,6 +27,9 @@ class Route:
     headers: dict[str, str] = field(default_factory=dict)
     gzip: bool = False
     chunked_forever: bool = False
+    etag: str | None = None
+    delay: float = 0.0
+    statuses: list[int] | None = None  # consumed one per request, then `status`
 
 
 class FixtureServer:
@@ -42,13 +50,24 @@ class FixtureServer:
                 r = outer.routes.get(path) or outer.routes.get(path.split("?")[0])
                 if r is None:
                     r = Route(b"<html><body>not found</body></html>", 404)
+                if r.delay:
+                    time.sleep(r.delay)
+                if r.etag and self.headers.get("If-None-Match") == r.etag:
+                    self.send_response(304)
+                    self.send_header("ETag", r.etag)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
                 body = r.body(self) if callable(r.body) else r.body
                 if r.gzip:
                     body = gzip.compress(body)
-                self.send_response(r.status)
+                status = r.statuses.pop(0) if r.statuses else r.status
+                self.send_response(status)
                 self.send_header("Content-Type", r.ctype)
                 for k, v in r.headers.items():
                     self.send_header(k, v)
+                if r.etag:
+                    self.send_header("ETag", r.etag)
                 if r.gzip:
                     self.send_header("Content-Encoding", "gzip")
                 if r.chunked_forever:
@@ -68,6 +87,7 @@ class FixtureServer:
 
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), H)
         self.httpd.daemon_threads = True
+        self.httpd.handle_error = lambda *a: None
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
 
@@ -115,3 +135,26 @@ async def fetcher(allow_private):
     f = SafeFetcher()
     yield f
     await f.aclose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _clean(request, _schema):
+    """Override of the global cleaner: only touch the database for tests that actually use it, and
+    retry on deadlocks (several suites share the ``lead_test`` database when run concurrently)."""
+    if "session" not in request.fixturenames:
+        yield
+        return
+    from app.models import Base
+
+    tables = ", ".join(f'"{t.name}"' for t in reversed(Base.metadata.sorted_tables))
+    for attempt in range(8):
+        try:
+            async with dbmod.sessionmaker()() as s:
+                await s.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+                await s.commit()
+            break
+        except DBAPIError:
+            if attempt == 7:
+                raise
+            await asyncio.sleep(0.3 * (attempt + 1))
+    yield

@@ -16,7 +16,10 @@
    "excluded_keywords": [],
    "sic_codes": [],
    "osm_tags": [],
-   "default_sources": [],
+   "default_sources": [
+    "companies_house_bulk",
+    "osm_geofabrik"
+   ],
    "children": [
     {
      "slug": "property.sales-and-lettings-agents",
@@ -1240,7 +1243,11 @@
    "excluded_keywords": [],
    "sic_codes": [],
    "osm_tags": [],
-   "default_sources": [],
+   "default_sources": [
+    "osm_geofabrik",
+    "companies_house_bulk",
+    "wikidata"
+   ],
    "children": [
     {
      "slug": "events.venues",

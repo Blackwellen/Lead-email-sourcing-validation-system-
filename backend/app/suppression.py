@@ -43,7 +43,7 @@ def _where_for(kind: str, value: str):
         return text("email_normalised = :v")
     if kind == "domain":
         return text("(registrable_domain = :v OR domain = :v)")
-    return text("organisation_id = CAST(:v AS bigint)")
+    return text("organisation_id = CAST(CAST(:v AS text) AS bigint)")
 
 
 async def suppress(session: AsyncSession, *, kind: str, value: str, reason: str, note: str | None = None, user_id: int | None = None) -> tuple[int, int]:

@@ -363,12 +363,17 @@ class _Crawler:
 
     # -- fetching with robots + limiter
     async def fetch(self, url: str, *, kind: str, depth: int, reason: str, accept=None, max_bytes: int | None = None,
-                    ) -> tuple[PageRecord, sh.FetchResult | None]:
+                    conditional: bool = True) -> tuple[PageRecord, sh.FetchResult | None]:
         rec = PageRecord(url=url, final_url=url, depth=depth, kind=kind, reason=reason)
         host = host_of(url) or url
         if self.o.respect_robots:
             chk = await self.robots.check(url)
             if chk.decision is Decision.DEFERRED:
+                if chk.error_code:  # transport failure (dns/tls/timeout/ssrf ...): report it as such
+                    rec.error_code, rec.error_detail = chk.error_code, chk.reason
+                    self._count_error(chk.error_code)
+                    self.res.stats.pages_failed += 1
+                    return rec, None
                 self.res.health.robots_deferred = True
                 rec.error_code, rec.error_detail = "robots_deferred", chk.reason
                 self._count_error("robots_deferred")
@@ -390,7 +395,7 @@ class _Crawler:
                 return rec, None
             try:
                 async with self.limiter.acquire(host, group=self.group, max_wait=min(budget, self.o.max_rate_wait_s)) as slot:
-                    result = await self.f.fetch(url, accept=accept, max_bytes=max_bytes)
+                    result = await self.f.fetch(url, accept=accept, max_bytes=max_bytes, conditional=conditional)
                     slot.report(result.status, result.retry_after() if result.status in (429, 503) else None)
             except WaitTooLong as e:
                 rec.error_code, rec.error_detail = "rate_limited", str(e)
@@ -473,7 +478,9 @@ class _Crawler:
         elif url.lower().split("?")[0].endswith(".vcf"):
             kind = "vcard"
             accept = {"text/vcard", "text/x-vcard", "text/plain", "text/directory"}
-        rec, result = await self.fetch(url, kind=kind, depth=depth, reason=reason, accept=accept, max_bytes=max_bytes)
+        # The homepage is always fetched in full: a 304 carries no body, hence no links to follow.
+        rec, result = await self.fetch(url, kind=kind, depth=depth, reason=reason, accept=accept, max_bytes=max_bytes,
+                                       conditional=reason != "homepage")
         x: PageExtraction | None = None
         if result is not None:
             if result.not_modified:

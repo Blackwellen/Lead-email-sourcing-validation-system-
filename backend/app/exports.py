@@ -17,14 +17,26 @@ from typing import Any, Literal
 
 from pydantic import Field
 from sqlalchemy import and_, case, func, literal_column, select
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
+from sqlalchemy.orm import join as orm_join
 
 from . import jobqueue as jq
 from .api.common import capped_count
 from .api.filters import ContactFilterSpec, build_conditions
 from .config import get_settings
-from .models import Category, Contact, ContactEvidence, EmailAddress, EvidenceSource, Export, Organisation, OrganisationDomain, User
+from .models import (
+    Category,
+    Contact,
+    ContactEvidence,
+    EmailAddress,
+    EvidenceSource,
+    Export,
+    Organisation,
+    OrganisationDomain,
+    User,
+)
 from .security import ApiError
 from .settings_schema import load_section
 from .suppression import not_suppressed_conds
@@ -91,7 +103,7 @@ def _iso(dt: datetime | None) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ") if dt else ""
 
 
-E, O, C = EmailAddress, Organisation, Contact
+E, Org, C = EmailAddress, Organisation, Contact
 Cat = aliased(Category)
 PCat = aliased(Category)
 
@@ -99,14 +111,14 @@ PCat = aliased(Category)
 def _dom_subq(col):
     d = aliased(OrganisationDomain)
     return (
-        select(getattr(d, col)).where(d.organisation_id == O.id, d.parked.is_(False), d.verified_match_status.in_(("confirmed", "high")))
-        .order_by((d.verified_match_status == "confirmed").desc(), d.confidence.desc(), d.id).limit(1).correlate(O).scalar_subquery()
+        select(getattr(d, col)).where(d.organisation_id == Org.id, d.parked.is_(False), d.verified_match_status.in_(("confirmed", "high")))
+        .order_by((d.verified_match_status == "confirmed").desc(), d.confidence.desc(), d.id).limit(1).correlate(Org).scalar_subquery()
     )
 
 
 def _src_subq():
     return (
-        select(EvidenceSource.source_url).select_from(ContactEvidence.__table__.join(EvidenceSource.__table__, EvidenceSource.id == ContactEvidence.evidence_id))
+        select(EvidenceSource.source_url).select_from(orm_join(ContactEvidence, EvidenceSource, EvidenceSource.id == ContactEvidence.evidence_id))
         .where(ContactEvidence.email_id == E.id, EvidenceSource.source_url.is_not(None)).order_by(ContactEvidence.observed_at, ContactEvidence.id).limit(1).correlate(E).scalar_subquery()
     )
 
@@ -129,8 +141,8 @@ async def filter_conditions(session: AsyncSession, f: ExportFilters) -> list:
 
 def _from():
     return (
-        E.__table__.join(O.__table__, O.id == E.organisation_id).outerjoin(C.__table__, C.id == E.contact_id)
-        .outerjoin(Cat.__table__, Cat.id == O.category_id).outerjoin(PCat.__table__, PCat.id == Cat.parent_id)
+        orm_join(E, Org, Org.id == E.organisation_id).outerjoin(C, C.id == E.contact_id)
+        .outerjoin(Cat, Cat.id == Org.category_id).outerjoin(PCat, PCat.id == Cat.parent_id)
     )
 
 
@@ -140,7 +152,7 @@ def _select_cols():
         E.marketing_status, E.suppressed_at, E.first_seen_at, E.last_validated_at, E.last_seen_at, E.syntax_status, E.recipient_evidence_status,
         E.needs_review, E.previously_bounced, E.is_free_provider, E.is_disposable, E.confidence_breakdown, E.organisation_id, E.registrable_domain,
         C.given_name, C.family_name, C.full_name, C.job_title, C.department,
-        O.legal_name, O.trading_name, O.company_number, O.country_code, O.region, O.city, O.postal_code, O.phone, O.discovery_source, O.industry, O.subcategory,
+        Org.legal_name, Org.trading_name, Org.company_number, Org.country_code, Org.region, Org.city, Org.postal_code, Org.phone, Org.discovery_source, Org.industry, Org.subcategory,
         Cat.name.label("cat_name"), PCat.name.label("parent_name"),
         _dom_subq("domain").label("co_domain"), _dom_subq("website_url").label("co_website"), _src_subq().label("source_url"),
     ]
@@ -202,7 +214,7 @@ async def _batches(session: AsyncSession, f: ExportFilters, limit: int) -> Async
             stmt = stmt.order_by(E.id)
         else:
             quality = case((E.origin.in_(("published", "corroborated")), 0), else_=1)
-            stmt = stmt.distinct(key).order_by(key, quality, E.confidence.desc(), E.id)
+            stmt = stmt.ext(distinct_on(key)).order_by(key, quality, E.confidence.desc(), E.id)
         rows = (await session.execute(stmt.limit(min(BATCH, limit - produced)))).all()
         if not rows:
             return

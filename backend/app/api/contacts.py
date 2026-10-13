@@ -10,8 +10,10 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, literal, literal_column, select, text, update
+from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
+from sqlalchemy.orm import join as orm_join
 
 from .. import jobqueue as jq
 from ..db import get_session
@@ -40,7 +42,7 @@ router = APIRouter(prefix="/api", dependencies=[Depends(require_role("viewer"))]
 contacts_router = APIRouter(prefix="/contacts", tags=["contacts"])
 privacy_router = APIRouter(tags=["privacy"])
 
-E, O, C = EmailAddress, Organisation, Contact
+E, Org, C = EmailAddress, Organisation, Contact
 Cat = aliased(Category)
 
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
@@ -229,6 +231,12 @@ class SuppressionCreateIn(BaseModel):
     note: str | None = Field(None, max_length=1000)
 
 
+def mask_pii_list(items: list[str]) -> list[str]:
+    from ..logging_setup import mask_pii
+
+    return [mask_pii(x) for x in items]
+
+
 # --------------------------------------------------------------------------- list
 def _row(r) -> ContactRow:
     m = r._mapping
@@ -244,7 +252,7 @@ def _row(r) -> ContactRow:
 
 
 def _base_from():
-    return E.__table__.join(O.__table__, O.id == E.organisation_id).outerjoin(C.__table__, C.id == E.contact_id).outerjoin(Cat.__table__, Cat.id == O.category_id)
+    return orm_join(E, Org, Org.id == E.organisation_id).outerjoin(C, C.id == E.contact_id).outerjoin(Cat, Cat.id == Org.category_id)
 
 
 async def contact_rows(
@@ -257,8 +265,8 @@ async def contact_rows(
         select(
             E.id, E.email_normalised.label("email"), E.origin, E.confidence, E.role_type, E.overall_reachability, E.syntax_status, E.domain_mail_status,
             E.recipient_evidence_status, E.catch_all_status, E.marketing_status, E.needs_review, E.suppressed_at, E.last_validated_at, E.last_seen_at,
-            E.domain, E.contact_id, C.full_name, C.job_title, E.organisation_id, O.legal_name, O.trading_name, O.country_code, O.region, O.city,
-            O.category_id, Cat.name.label("category_name"), spec.column.label("_sv"), E.id.label("_id"),
+            E.domain, E.contact_id, C.full_name, C.job_title, E.organisation_id, Org.legal_name, Org.trading_name, Org.country_code, Org.region, Org.city,
+            Org.category_id, Cat.name.label("category_name"), spec.column.label("_sv"), E.id.label("_id"),
         )
         .select_from(_base_from())
         .where(*conds)
@@ -369,7 +377,7 @@ async def get_contact(contact_id: int, session: AsyncSession = Depends(get_sessi
                            licence=s.licence, extraction_method=ce.extraction_method, observed_at=ce.observed_at, context=ce.context or {}, run_id=ce.run_id,
                            source_reliability=s.source_reliability) for ce, s in ev_rows]
     latest_rows = (await session.execute(
-        select(ValidationResult).where(ValidationResult.email_id == e.id).distinct(ValidationResult.check_type).order_by(ValidationResult.check_type, ValidationResult.observed_at.desc(), ValidationResult.id.desc()))).scalars().all()
+        select(ValidationResult).ext(distinct_on(ValidationResult.check_type)).where(ValidationResult.email_id == e.id).order_by(ValidationResult.check_type, ValidationResult.observed_at.desc(), ValidationResult.id.desc()))).scalars().all()
     hist_rows = (await session.execute(select(ValidationResult).where(ValidationResult.email_id == e.id).order_by(ValidationResult.observed_at.desc(), ValidationResult.id.desc()).limit(100))).scalars().all()
     latest = [_validation_out(v, now) for v in latest_rows]
     history = [_validation_out(v, now) for v in hist_rows]

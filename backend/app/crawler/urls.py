@@ -38,7 +38,12 @@ def known_tlds() -> frozenset[str]:
 
 def to_ascii_host(host: str) -> str | None:
     """Lower-case, strip dots/brackets and convert IDN to punycode. None when impossible."""
-    host = (host or "").strip().strip(".").lower()
+    return _to_ascii_host(host or "")
+
+
+@lru_cache(maxsize=8192)
+def _to_ascii_host(host: str) -> str | None:
+    host = host.strip().strip(".").lower()
     if host.startswith("[") and host.endswith("]"):
         host = host[1:-1]
     if not host:

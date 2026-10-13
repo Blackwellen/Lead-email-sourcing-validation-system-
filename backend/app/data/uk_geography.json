@@ -1,0 +1,4607 @@
+{
+ "version": 1,
+ "generated_note": "Hand-compiled from general knowledge of UK administrative geography and Royal Mail postcode areas. Not derived from ONS/Royal Mail data files; verify before relying on it for compliance or billing.",
+ "uncertainty": [
+  "Postcode areas do not align with administrative boundaries: 'also_regions' lists the other regions an area is known to overlap; the list is best-effort and may be incomplete.",
+  "Local authority structure reflects England after the April 2023 reorganisations (Cumbria, North Yorkshire, Somerset); later changes are not reflected.",
+  "No postcode-area to local-authority mapping is provided (many-to-many; needs ONS Postcode Directory, which is OGL but large).",
+  "No boundaries, centroids or radii are provided: radius search needs operator-supplied coordinates or a licensed gazetteer.",
+  "The Channel Islands (GY, JE) and Isle of Man (IM) are not part of the UK and are excluded; BFPO and non-geographic postcodes are excluded.",
+  "Royal Mail's list is sometimes quoted as ~124 areas; this file contains the geographic areas listed here (see postcode_areas length)."
+ ],
+ "nations": [
+  {
+   "id": "england",
+   "name": "England",
+   "iso_3166_2": "GB-ENG"
+  },
+  {
+   "id": "scotland",
+   "name": "Scotland",
+   "iso_3166_2": "GB-SCT"
+  },
+  {
+   "id": "wales",
+   "name": "Wales",
+   "iso_3166_2": "GB-WLS"
+  },
+  {
+   "id": "northern-ireland",
+   "name": "Northern Ireland",
+   "iso_3166_2": "GB-NIR"
+  }
+ ],
+ "regions": [
+  {
+   "id": "north-east",
+   "name": "North East",
+   "nation": "england"
+  },
+  {
+   "id": "north-west",
+   "name": "North West",
+   "nation": "england"
+  },
+  {
+   "id": "yorkshire-and-the-humber",
+   "name": "Yorkshire and The Humber",
+   "nation": "england"
+  },
+  {
+   "id": "east-midlands",
+   "name": "East Midlands",
+   "nation": "england"
+  },
+  {
+   "id": "west-midlands",
+   "name": "West Midlands",
+   "nation": "england"
+  },
+  {
+   "id": "east-of-england",
+   "name": "East of England",
+   "nation": "england"
+  },
+  {
+   "id": "london",
+   "name": "London",
+   "nation": "england"
+  },
+  {
+   "id": "south-east",
+   "name": "South East",
+   "nation": "england"
+  },
+  {
+   "id": "south-west",
+   "name": "South West",
+   "nation": "england"
+  },
+  {
+   "id": "scotland",
+   "name": "Scotland",
+   "nation": "scotland"
+  },
+  {
+   "id": "wales",
+   "name": "Wales",
+   "nation": "wales"
+  },
+  {
+   "id": "northern-ireland",
+   "name": "Northern Ireland",
+   "nation": "northern-ireland"
+  }
+ ],
+ "local_authorities": [
+  {
+   "name": "Cambridgeshire",
+   "type": "county",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Derbyshire",
+   "type": "county",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Devon",
+   "type": "county",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "East Sussex",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Essex",
+   "type": "county",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Gloucestershire",
+   "type": "county",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Hampshire",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Hertfordshire",
+   "type": "county",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Kent",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Lancashire",
+   "type": "county",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Leicestershire",
+   "type": "county",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Lincolnshire",
+   "type": "county",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Norfolk",
+   "type": "county",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Nottinghamshire",
+   "type": "county",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Oxfordshire",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Staffordshire",
+   "type": "county",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Suffolk",
+   "type": "county",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Surrey",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Warwickshire",
+   "type": "county",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "West Sussex",
+   "type": "county",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Worcestershire",
+   "type": "county",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Bolton",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Bury",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Manchester",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Oldham",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Rochdale",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Salford",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Stockport",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Tameside",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Trafford",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Wigan",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Knowsley",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Liverpool",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Sefton",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "St Helens",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Wirral",
+   "type": "metropolitan_borough",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Barnsley",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Doncaster",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Rotherham",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Sheffield",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Bradford",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Calderdale",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Kirklees",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Leeds",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Wakefield",
+   "type": "metropolitan_borough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Gateshead",
+   "type": "metropolitan_borough",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Newcastle upon Tyne",
+   "type": "metropolitan_borough",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "North Tyneside",
+   "type": "metropolitan_borough",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "South Tyneside",
+   "type": "metropolitan_borough",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Sunderland",
+   "type": "metropolitan_borough",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Birmingham",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Coventry",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Dudley",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Sandwell",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Solihull",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Walsall",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Wolverhampton",
+   "type": "metropolitan_borough",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Barking and Dagenham",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Barnet",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Bexley",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Brent",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Bromley",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Camden",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Croydon",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Ealing",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Enfield",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Greenwich",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Hackney",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Hammersmith and Fulham",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Haringey",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Harrow",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Havering",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Hillingdon",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Hounslow",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Islington",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Kensington and Chelsea",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Kingston upon Thames",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Lambeth",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Lewisham",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Merton",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Newham",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Redbridge",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Richmond upon Thames",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Southwark",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Sutton",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Tower Hamlets",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Waltham Forest",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Wandsworth",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "Westminster",
+   "type": "london_borough",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "City of London",
+   "type": "sui_generis",
+   "region": "london",
+   "nation": "england"
+  },
+  {
+   "name": "County Durham",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Darlington",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Hartlepool",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Middlesbrough",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Northumberland",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Redcar and Cleveland",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Stockton-on-Tees",
+   "type": "unitary",
+   "region": "north-east",
+   "nation": "england"
+  },
+  {
+   "name": "Blackburn with Darwen",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Blackpool",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Cheshire East",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Cheshire West and Chester",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Halton",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Warrington",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Cumberland",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "Westmorland and Furness",
+   "type": "unitary",
+   "region": "north-west",
+   "nation": "england"
+  },
+  {
+   "name": "East Riding of Yorkshire",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Kingston upon Hull",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "North East Lincolnshire",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "North Lincolnshire",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "York",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "North Yorkshire",
+   "type": "unitary",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england"
+  },
+  {
+   "name": "Derby",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Leicester",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Nottingham",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Rutland",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "North Northamptonshire",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "West Northamptonshire",
+   "type": "unitary",
+   "region": "east-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Herefordshire",
+   "type": "unitary",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Shropshire",
+   "type": "unitary",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Stoke-on-Trent",
+   "type": "unitary",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Telford and Wrekin",
+   "type": "unitary",
+   "region": "west-midlands",
+   "nation": "england"
+  },
+  {
+   "name": "Bedford",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Central Bedfordshire",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Luton",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Peterborough",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Southend-on-Sea",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Thurrock",
+   "type": "unitary",
+   "region": "east-of-england",
+   "nation": "england"
+  },
+  {
+   "name": "Bracknell Forest",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Brighton and Hove",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Buckinghamshire",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Isle of Wight",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Medway",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Milton Keynes",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Portsmouth",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Reading",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Slough",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Southampton",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "West Berkshire",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Windsor and Maidenhead",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Wokingham",
+   "type": "unitary",
+   "region": "south-east",
+   "nation": "england"
+  },
+  {
+   "name": "Bath and North East Somerset",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Bournemouth, Christchurch and Poole",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Bristol",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Cornwall",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Dorset",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "North Somerset",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Plymouth",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Somerset",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "South Gloucestershire",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Swindon",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Torbay",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Wiltshire",
+   "type": "unitary",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Isles of Scilly",
+   "type": "sui_generis",
+   "region": "south-west",
+   "nation": "england"
+  },
+  {
+   "name": "Blaenau Gwent",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Bridgend",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Caerphilly",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Cardiff",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Carmarthenshire",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Ceredigion",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Conwy",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Denbighshire",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Flintshire",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Gwynedd",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Isle of Anglesey",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Merthyr Tydfil",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Monmouthshire",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Neath Port Talbot",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Newport",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Pembrokeshire",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Powys",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Rhondda Cynon Taf",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Swansea",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Torfaen",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Vale of Glamorgan",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Wrexham",
+   "type": "principal_area",
+   "region": "wales",
+   "nation": "wales"
+  },
+  {
+   "name": "Aberdeen City",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Aberdeenshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Angus",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Argyll and Bute",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "City of Edinburgh",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Clackmannanshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Dumfries and Galloway",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Dundee City",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "East Ayrshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "East Dunbartonshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "East Lothian",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "East Renfrewshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Falkirk",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Fife",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Glasgow City",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Highland",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Inverclyde",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Midlothian",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Moray",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Na h-Eileanan Siar",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "North Ayrshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "North Lanarkshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Orkney Islands",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Perth and Kinross",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Renfrewshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Scottish Borders",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Shetland Islands",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "South Ayrshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "South Lanarkshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Stirling",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "West Dunbartonshire",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "West Lothian",
+   "type": "council_area",
+   "region": "scotland",
+   "nation": "scotland"
+  },
+  {
+   "name": "Antrim and Newtownabbey",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Ards and North Down",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Armagh City, Banbridge and Craigavon",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Belfast",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Causeway Coast and Glens",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Derry City and Strabane",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Fermanagh and Omagh",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Lisburn and Castlereagh",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Mid and East Antrim",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Mid Ulster",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  },
+  {
+   "name": "Newry, Mourne and Down",
+   "type": "district",
+   "region": "northern-ireland",
+   "nation": "northern-ireland"
+  }
+ ],
+ "postcode_areas": [
+  {
+   "code": "AB",
+   "town": "Aberdeen",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "AL",
+   "town": "St Albans",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "B",
+   "town": "Birmingham",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BA",
+   "town": "Bath",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BB",
+   "town": "Blackburn",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BD",
+   "town": "Bradford",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BH",
+   "town": "Bournemouth",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "BL",
+   "town": "Bolton",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BN",
+   "town": "Brighton",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BR",
+   "town": "Bromley",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "BS",
+   "town": "Bristol",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "BT",
+   "town": "Belfast",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CA",
+   "town": "Carlisle",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [
+    "north-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "CB",
+   "town": "Cambridge",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CF",
+   "town": "Cardiff",
+   "region": "wales",
+   "nation": "wales",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CH",
+   "town": "Chester",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [
+    "wales"
+   ],
+   "also_nations": [
+    "wales"
+   ]
+  },
+  {
+   "code": "CM",
+   "town": "Chelmsford",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [
+    "london"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "CO",
+   "town": "Colchester",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CR",
+   "town": "Croydon",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "CT",
+   "town": "Canterbury",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CV",
+   "town": "Coventry",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "CW",
+   "town": "Crewe",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "DA",
+   "town": "Dartford",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [
+    "london"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "DD",
+   "town": "Dundee",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "DE",
+   "town": "Derby",
+   "region": "east-midlands",
+   "nation": "england",
+   "also_regions": [
+    "west-midlands"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "DG",
+   "town": "Dumfries",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "DH",
+   "town": "Durham",
+   "region": "north-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "DL",
+   "town": "Darlington",
+   "region": "north-east",
+   "nation": "england",
+   "also_regions": [
+    "yorkshire-and-the-humber"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "DN",
+   "town": "Doncaster",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [
+    "east-midlands"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "DT",
+   "town": "Dorchester",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "DY",
+   "town": "Dudley",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "E",
+   "town": "London E",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "EC",
+   "town": "London EC",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "EH",
+   "town": "Edinburgh",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "EN",
+   "town": "Enfield",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "east-of-england"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "EX",
+   "town": "Exeter",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "FK",
+   "town": "Falkirk",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "FY",
+   "town": "Blackpool",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "G",
+   "town": "Glasgow",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "GL",
+   "town": "Gloucester",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "GU",
+   "town": "Guildford",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HA",
+   "town": "Harrow",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HD",
+   "town": "Huddersfield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HG",
+   "town": "Harrogate",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HP",
+   "town": "Hemel Hempstead",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "HR",
+   "town": "Hereford",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [
+    "wales"
+   ],
+   "also_nations": [
+    "wales"
+   ]
+  },
+  {
+   "code": "HS",
+   "town": "Outer Hebrides",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HU",
+   "town": "Hull",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "HX",
+   "town": "Halifax",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "IG",
+   "town": "Ilford",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "IP",
+   "town": "Ipswich",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "IV",
+   "town": "Inverness",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "KA",
+   "town": "Kilmarnock",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "KT",
+   "town": "Kingston upon Thames",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "KW",
+   "town": "Kirkwall",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "KY",
+   "town": "Kirkcaldy",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "L",
+   "town": "Liverpool",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LA",
+   "town": "Lancaster",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LD",
+   "town": "Llandrindod Wells",
+   "region": "wales",
+   "nation": "wales",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LE",
+   "town": "Leicester",
+   "region": "east-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LL",
+   "town": "Llandudno",
+   "region": "wales",
+   "nation": "wales",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LN",
+   "town": "Lincoln",
+   "region": "east-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LS",
+   "town": "Leeds",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "LU",
+   "town": "Luton",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "M",
+   "town": "Manchester",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "ME",
+   "town": "Medway",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "MK",
+   "town": "Milton Keynes",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [
+    "east-of-england"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "ML",
+   "town": "Motherwell",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "N",
+   "town": "London N",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NE",
+   "town": "Newcastle upon Tyne",
+   "region": "north-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NG",
+   "town": "Nottingham",
+   "region": "east-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NN",
+   "town": "Northampton",
+   "region": "east-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NP",
+   "town": "Newport",
+   "region": "wales",
+   "nation": "wales",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NR",
+   "town": "Norwich",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "NW",
+   "town": "London NW",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "OL",
+   "town": "Oldham",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "OX",
+   "town": "Oxford",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "PA",
+   "town": "Paisley",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "PE",
+   "town": "Peterborough",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [
+    "east-midlands"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "PH",
+   "town": "Perth",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "PL",
+   "town": "Plymouth",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "PO",
+   "town": "Portsmouth",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "PR",
+   "town": "Preston",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "RG",
+   "town": "Reading",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "RH",
+   "town": "Redhill",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "RM",
+   "town": "Romford",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "east-of-england"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "S",
+   "town": "Sheffield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [
+    "east-midlands"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "SA",
+   "town": "Swansea",
+   "region": "wales",
+   "nation": "wales",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SE",
+   "town": "London SE",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SG",
+   "town": "Stevenage",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SK",
+   "town": "Stockport",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [
+    "east-midlands"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "SL",
+   "town": "Slough",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SM",
+   "town": "Sutton",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SN",
+   "town": "Swindon",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "SO",
+   "town": "Southampton",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SP",
+   "town": "Salisbury",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "SR",
+   "town": "Sunderland",
+   "region": "north-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SS",
+   "town": "Southend-on-Sea",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "ST",
+   "town": "Stoke-on-Trent",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SW",
+   "town": "London SW",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "SY",
+   "town": "Shrewsbury",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [
+    "wales"
+   ],
+   "also_nations": [
+    "wales"
+   ]
+  },
+  {
+   "code": "TA",
+   "town": "Taunton",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "TD",
+   "town": "Galashiels",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [
+    "north-east"
+   ],
+   "also_nations": [
+    "england"
+   ]
+  },
+  {
+   "code": "TF",
+   "town": "Telford",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "TN",
+   "town": "Tunbridge Wells",
+   "region": "south-east",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "TQ",
+   "town": "Torquay",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "TR",
+   "town": "Truro",
+   "region": "south-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "TS",
+   "town": "Cleveland (Middlesbrough)",
+   "region": "north-east",
+   "nation": "england",
+   "also_regions": [
+    "yorkshire-and-the-humber"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "TW",
+   "town": "Twickenham",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [
+    "south-east"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "UB",
+   "town": "Southall (Uxbridge)",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "W",
+   "town": "London W",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WA",
+   "town": "Warrington",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WC",
+   "town": "London WC",
+   "region": "london",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WD",
+   "town": "Watford",
+   "region": "east-of-england",
+   "nation": "england",
+   "also_regions": [
+    "london"
+   ],
+   "also_nations": []
+  },
+  {
+   "code": "WF",
+   "town": "Wakefield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WN",
+   "town": "Wigan",
+   "region": "north-west",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WR",
+   "town": "Worcester",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WS",
+   "town": "Walsall",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "WV",
+   "town": "Wolverhampton",
+   "region": "west-midlands",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "YO",
+   "town": "York",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "also_regions": [],
+   "also_nations": []
+  },
+  {
+   "code": "ZE",
+   "town": "Lerwick",
+   "region": "scotland",
+   "nation": "scotland",
+   "also_regions": [],
+   "also_nations": []
+  }
+ ],
+ "cities": [
+  {
+   "name": "Newcastle upon Tyne",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "NE"
+   ]
+  },
+  {
+   "name": "Sunderland",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "SR"
+   ]
+  },
+  {
+   "name": "Durham",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "DH"
+   ]
+  },
+  {
+   "name": "Middlesbrough",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TS"
+   ]
+  },
+  {
+   "name": "Darlington",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "DL"
+   ]
+  },
+  {
+   "name": "Hartlepool",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TS"
+   ]
+  },
+  {
+   "name": "Gateshead",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "NE"
+   ]
+  },
+  {
+   "name": "Stockton-on-Tees",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TS"
+   ]
+  },
+  {
+   "name": "Hexham",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "NE"
+   ]
+  },
+  {
+   "name": "Berwick-upon-Tweed",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TD"
+   ]
+  },
+  {
+   "name": "Alnwick",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "NE"
+   ]
+  },
+  {
+   "name": "Redcar",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TS"
+   ]
+  },
+  {
+   "name": "Consett",
+   "region": "north-east",
+   "nation": "england",
+   "postcode_areas": [
+    "DH"
+   ]
+  },
+  {
+   "name": "Manchester",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "M"
+   ]
+  },
+  {
+   "name": "Liverpool",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "L"
+   ]
+  },
+  {
+   "name": "Preston",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "PR"
+   ]
+  },
+  {
+   "name": "Blackpool",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "FY"
+   ]
+  },
+  {
+   "name": "Lancaster",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "LA"
+   ]
+  },
+  {
+   "name": "Carlisle",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "CA"
+   ]
+  },
+  {
+   "name": "Chester",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "CH"
+   ]
+  },
+  {
+   "name": "Warrington",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WA"
+   ]
+  },
+  {
+   "name": "Bolton",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BL"
+   ]
+  },
+  {
+   "name": "Wigan",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WN"
+   ]
+  },
+  {
+   "name": "Stockport",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "SK"
+   ]
+  },
+  {
+   "name": "Salford",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "M"
+   ]
+  },
+  {
+   "name": "Oldham",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "OL"
+   ]
+  },
+  {
+   "name": "Rochdale",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "OL"
+   ]
+  },
+  {
+   "name": "Blackburn",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BB"
+   ]
+  },
+  {
+   "name": "Burnley",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BB"
+   ]
+  },
+  {
+   "name": "Southport",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "PR"
+   ]
+  },
+  {
+   "name": "Crewe",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "CW"
+   ]
+  },
+  {
+   "name": "Macclesfield",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "SK"
+   ]
+  },
+  {
+   "name": "Birkenhead",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "CH"
+   ]
+  },
+  {
+   "name": "St Helens",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WA"
+   ]
+  },
+  {
+   "name": "Bury",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BL"
+   ]
+  },
+  {
+   "name": "Altrincham",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WA"
+   ]
+  },
+  {
+   "name": "Kendal",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "LA"
+   ]
+  },
+  {
+   "name": "Barrow-in-Furness",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "LA"
+   ]
+  },
+  {
+   "name": "Accrington",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BB"
+   ]
+  },
+  {
+   "name": "Runcorn",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WA"
+   ]
+  },
+  {
+   "name": "Widnes",
+   "region": "north-west",
+   "nation": "england",
+   "postcode_areas": [
+    "WA"
+   ]
+  },
+  {
+   "name": "Leeds",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "LS"
+   ]
+  },
+  {
+   "name": "Sheffield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "S"
+   ]
+  },
+  {
+   "name": "Bradford",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "BD"
+   ]
+  },
+  {
+   "name": "Hull",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HU"
+   ]
+  },
+  {
+   "name": "York",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "YO"
+   ]
+  },
+  {
+   "name": "Wakefield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "WF"
+   ]
+  },
+  {
+   "name": "Doncaster",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "DN"
+   ]
+  },
+  {
+   "name": "Huddersfield",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HD"
+   ]
+  },
+  {
+   "name": "Harrogate",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HG"
+   ]
+  },
+  {
+   "name": "Halifax",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HX"
+   ]
+  },
+  {
+   "name": "Rotherham",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "S"
+   ]
+  },
+  {
+   "name": "Barnsley",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "S"
+   ]
+  },
+  {
+   "name": "Scarborough",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "YO"
+   ]
+  },
+  {
+   "name": "Grimsby",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "DN"
+   ]
+  },
+  {
+   "name": "Scunthorpe",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "DN"
+   ]
+  },
+  {
+   "name": "Skipton",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "BD"
+   ]
+  },
+  {
+   "name": "Ripon",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HG"
+   ]
+  },
+  {
+   "name": "Beverley",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "HU"
+   ]
+  },
+  {
+   "name": "Whitby",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "YO"
+   ]
+  },
+  {
+   "name": "Pontefract",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "WF"
+   ]
+  },
+  {
+   "name": "Keighley",
+   "region": "yorkshire-and-the-humber",
+   "nation": "england",
+   "postcode_areas": [
+    "BD"
+   ]
+  },
+  {
+   "name": "Nottingham",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NG"
+   ]
+  },
+  {
+   "name": "Leicester",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LE"
+   ]
+  },
+  {
+   "name": "Derby",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "DE"
+   ]
+  },
+  {
+   "name": "Lincoln",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LN"
+   ]
+  },
+  {
+   "name": "Northampton",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NN"
+   ]
+  },
+  {
+   "name": "Loughborough",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LE"
+   ]
+  },
+  {
+   "name": "Mansfield",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NG"
+   ]
+  },
+  {
+   "name": "Chesterfield",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "S"
+   ]
+  },
+  {
+   "name": "Kettering",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NN"
+   ]
+  },
+  {
+   "name": "Corby",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NN"
+   ]
+  },
+  {
+   "name": "Grantham",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NG"
+   ]
+  },
+  {
+   "name": "Boston",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "PE"
+   ]
+  },
+  {
+   "name": "Buxton",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "SK"
+   ]
+  },
+  {
+   "name": "Matlock",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "DE"
+   ]
+  },
+  {
+   "name": "Newark",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "NG"
+   ]
+  },
+  {
+   "name": "Worksop",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "S"
+   ]
+  },
+  {
+   "name": "Hinckley",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LE"
+   ]
+  },
+  {
+   "name": "Melton Mowbray",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LE"
+   ]
+  },
+  {
+   "name": "Spalding",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "PE"
+   ]
+  },
+  {
+   "name": "Skegness",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "PE"
+   ]
+  },
+  {
+   "name": "Oakham",
+   "region": "east-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "LE"
+   ]
+  },
+  {
+   "name": "Birmingham",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "B"
+   ]
+  },
+  {
+   "name": "Coventry",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Wolverhampton",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "WV"
+   ]
+  },
+  {
+   "name": "Stoke-on-Trent",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "ST"
+   ]
+  },
+  {
+   "name": "Worcester",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "WR"
+   ]
+  },
+  {
+   "name": "Hereford",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "HR"
+   ]
+  },
+  {
+   "name": "Shrewsbury",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "SY"
+   ]
+  },
+  {
+   "name": "Telford",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "TF"
+   ]
+  },
+  {
+   "name": "Dudley",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "DY"
+   ]
+  },
+  {
+   "name": "Walsall",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "WS"
+   ]
+  },
+  {
+   "name": "Solihull",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "B"
+   ]
+  },
+  {
+   "name": "Stafford",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "ST"
+   ]
+  },
+  {
+   "name": "Lichfield",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "WS"
+   ]
+  },
+  {
+   "name": "Warwick",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Leamington Spa",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Stratford-upon-Avon",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Nuneaton",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Redditch",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "B"
+   ]
+  },
+  {
+   "name": "Kidderminster",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "DY"
+   ]
+  },
+  {
+   "name": "Tamworth",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "B"
+   ]
+  },
+  {
+   "name": "Rugby",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "CV"
+   ]
+  },
+  {
+   "name": "Bromsgrove",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "B"
+   ]
+  },
+  {
+   "name": "Cannock",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "WS"
+   ]
+  },
+  {
+   "name": "Burton upon Trent",
+   "region": "west-midlands",
+   "nation": "england",
+   "postcode_areas": [
+    "DE"
+   ]
+  },
+  {
+   "name": "Norwich",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "NR"
+   ]
+  },
+  {
+   "name": "Cambridge",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CB"
+   ]
+  },
+  {
+   "name": "Peterborough",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "PE"
+   ]
+  },
+  {
+   "name": "Ipswich",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "IP"
+   ]
+  },
+  {
+   "name": "Chelmsford",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CM"
+   ]
+  },
+  {
+   "name": "Colchester",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CO"
+   ]
+  },
+  {
+   "name": "Luton",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "LU"
+   ]
+  },
+  {
+   "name": "Southend-on-Sea",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "SS"
+   ]
+  },
+  {
+   "name": "St Albans",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "AL"
+   ]
+  },
+  {
+   "name": "Watford",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "WD"
+   ]
+  },
+  {
+   "name": "Stevenage",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "SG"
+   ]
+  },
+  {
+   "name": "Bedford",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "MK"
+   ]
+  },
+  {
+   "name": "Basildon",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "SS"
+   ]
+  },
+  {
+   "name": "Harlow",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CM"
+   ]
+  },
+  {
+   "name": "Great Yarmouth",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "NR"
+   ]
+  },
+  {
+   "name": "King's Lynn",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "PE"
+   ]
+  },
+  {
+   "name": "Bury St Edmunds",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "IP"
+   ]
+  },
+  {
+   "name": "Ely",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CB"
+   ]
+  },
+  {
+   "name": "Lowestoft",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "NR"
+   ]
+  },
+  {
+   "name": "Hemel Hempstead",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "HP"
+   ]
+  },
+  {
+   "name": "Hertford",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "SG"
+   ]
+  },
+  {
+   "name": "Letchworth",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "SG"
+   ]
+  },
+  {
+   "name": "Welwyn Garden City",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "AL"
+   ]
+  },
+  {
+   "name": "Braintree",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "CM"
+   ]
+  },
+  {
+   "name": "Felixstowe",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "IP"
+   ]
+  },
+  {
+   "name": "Thetford",
+   "region": "east-of-england",
+   "nation": "england",
+   "postcode_areas": [
+    "IP"
+   ]
+  },
+  {
+   "name": "London",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "E",
+    "EC",
+    "N",
+    "NW",
+    "SE",
+    "SW",
+    "W",
+    "WC"
+   ]
+  },
+  {
+   "name": "Croydon",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "CR"
+   ]
+  },
+  {
+   "name": "Bromley",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "BR"
+   ]
+  },
+  {
+   "name": "Romford",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "RM"
+   ]
+  },
+  {
+   "name": "Kingston upon Thames",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "KT"
+   ]
+  },
+  {
+   "name": "Harrow",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "HA"
+   ]
+  },
+  {
+   "name": "Ilford",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "IG"
+   ]
+  },
+  {
+   "name": "Uxbridge",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "UB"
+   ]
+  },
+  {
+   "name": "Twickenham",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "TW"
+   ]
+  },
+  {
+   "name": "Sutton",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "SM"
+   ]
+  },
+  {
+   "name": "Enfield",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "EN"
+   ]
+  },
+  {
+   "name": "Richmond",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "TW"
+   ]
+  },
+  {
+   "name": "Wimbledon",
+   "region": "london",
+   "nation": "england",
+   "postcode_areas": [
+    "SW"
+   ]
+  },
+  {
+   "name": "Brighton",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "BN"
+   ]
+  },
+  {
+   "name": "Southampton",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "SO"
+   ]
+  },
+  {
+   "name": "Portsmouth",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "PO"
+   ]
+  },
+  {
+   "name": "Reading",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RG"
+   ]
+  },
+  {
+   "name": "Oxford",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "OX"
+   ]
+  },
+  {
+   "name": "Milton Keynes",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "MK"
+   ]
+  },
+  {
+   "name": "Canterbury",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "CT"
+   ]
+  },
+  {
+   "name": "Guildford",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "GU"
+   ]
+  },
+  {
+   "name": "Maidstone",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "ME"
+   ]
+  },
+  {
+   "name": "Slough",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "SL"
+   ]
+  },
+  {
+   "name": "Basingstoke",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RG"
+   ]
+  },
+  {
+   "name": "Winchester",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "SO"
+   ]
+  },
+  {
+   "name": "Crawley",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RH"
+   ]
+  },
+  {
+   "name": "Woking",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "GU"
+   ]
+  },
+  {
+   "name": "Chatham",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "ME"
+   ]
+  },
+  {
+   "name": "Dover",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "CT"
+   ]
+  },
+  {
+   "name": "Folkestone",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "CT"
+   ]
+  },
+  {
+   "name": "Hastings",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TN"
+   ]
+  },
+  {
+   "name": "Eastbourne",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "BN"
+   ]
+  },
+  {
+   "name": "Worthing",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "BN"
+   ]
+  },
+  {
+   "name": "Tunbridge Wells",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TN"
+   ]
+  },
+  {
+   "name": "Ashford",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TN"
+   ]
+  },
+  {
+   "name": "Bracknell",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RG"
+   ]
+  },
+  {
+   "name": "Aylesbury",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "HP"
+   ]
+  },
+  {
+   "name": "High Wycombe",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "HP"
+   ]
+  },
+  {
+   "name": "Newbury",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RG"
+   ]
+  },
+  {
+   "name": "Farnborough",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "GU"
+   ]
+  },
+  {
+   "name": "Horsham",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RH"
+   ]
+  },
+  {
+   "name": "Redhill",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "RH"
+   ]
+  },
+  {
+   "name": "Chichester",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "PO"
+   ]
+  },
+  {
+   "name": "Margate",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "CT"
+   ]
+  },
+  {
+   "name": "Gravesend",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "DA"
+   ]
+  },
+  {
+   "name": "Banbury",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "OX"
+   ]
+  },
+  {
+   "name": "Sevenoaks",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TN"
+   ]
+  },
+  {
+   "name": "Maidenhead",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "SL"
+   ]
+  },
+  {
+   "name": "Camberley",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "GU"
+   ]
+  },
+  {
+   "name": "Dartford",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "DA"
+   ]
+  },
+  {
+   "name": "Bexhill-on-Sea",
+   "region": "south-east",
+   "nation": "england",
+   "postcode_areas": [
+    "TN"
+   ]
+  },
+  {
+   "name": "Bristol",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BS"
+   ]
+  },
+  {
+   "name": "Plymouth",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "PL"
+   ]
+  },
+  {
+   "name": "Exeter",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "EX"
+   ]
+  },
+  {
+   "name": "Bath",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BA"
+   ]
+  },
+  {
+   "name": "Gloucester",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "GL"
+   ]
+  },
+  {
+   "name": "Cheltenham",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "GL"
+   ]
+  },
+  {
+   "name": "Swindon",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "SN"
+   ]
+  },
+  {
+   "name": "Bournemouth",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BH"
+   ]
+  },
+  {
+   "name": "Poole",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BH"
+   ]
+  },
+  {
+   "name": "Truro",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TR"
+   ]
+  },
+  {
+   "name": "Salisbury",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "SP"
+   ]
+  },
+  {
+   "name": "Taunton",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TA"
+   ]
+  },
+  {
+   "name": "Torquay",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TQ"
+   ]
+  },
+  {
+   "name": "Weston-super-Mare",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BS"
+   ]
+  },
+  {
+   "name": "Yeovil",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BA"
+   ]
+  },
+  {
+   "name": "Barnstaple",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "EX"
+   ]
+  },
+  {
+   "name": "Penzance",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TR"
+   ]
+  },
+  {
+   "name": "Falmouth",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TR"
+   ]
+  },
+  {
+   "name": "Dorchester",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "DT"
+   ]
+  },
+  {
+   "name": "Weymouth",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "DT"
+   ]
+  },
+  {
+   "name": "Bridgwater",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TA"
+   ]
+  },
+  {
+   "name": "Newquay",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TR"
+   ]
+  },
+  {
+   "name": "St Ives",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "TR"
+   ]
+  },
+  {
+   "name": "Cirencester",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "GL"
+   ]
+  },
+  {
+   "name": "Stroud",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "GL"
+   ]
+  },
+  {
+   "name": "Chippenham",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "SN"
+   ]
+  },
+  {
+   "name": "Trowbridge",
+   "region": "south-west",
+   "nation": "england",
+   "postcode_areas": [
+    "BA"
+   ]
+  },
+  {
+   "name": "Glasgow",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "G"
+   ]
+  },
+  {
+   "name": "Edinburgh",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "EH"
+   ]
+  },
+  {
+   "name": "Aberdeen",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "AB"
+   ]
+  },
+  {
+   "name": "Dundee",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "DD"
+   ]
+  },
+  {
+   "name": "Inverness",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "IV"
+   ]
+  },
+  {
+   "name": "Stirling",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "FK"
+   ]
+  },
+  {
+   "name": "Perth",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "PH"
+   ]
+  },
+  {
+   "name": "Paisley",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "PA"
+   ]
+  },
+  {
+   "name": "Falkirk",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "FK"
+   ]
+  },
+  {
+   "name": "Livingston",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "EH"
+   ]
+  },
+  {
+   "name": "Dunfermline",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KY"
+   ]
+  },
+  {
+   "name": "Kirkcaldy",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KY"
+   ]
+  },
+  {
+   "name": "Ayr",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KA"
+   ]
+  },
+  {
+   "name": "Kilmarnock",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KA"
+   ]
+  },
+  {
+   "name": "Dumfries",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "DG"
+   ]
+  },
+  {
+   "name": "Motherwell",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "ML"
+   ]
+  },
+  {
+   "name": "Hamilton",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "ML"
+   ]
+  },
+  {
+   "name": "East Kilbride",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "G"
+   ]
+  },
+  {
+   "name": "Greenock",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "PA"
+   ]
+  },
+  {
+   "name": "Oban",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "PA"
+   ]
+  },
+  {
+   "name": "Elgin",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "IV"
+   ]
+  },
+  {
+   "name": "Fort William",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "PH"
+   ]
+  },
+  {
+   "name": "Stornoway",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "HS"
+   ]
+  },
+  {
+   "name": "Kirkwall",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KW"
+   ]
+  },
+  {
+   "name": "Lerwick",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "ZE"
+   ]
+  },
+  {
+   "name": "St Andrews",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "KY"
+   ]
+  },
+  {
+   "name": "Galashiels",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "TD"
+   ]
+  },
+  {
+   "name": "Peterhead",
+   "region": "scotland",
+   "nation": "scotland",
+   "postcode_areas": [
+    "AB"
+   ]
+  },
+  {
+   "name": "Cardiff",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Swansea",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SA"
+   ]
+  },
+  {
+   "name": "Newport",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "NP"
+   ]
+  },
+  {
+   "name": "Wrexham",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "LL"
+   ]
+  },
+  {
+   "name": "Bangor",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "LL"
+   ]
+  },
+  {
+   "name": "Llandudno",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "LL"
+   ]
+  },
+  {
+   "name": "Aberystwyth",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SY"
+   ]
+  },
+  {
+   "name": "Carmarthen",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SA"
+   ]
+  },
+  {
+   "name": "Merthyr Tydfil",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Barry",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Rhyl",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "LL"
+   ]
+  },
+  {
+   "name": "Pontypridd",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Llanelli",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SA"
+   ]
+  },
+  {
+   "name": "Neath",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SA"
+   ]
+  },
+  {
+   "name": "Bridgend",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Caerphilly",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "CF"
+   ]
+  },
+  {
+   "name": "Haverfordwest",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SA"
+   ]
+  },
+  {
+   "name": "Brecon",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "LD"
+   ]
+  },
+  {
+   "name": "Welshpool",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "SY"
+   ]
+  },
+  {
+   "name": "Cwmbran",
+   "region": "wales",
+   "nation": "wales",
+   "postcode_areas": [
+    "NP"
+   ]
+  },
+  {
+   "name": "Belfast",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Derry/Londonderry",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Lisburn",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Newry",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Armagh",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Bangor (County Down)",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Craigavon",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Ballymena",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Coleraine",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Omagh",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  },
+  {
+   "name": "Enniskillen",
+   "region": "northern-ireland",
+   "nation": "northern-ireland",
+   "postcode_areas": [
+    "BT"
+   ]
+  }
+ ]
+}

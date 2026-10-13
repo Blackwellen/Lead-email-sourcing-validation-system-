@@ -107,7 +107,7 @@ class ImportLimits:
         )
 
 
-def detect_encoding(sample: bytes) -> str:
+def detect_encoding(sample: bytes, *, complete: bool = True) -> str:
     if sample.startswith(codecs.BOM_UTF8):
         return "utf-8-sig"
     if sample.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
@@ -116,7 +116,7 @@ def detect_encoding(sample: bytes) -> str:
         raise ImportRejected("binary data (NUL bytes) in a file claimed to be CSV")
     dec = codecs.getincrementaldecoder("utf-8")()
     try:
-        dec.decode(sample, final=False)  # tolerate a multibyte char cut at the sample boundary
+        dec.decode(sample, final=complete)  # a truncated sample may end mid-character
         return "utf-8"
     except UnicodeDecodeError:
         return "cp1252"
@@ -186,7 +186,7 @@ def map_headers(headers: list[Any], report: ImportReport) -> dict[int, str]:
 def _iter_csv_rows(path: Path, limits: ImportLimits, report: ImportReport) -> Iterator[list[Any]]:
     with open(path, "rb") as fh:
         sample = fh.read(1 << 20)
-    enc = detect_encoding(sample)
+    enc = detect_encoding(sample, complete=len(sample) < (1 << 20))
     report.encoding = enc
     text_sample = sample.decode(enc if enc != "utf-8" else "utf-8", errors="replace")
     try:
@@ -209,9 +209,12 @@ def _iter_xlsx_rows(path: Path, limits: ImportLimits, sheet: str | None) -> Iter
     try:
         ws = wb[sheet] if sheet else wb.worksheets[0]
         for row in ws.iter_rows(values_only=True, max_col=limits.max_cols + 1):
+            row = list(row)
             if len(row) > limits.max_cols:
-                raise ImportRejected(f"too many columns (>{limits.max_cols})")
-            yield list(row)
+                if any(c not in (None, "") for c in row[limits.max_cols:]):
+                    raise ImportRejected(f"too many columns (>{limits.max_cols})")
+                row = row[: limits.max_cols]
+            yield row
     finally:
         wb.close()
 

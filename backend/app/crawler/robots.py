@@ -153,6 +153,7 @@ class RobotsCheck:
     decision: Decision
     crawl_delay: float | None = None
     reason: str = ""
+    error_code: str | None = None  # transport-level failure code when robots.txt could not be fetched
 
     @property
     def allowed(self) -> bool:
@@ -166,6 +167,7 @@ class _Entry:
     expires: float
     status: int | None = None
     reason: str = ""
+    error_code: str | None = None
 
 
 class RobotsCache:
@@ -237,7 +239,8 @@ class RobotsCache:
             res = await self._fetcher.fetch(url, accept=ROBOTS_TYPES, max_bytes=MAX_ROBOTS_BYTES, conditional=False)
         now = self._clock()
         if res.error_code and res.error_code not in ("too_large", "bad_content_type"):
-            return _Entry(None, True, now + self.deferred_ttl, res.status, f"robots unreachable: {res.error_code}")
+            return _Entry(None, True, now + self.deferred_ttl, res.status, f"robots unreachable: {res.error_code}",
+                          res.error_code)
         st = res.status or 0
         if st == 429 or st >= 500:
             return _Entry(None, True, now + self.deferred_ttl, st, f"robots.txt returned {st}")
@@ -253,7 +256,7 @@ class RobotsCache:
             return RobotsCheck(Decision.DISALLOWED, reason="not an http(s) url")
         e = await self._entry(origin)
         if e.deferred:
-            return RobotsCheck(Decision.DEFERRED, reason=e.reason)
+            return RobotsCheck(Decision.DEFERRED, reason=e.reason, error_code=e.error_code)
         if e.rules is None:
             return RobotsCheck(Decision.ALLOWED, reason=e.reason)
         p = urlsplit(url)

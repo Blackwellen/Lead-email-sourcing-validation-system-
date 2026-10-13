@@ -5,7 +5,7 @@ import base64
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, Field
 from sqlalchemy import BigInteger, DateTime, Float, String, literal, text, tuple_
@@ -14,12 +14,10 @@ from sqlalchemy.sql import ColumnElement, Select
 
 from ..security import ApiError
 
-T = TypeVar("T")
-
 MAX_LIMIT = 500
 
 
-class Page(BaseModel, Generic[T]):
+class Page[T](BaseModel):
     items: list[T]
     next_cursor: str | None = None
     total_estimate: int | None = Field(None, description="Row count (exact when small, capped/approximate otherwise); null when unknown")
