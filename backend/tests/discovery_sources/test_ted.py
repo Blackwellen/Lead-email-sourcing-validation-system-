@@ -16,7 +16,7 @@ def mock_client(pages, seen=None):
         if seen is not None:
             seen.append(body)
         tok = body.get("iterationNextToken")
-        idx = 0 if not tok else int(tok[3:]) // 2
+        idx = 0 if not tok else int(tok[3:])
         return httpx.Response(200, json=pages[idx])
 
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))

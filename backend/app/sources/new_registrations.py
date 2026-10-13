@@ -400,7 +400,7 @@ class NewRegistrationsAdapter(SourceAdapter):
         stats: dict[str, Any] = {}
         self.last_stats = stats
         if mode == "window":
-            gen = iter_window(cur, int(cfg.get("days", 30)), today=cfg.get("today"), member=cfg.get("member"), skip=skip, observed_at=observed)
+            gen = iter_window(cur, int(cfg.get("days", 30)), today=(parse_ch_date(str(cfg["today"])) if cfg.get("today") else None), member=cfg.get("member"), skip=skip, observed_at=observed)
         elif mode == "diff":
             gen = iter_diff(prev_path, cur, prev_index=prev_index, keep_index=cfg.get("store_index"), work_dir=cfg.get("work_dir"),
                             member=cfg.get("member"), skip=skip, kinds=set(cfg["kinds"]) if cfg.get("kinds") else None,

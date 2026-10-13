@@ -14,7 +14,14 @@ from app.discovery.documents import (
     persist_document_records,
     sha256_of,
 )
-from app.models import ContactEvidence, DocumentRecord, EmailAddress, EvidenceSource, Organisation, OrganisationDomain
+from app.models import (
+    ContactEvidence,
+    DocumentRecord,
+    EmailAddress,
+    EvidenceSource,
+    Organisation,
+    OrganisationDomain,
+)
 from tests.crawler.pdfgen import make_pdf
 
 CSV = ("Company Name;Contact;E-mail;Telephone;Website\r\n"
@@ -185,7 +192,7 @@ def test_pdf_pages_tables_and_limits():
     assert locs[:3] == ["page 1, line 3", "page 1, line 4", "page 1, line 5"]  # line numbers count lines of the EXTRACTED page text (blank lines vanish)
     assert recs[0].fields["company"] == "Acme Ltd" and recs[0].fields["email"] == "info@acme.co.uk" and recs[0].fields["phone"] == "01632 960004"
     assert recs[2].fields["email"] == "help@acme.co.uk" and recs[2].fields["phone"].startswith("01632 960006")
-    assert any(l.startswith("page 2") for l in locs)
+    assert any(loc.startswith("page 2") for loc in locs)
     w: list[str] = []
     limited = parse_document(pdf, "s.pdf", limits=DocLimits(max_pages=1), warnings=w)
     assert all(r.locator.startswith("page 1") for r in limited) and any(x.startswith("page_limit") for x in w)

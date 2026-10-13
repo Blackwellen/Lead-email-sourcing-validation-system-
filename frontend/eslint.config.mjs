@@ -7,6 +7,8 @@ const config = [
   { ignores: ['lib/api-types.ts', '.next/**', 'node_modules/**', 'playwright-report/**', 'test-results/**'] },
   {
     rules: {
+      // Reading localStorage / syncing props in effects is a deliberate pattern in this codebase.
+      'react-hooks/set-state-in-effect': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },

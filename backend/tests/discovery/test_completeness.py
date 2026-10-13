@@ -5,7 +5,14 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, text
 
-from app.discovery.completeness import FLAGS, WEIGHTS, _Facts, compute_completeness, evaluate, refresh_completeness
+from app.discovery.completeness import (
+    FLAGS,
+    WEIGHTS,
+    _Facts,
+    compute_completeness,
+    evaluate,
+    refresh_completeness,
+)
 from app.models import (
     Contact,
     ContactEvidence,
@@ -198,9 +205,9 @@ def test_truthfulness_invariants_exhaustive():
         if fl["recipient_evidence"] == "no":
             assert k["smtp"]
         if fl["campaign_eligibility"] == "no":
-            assert False, "no addresses validated in this sweep"
+            raise AssertionError("no addresses validated in this sweep")
         if fl["recently_checked"] in ("yes", "no"):
-            assert False, "never checked in this sweep"
+            raise AssertionError("never checked in this sweep")
         if fl["contact_person_corroborated"] == "no":
             assert k["crawled"] or k["named"]
         assert 0 <= c.score <= 100 and sum(WEIGHTS.values()) == 100

@@ -15,13 +15,12 @@ The heavy lifting reuses :func:`app.pipeline.ingest.persist_observations` (read,
 """
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import cast, func, select, update
+from sqlalchemy import func, literal, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,7 +43,7 @@ class HistoricalResult:
 
 
 def _merge_context(patch: dict[str, Any]):
-    return func.coalesce(ContactEvidence.context, cast({}, JSONB)).op("||")(cast(json.dumps(patch), JSONB))
+    return func.coalesce(ContactEvidence.context, literal({}, JSONB)).op("||")(literal(patch, JSONB))
 
 
 async def _has_live_evidence(session: AsyncSession, email_id: int) -> bool:

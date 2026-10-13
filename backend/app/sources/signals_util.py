@@ -26,6 +26,7 @@ from .persist import upsert_business
 SIGNAL_TYPES = (
     "new_location", "new_service", "expansion", "hiring", "contract_award", "supplier_partnership", "event",
     "accreditation", "new_registration", "exhibitor", "sponsor",
+    "registry_change",  # additive: name/status/address change in a company register (DISC-08)
 )
 
 

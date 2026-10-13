@@ -38,7 +38,12 @@ from ..models import (
     OrganisationSource,
     SourcingRun,
 )
-from ..pipeline.identity import Candidate, candidate_domains_from_name, is_intermediary_domain, resolve_organisation_domain
+from ..pipeline.identity import (
+    Candidate,
+    candidate_domains_from_name,
+    is_intermediary_domain,
+    resolve_organisation_domain,
+)
 from ..pipeline.ingest import is_free_provider, normalise_email, persist_observations
 from ..verify.permutations import HARD_ROLE_LIMIT, generate_role_candidates
 from .completeness import Completeness, refresh_completeness
@@ -419,6 +424,10 @@ async def run_gap_recovery(
             out.stop_reason = "website_and_email_found"
             stopped_early = True
             break
+        if policy == "stop_if_no_website" and step not in WEBSITE_STEPS and not website:
+            out.stop_reason, stopped_early = "no_website_policy", True
+            out.exhausted = True  # the policy ended the permitted research after the website steps
+            break
         if bud.requests_left <= 0:
             out.stop_reason, stopped_early = "request_budget_exhausted", True
             break
@@ -466,10 +475,6 @@ async def run_gap_recovery(
                     "yield": {"website": res.website, "emails": res.emails, "domains": res.domains, "speculative": res.speculative},
                     "requests": res.requests, "searches": res.searches})
         website, email = await _state(session, org_id)
-        if not website and policy == "stop_if_no_website" and step == WEBSITE_STEPS[-1]:
-            out.stop_reason, stopped_early = "no_website_policy", True
-            out.exhausted = True  # policy ended the permitted research
-            break
     else:
         out.stop_reason = "ladder_exhausted"
 

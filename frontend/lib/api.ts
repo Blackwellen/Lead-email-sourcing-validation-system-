@@ -100,6 +100,8 @@ function redirectToLogin() {
   if (window.location.pathname.startsWith('/login')) return;
   redirecting = true;
   const next = window.location.pathname + window.location.search;
+  // Full navigation on purpose: resets all client state/caches for the next user.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.assign(`/login?next=${encodeURIComponent(next)}`);
 }
 

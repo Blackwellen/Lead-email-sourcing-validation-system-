@@ -89,7 +89,7 @@ def _release(rid, date, buyer, parties, awards, *, title="Example works", cpv="4
 def ocds_releases() -> list[dict]:
     buyer = _party("GB-CFS-1", "Example District Council", ["buyer"], street="1 Council Road", postcode="M1 1AA")
     s1 = _party("GB-CFS-11", "Example Supplies Ltd", ["supplier"], scheme="GB-COH", ident="99999991", street="1 Supply Way, Exampleton, M2 2BB",
-                email="sales@example.com", url="https://www.example.com")
+                email="sales@example-widgets.co.uk", url="https://www.example.com")
     s2 = _party("GB-CFS-12", "Sample Builders Ltd", ["supplier"], scheme="GB-COH", ident="99999992", postcode="LS1 4AP", locality="Leeds")
     s3 = _party("GB-CFS-13", "Placeholder Cleaning Services", ["supplier"], street="5 Test Lane, Bristol, BS1 5AH")
     s4 = _party("GB-CFS-14", "Never Awarded Ltd", ["supplier"])
@@ -309,7 +309,7 @@ def ted_pages(size=2):
     pages = []
     for i in range(0, len(ns), size):
         chunk = ns[i:i + size]
-        nxt = f"tok{i + size}" if i + size < len(ns) else None
+        nxt = f"tok{i // size + 1}" if i + size < len(ns) else None
         pages.append({"notices": chunk, "totalNoticeCount": len(ns), "iterationNextToken": nxt, "timedOut": False})
     return pages
 
@@ -441,5 +441,5 @@ def make_warc_member(url: str, html: str, *, warc_date="2026-08-10T12:00:00Z", s
 
 
 CC_CONTACT_HTML = """<html><head><title>Contact Example Ltd</title></head><body>
-<h1>Contact us</h1><p>Sales: <a href="mailto:sales@example.com">sales@example.com</a></p>
-<p>Old contact: <a href="mailto:former.staff@example.com">Former Staff</a></p></body></html>"""
+<h1>Contact us</h1><p>Sales: <a href="mailto:sales@example-widgets.co.uk">sales@example.com</a></p>
+<p>Old contact: <a href="mailto:former.staff@example-widgets.co.uk">Former Staff</a></p></body></html>"""
