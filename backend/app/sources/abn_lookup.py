@@ -207,6 +207,7 @@ class AbnLookupAdapter(SourceAdapter):
         rate_policy=RatePolicy(requests_per_minute=None, concurrency=1),
         fields_available=("legal_name", "trading_name", "abn", "acn", "legal_type", "status", "region", "postal_code", "gst_status"),
         incremental_support=True,
+        requires_config=True,
         attribution=ATTRIBUTION,
         live_verified=True,
         cost="free", credentials="optional", credentials_note="Bulk extract needs none. ABN Lookup web services need a free GUID (not available in the build sandbox).",

@@ -7,8 +7,8 @@ import pytest
 from app.sources.base import DiscoveryQuery, NotConfigured, NotPermitted, get_adapter
 from app.sources.exhibitors import ExhibitorListImport, normalise_role, parse_event_date
 
-from .test_directories import robots_fetcher
 from .helpers import assert_resume_no_dup_no_gap, collect
+from .test_directories import robots_fetcher
 
 LIST_URL = "https://events.example.org/example-expo-2027/exhibitors"
 ROWS = [

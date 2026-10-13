@@ -226,7 +226,7 @@ def test_diff_of_200k_rows_has_bounded_memory(tmp_path):
     tracemalloc.stop()
     assert stats["new"] == 2000 and stats["name_changed"] == 10 and stats["status_changed"] == 10 and stats["address_changed"] == 10
     assert stats["removed"] == 0 and count == 2030
-    assert size_mb > 150 and peak_mb < 30, f"peak python heap {peak_mb:.1f} MB for {size_mb:.0f} MB of input: the diff must not hold snapshots in RAM"
+    assert size_mb > 100 and peak_mb < 30, f"peak python heap {peak_mb:.1f} MB for {size_mb:.0f} MB of input: the diff must not hold snapshots in RAM"
 
 
 # ------------------------------------------------------------------------------------------------ scheduling

@@ -68,7 +68,7 @@ function Listbox({ props, selected, onPick, query, update, active, setActive, fi
           onChange={(e) => update(e.target.value)}
           onKeyDown={onKey}
           placeholder={props.searchPlaceholder ?? 'Search…'}
-          className="h-10 w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-muted-foreground/80"
+          className="h-10 w-full bg-transparent pl-9 pr-9 text-sm outline-none placeholder:text-muted-foreground"
         />
         {props.loading && <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-label="Loading" />}
       </div>
@@ -117,7 +117,7 @@ export function Combobox(props: BaseProps & { value?: string | null; onChange: (
         <PopoverTrigger asChild>
           <button type="button" id={props.id} role="combobox" aria-expanded={open} aria-haspopup="listbox" aria-controls={open ? listId : undefined} aria-label={props['aria-label']} aria-invalid={props.invalid} disabled={props.disabled}
             className={cn(inputClass, 'items-center justify-between gap-2 text-left', props.clearable && props.value && 'pr-14')}>
-            <span className={cn('truncate', !label && 'text-muted-foreground/80')}>{label ?? props.placeholder ?? 'Select…'}</span>
+            <span className={cn('truncate', !label && 'text-muted-foreground')}>{label ?? props.placeholder ?? 'Select…'}</span>
             <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>
         </PopoverTrigger>
@@ -162,7 +162,7 @@ export function MultiSelect(props: BaseProps & { value: string[]; onChange: (v: 
         </ul>
         <PopoverTrigger asChild>
           <button type="button" id={props.id} role="combobox" aria-expanded={open} aria-haspopup="listbox" aria-controls={open ? listId : undefined} aria-label={props['aria-label'] ?? props.placeholder ?? 'Add'} disabled={props.disabled}
-            className="flex h-6 min-w-24 flex-1 items-center justify-between gap-2 rounded text-left text-sm text-muted-foreground/90 focus-visible:outline-none">
+            className="flex h-6 min-w-24 flex-1 items-center justify-between gap-2 rounded text-left text-sm text-muted-foreground focus-visible:outline-none">
             <span className="truncate">{props.value.length ? 'Add more…' : (props.placeholder ?? 'Select…')}</span>
             <ChevronsUpDown className="size-4 shrink-0" aria-hidden />
           </button>

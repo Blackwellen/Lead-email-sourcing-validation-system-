@@ -260,3 +260,31 @@ async def test_resolving_upsert_follows_merge(session):
     # a record for the dropped org's canonical identity lands on the survivor
     org_id, created = await resolving_upsert(session, rec("2", "Keep Company", None, "M1 1AA"), "osm")
     assert org_id == k and not created
+
+
+async def test_anonymous_source_refs_do_not_collide(session):
+    # empty source_ref must not make unrelated records of one adapter "already resolved" to each other
+    a, _ = await resolving_upsert(session, rec("", "Alpha Widgets Ltd", None, "SW1A 1AA"), "csv_import")
+    b, _ = await resolving_upsert(session, rec("", "Zulu Gardens Ltd", None, "M1 1AA"), "csv_import")
+    assert a != b
+    again, created = await resolving_upsert(session, rec("", "Alpha Widgets Ltd", None, "SW1A 1AA"), "csv_import")
+    assert again == a and not created
+
+
+async def test_concurrent_resolution_creates_one_organisation():
+    import asyncio
+
+    from app import db as dbmod
+
+    async def work():
+        async with dbmod.sessionmaker()() as s:
+            org_id, _ = await resolving_upsert(s, rec("c1", "Concurrent Co Ltd", "00009999", "SW1A 1AA"), "companies_house_bulk")
+            await s.commit()
+            return org_id
+
+    ids = await asyncio.gather(*[work() for _ in range(6)])
+    assert len(set(ids)) == 1
+    async with dbmod.sessionmaker()() as s:
+        assert len(await orgs(s)) == 1
+        links = (await s.execute(select(OrganisationRecordLink))).scalars().all()
+        assert len(links) == 1

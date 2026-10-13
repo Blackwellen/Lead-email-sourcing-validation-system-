@@ -118,6 +118,18 @@ def extract_identifiers(rec: BusinessRecord) -> list[tuple[str, str]]:
     return out
 
 
+def _surrogate_ref(rec: BusinessRecord) -> str:
+    """Stable stand-in for an empty ``source_ref`` so unrelated anonymous records never share one link key."""
+    import hashlib
+
+    from ..sources.persist import canonical_identity
+
+    try:
+        return ("anon:" + canonical_identity(rec))[:300]
+    except ValueError:
+        return "anon:" + hashlib.sha256(repr((rec.legal_name, rec.trading_name, rec.website, rec.address)).encode()).hexdigest()[:40]
+
+
 def _role_of(rec: BusinessRecord) -> str:
     r = str((rec.raw or {}).get("entity_role") or "legal").lower()
     return r if r in ("legal", "branch", "brand", "trading") else "legal"
@@ -309,6 +321,7 @@ async def resolve_record(
 ) -> Resolution:
     """Decide whether ``rec`` is an already-known company. ``persist`` writes the review/rejected/linked link rows."""
     cc = (rec.country_code or "").upper()
+    source_ref = source_ref or _surrogate_ref(rec)
     idents = extract_identifiers(rec)
     names = _rec_names(rec)
     role = _role_of(rec)
@@ -527,7 +540,7 @@ async def resolving_upsert_ex(
     """
     adapter_id = adapter_id or rec.adapter_id or "unknown"
     rec = replace(rec, adapter_id=rec.adapter_id or adapter_id)
-    source_ref = rec.source_ref or ""
+    source_ref = rec.source_ref or _surrogate_ref(rec)
     res = await resolve_record(session, rec, adapter_id=adapter_id, source_ref=source_ref)
     idents = extract_identifiers(rec)
     if res.decision == "matched" and res.org_id is not None:

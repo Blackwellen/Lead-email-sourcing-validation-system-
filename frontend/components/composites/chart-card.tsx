@@ -68,7 +68,7 @@ export function ChartCard({ title, description, children, table, height = 260, l
             </table>
           </div>
         ) : (
-          <div style={{ height }} aria-hidden={table ? true : undefined}>
+          <div style={{ height }}>
             <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
           </div>
         )}

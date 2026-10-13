@@ -1,7 +1,6 @@
 import json
 
 import httpx
-import pytest
 
 from app.sources.base import DiscoveryQuery, get_adapter
 from app.sources.eu_ted import TedAdapter, notice_to_records, winners_of_notice

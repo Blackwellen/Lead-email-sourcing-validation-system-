@@ -6,7 +6,16 @@ import httpx
 import pytest
 
 from app.crawler.safe_http import SafeFetcher
-from app.sources.base import AdapterInfo, AdapterUnavailable, BusinessRecord, DiscoveryQuery, NotConfigured, NotPermitted, get_adapter, list_adapters
+from app.sources.base import (
+    AdapterInfo,
+    AdapterUnavailable,
+    BusinessRecord,
+    DiscoveryQuery,
+    NotConfigured,
+    NotPermitted,
+    get_adapter,
+    list_adapters,
+)
 from app.sources.directory_catalogue import get_entry, is_automation_permitted, load_catalogue
 from app.sources.industry_directories import (
     UK_LICENSED_SPONSORS,

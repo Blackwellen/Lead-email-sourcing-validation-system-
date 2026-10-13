@@ -393,6 +393,7 @@ class ContractsFinderOCDS(OCDSAdapterBase):
         retry_policy=RetryPolicy(max_attempts=4, backoff_s=2.0, retry_on_status=(500, 502, 503, 504), stop_on_429=False),
         fields_available=("legal_name", "company_number", "address", "postal_code", "website", "email_published", "phone", "cpv", "award_value", "buyer"),
         incremental_support=True,
+        requires_config=True,  # explicit opt-in: live public API, operator chooses the window
         attribution="Contains public sector information licensed under the Open Government Licence v3.0. Source: Contracts Finder (Crown Commercial Service).",
         live_verified=True,
         cost="free", credentials="none", refresh_frequency="continuous (notices published daily)",
@@ -423,6 +424,7 @@ class FindATenderOCDS(OCDSAdapterBase):
         retry_policy=RetryPolicy(max_attempts=4, backoff_s=2.0, retry_on_status=(500, 502, 503, 504), stop_on_429=False),
         fields_available=("legal_name", "company_number", "address", "postal_code", "website", "email_published", "cpv", "buyer"),
         incremental_support=True,
+        requires_config=True,  # explicit opt-in: live public API, operator chooses the window
         attribution="Contains public sector information licensed under the Open Government Licence v3.0. Source: Find a Tender Service (Cabinet Office).",
         live_verified=True,
         cost="free", credentials="none", refresh_frequency="continuous (notices published daily)",

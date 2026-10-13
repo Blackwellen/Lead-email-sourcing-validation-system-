@@ -317,6 +317,7 @@ class GleifLeiAdapter(SourceAdapter):
         rate_policy=RatePolicy(requests_per_minute=None, concurrency=1),
         fields_available=("legal_name", "lei", "registration_authority", "company_number", "address", "status", "legal_form", "parent_relationships"),
         incremental_support=True,
+        requires_config=True,
         attribution=ATTRIBUTION,
         live_verified=True,
         cost="free", credentials="none", refresh_frequency="daily (3 publishes per day; delta files intra-day / last-day / last-week / last-month)",

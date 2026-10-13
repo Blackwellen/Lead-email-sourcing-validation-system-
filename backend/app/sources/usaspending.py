@@ -131,6 +131,7 @@ class UsaSpendingAdapter(SourceAdapter):
         retry_policy=RetryPolicy(max_attempts=4, backoff_s=2.0, retry_on_status=(500, 502, 503, 504), stop_on_429=False),
         fields_available=("legal_name", "address", "postal_code", "uei", "naics", "psc", "award_value", "awarding_agency"),
         incremental_support=True,
+        requires_config=True,  # explicit opt-in: live public API, operator chooses the window
         attribution=ATTRIBUTION,
         live_verified=True,
         cost="free", credentials="none", refresh_frequency="daily (awards typically appear within days of reporting)",

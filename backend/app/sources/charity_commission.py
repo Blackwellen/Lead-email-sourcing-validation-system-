@@ -131,7 +131,7 @@ class CharityCommissionAdapter(SourceAdapter):
         fields_available=("legal_name", "company_number", "status", "address", "postal_code", "phone", "website",
                           "email_published", "activities"),
         incremental_support=True,
-        requires_config=False,
+        requires_config=True,
         attribution=ATTRIBUTION,
         live_verified=True,
         cost="free", credentials="none", refresh_frequency="weekly (extract dated the day of download; cadence per Commission, not independently measured)",

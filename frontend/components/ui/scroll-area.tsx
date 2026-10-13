@@ -8,7 +8,7 @@ export const ScrollArea = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & { viewportClassName?: string; horizontal?: boolean }
 >(({ className, viewportClassName, horizontal, children, ...props }, ref) => (
   <ScrollAreaPrimitive.Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
-    <ScrollAreaPrimitive.Viewport className={cn('size-full rounded-[inherit]', viewportClassName)}>{children}</ScrollAreaPrimitive.Viewport>
+    <ScrollAreaPrimitive.Viewport tabIndex={0} className={cn('size-full rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring', viewportClassName)}>{children}</ScrollAreaPrimitive.Viewport>
     <ScrollBar />
     {horizontal && <ScrollBar orientation="horizontal" />}
     <ScrollAreaPrimitive.Corner />

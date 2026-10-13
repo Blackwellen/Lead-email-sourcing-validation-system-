@@ -5,7 +5,14 @@ from sqlalchemy import func, select
 
 from app.models import BusinessSignal, OrganisationRecordLink, OrganisationSource
 from app.sources.base import BusinessRecord
-from app.sources.signals_util import MissingSourceUrl, attach_signal, make_signal, persist_record, record_signal, signal_dedupe_hash
+from app.sources.signals_util import (
+    MissingSourceUrl,
+    attach_signal,
+    make_signal,
+    persist_record,
+    record_signal,
+    signal_dedupe_hash,
+)
 
 
 def rec(**kw):

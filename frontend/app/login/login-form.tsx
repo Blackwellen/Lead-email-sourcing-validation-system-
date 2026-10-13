@@ -81,7 +81,7 @@ export function LoginForm() {
         const s = err.retryAfter ?? 60;
         setCountdown(s);
         setProblem({ kind: 'rate', message: err.message, seconds: s });
-      } else if (err?.isNetwork || err?.status === 502 || err?.status === 504) {
+      } else if (err?.isNetwork || err?.code === 'unreachable' || err?.status === 502 || err?.status === 504) {
         setProblem({ kind: 'network', message: 'We could not reach the server. Check that the API is running, then try again.' });
       } else if (err?.status === 401 || err?.code === 'invalid_credentials') {
         setFailures((n) => n + 1);

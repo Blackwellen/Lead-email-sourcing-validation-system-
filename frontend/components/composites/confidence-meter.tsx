@@ -14,7 +14,7 @@ export function ConfidenceMeter({ value, max = 100, showValue = true, showLabel 
   const band = confidenceBand(pct);
   const filled = Math.max(pct > 0 ? 1 : 0, Math.round(pct / 20));
   return (
-    <span role="meter" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} aria-valuetext={`${band.label} confidence, ${Math.round(pct)} percent`} className={cn('inline-flex items-center gap-2', className)}>
+    <span role="meter" aria-label="Confidence" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} aria-valuetext={`${band.label} confidence, ${Math.round(pct)} percent`} className={cn('inline-flex items-center gap-2', className)}>
       <span className="flex gap-0.5" aria-hidden>
         {[0, 1, 2, 3, 4].map((i) => <span key={i} className={cn('h-3 w-1.5 rounded-[2px]', i < filled ? band.tone : 'bg-muted')} />)}
       </span>

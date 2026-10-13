@@ -6,7 +6,13 @@ import pytest
 from app.sources._http import RateLimited
 from app.sources.base import DiscoveryQuery, get_adapter
 from app.sources.cpv_map import cpv_to_industries, cpv_to_industry
-from app.sources.ocds import ContractsFinderOCDS, FindATenderOCDS, build_unit_record, iter_award_units, iter_releases_from_path
+from app.sources.ocds import (
+    ContractsFinderOCDS,
+    FindATenderOCDS,
+    build_unit_record,
+    iter_award_units,
+    iter_releases_from_path,
+)
 from app.sources.signals_util import MissingSourceUrl, make_signal
 
 from .fixtures import fts_release, ocds_package, ocds_releases, write_ocds_package
@@ -51,7 +57,7 @@ async def test_records_and_signals(pkg):
     r1 = recs[0]
     assert r1.legal_name == "Example Supplies Ltd" and r1.company_number == "99999991" and r1.country_code == "GB"
     assert r1.category_hint == "procurement_winner" and r1.raw["industries"] == ["construction"]
-    assert r1.email_published == "sales@example.com" and r1.website == "https://www.example.com"  # only because the notice publishes them
+    assert r1.email_published == "sales@example-widgets.co.uk" and r1.website == "https://www.example.com"  # only because the notice publishes them
     assert r1.postal_code == "M2 2BB"  # extracted from the free-text street address
     assert r1.raw["buyer"] == "Example District Council"
     sig = r1.raw["signals"][0]
@@ -62,7 +68,7 @@ async def test_records_and_signals(pkg):
     assert by["Placeholder Cleaning Services"].raw["industries"] == ["environmental_cleaning"]
     assert by["Overseas Example GmbH"].country_code == "DE"
     # the buyer's contact data never lands on a supplier
-    assert all(r.email_published in (None, "sales@example.com") for r in recs)
+    assert all(r.email_published in (None, "sales@example-widgets.co.uk") for r in recs)
 
 
 async def test_signal_requires_source_url(pkg):

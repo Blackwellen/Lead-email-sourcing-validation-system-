@@ -233,7 +233,7 @@ async def test_fetch_warc_record_uses_range_and_slices_correctly(nosleep):
     m1 = make_warc_member("https://www.example.com/other", "<p>other</p>")
     m2 = make_warc_member("https://www.example.com/contact-us", CC_CONTACT_HTML)
     blob = b"\x00" * 50 + m1 + m2
-    off1, off2 = 50, 50 + len(m1)
+    off2 = 50 + len(m1)
     seen = []
 
     def handler(req: httpx.Request):

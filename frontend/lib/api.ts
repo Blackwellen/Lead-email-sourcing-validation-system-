@@ -42,7 +42,7 @@ export class ApiError extends Error {
       }
     }
   }
-  get isNetwork() { return this.status === 0; }
+  get isNetwork() { return this.status === 0 || this.code === 'unreachable'; }
   get isValidation() { return this.status === 422 || this.code === 'validation_error'; }
   get isAuth() { return this.status === 401; }
   get isForbidden() { return this.status === 403; }
@@ -125,7 +125,9 @@ export async function request<T = unknown>(method: string, path: string, opts: R
   }
 
   // Proxy errors from Next's rewrite when the backend is down.
-  if (res.status === 502 || res.status === 504 || (res.status === 500 && res.headers.get('content-type')?.includes('text/html'))) {
+  // (The real API always answers errors as JSON, so a non-JSON 5xx means the proxy could not reach it.)
+  const proxyFailure = res.status >= 500 && !(res.headers.get('content-type') || '').includes('json') && res.status !== 503;
+  if (res.status === 502 || res.status === 504 || proxyFailure) {
     setApiStatus({ unreachable: true });
   } else {
     setApiStatus({ unreachable: false });
@@ -149,7 +151,7 @@ export async function request<T = unknown>(method: string, path: string, opts: R
       detail = j.detail.map((d: { loc?: (string | number)[]; msg?: string }) => ({ field: (d.loc ?? []).filter((p) => p !== 'body').join('.'), message: d.msg ?? 'Invalid value' }));
     } else if (typeof j?.detail === 'string') message = j.detail;
   } catch {
-    if (res.status === 502 || res.status === 504) message = 'The API is unreachable right now.';
+    if (proxyFailure || res.status === 502 || res.status === 504) { code = 'unreachable'; message = 'The API is unreachable right now.'; }
   }
   const ra = res.headers.get('retry-after');
   const err = new ApiError({
