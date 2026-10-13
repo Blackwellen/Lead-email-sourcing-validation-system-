@@ -85,11 +85,17 @@ _HEXISH = re.compile(r"^[0-9a-f]{24,}$")
 _JSON_ESCAPE_PREFIXES = ("u003e", "u003c", "u0026", "u0022", "u0027", "u002f", "u003d", "u0040")  # lost-backslash artifacts
 
 
+_ELISION = re.compile(r"^(?:l|qu|j|m|n|s|t|c|jusqu|lorsqu|puisqu)'(.+)$", re.I)
+
+
 def valid_email_parts(local: str, domain: str) -> str | None:
     """Return the canonical-case address ``local@domain`` or None if it is syntactically junk."""
-    local = local.strip(".-_%+'")
-    if "'" in local and not re.search(r"(?:^|[._-])[od]'[a-z]", local, re.I):
-        local = local.rsplit("'", 1)[1]  # French elision such as l'info@ -> info@
+    # Only strip extraction leftovers (sentence dots, surrounding quotes). '_', '-' and '+' are legal at either end of a
+    # local part (``_sales@``, ``jo_@``), so stripping them would silently store a DIFFERENT mailbox.
+    local = local.strip(".'")
+    m = _ELISION.match(local)
+    if m:
+        local = m.group(1)  # French elision in running text: l'info@ -> info@ (only known elided articles/pronouns)
     domain = domain.strip(".-").lower()
     if not local or len(local) > 64 or ".." in local:
         return None
@@ -301,13 +307,16 @@ def find_phones(text: str, *, limit: int = 8) -> list[str]:
     return out
 
 
+_WS_ANY = re.compile(r"\s+")
 _CN_PREFIX = r"(?:SC|NI|OC|SO|NC|RC|IP|LP|SL|FC|GE|OE|CE|ZC|SE|NF|R0|IC|SI|NP|SA)?"
 _CN_NUM = rf"({_CN_PREFIX}\s?\d{{5,8}})"
 _COMPANY_NO_RES = [
-    re.compile(r"(?:company|co\.?|registered|registration|reg\.?)\s*(?:company\s*)?(?:registration\s*)?(?:reg\.?\s*)?"
-               r"(?:no\.?|number|num\.?|#)\s*[:.\-]?\s*" + _CN_NUM + r"\b", re.I),
-    re.compile(r"registered\s+in\s+(?:england|scotland|wales|northern\s+ireland|ireland)(?:\s*(?:and|&)\s*wales)?"
-               r"[\s,.:;\-]*(?:under\s+|with\s+|as\s+)?(?:company\s+)?(?:(?:no\.?|number|num\.?|#)\s*)?[:.]?\s*" + _CN_NUM + r"\b", re.I),
+    # Quantifiers are bounded and the input is whitespace-collapsed first (find_company_numbers): unbounded, overlapping
+    # \s* / [\s,.:;-]* runs backtracked catastrophically on long whitespace runs in PDF text (minutes per page).
+    re.compile(r"(?:company|co\.?|registered|registration|reg\.?) ?(?:company ?)?(?:registration ?)?(?:reg\.? ?)?"
+               r"(?:no\.?|number|num\.?|#) ?[:.\-]? ?" + _CN_NUM + r"\b", re.I),
+    re.compile(r"registered in (?:england|scotland|wales|northern ireland|ireland)(?: ?(?:and|&) ?wales)?"
+               r"[ ,.:;\-]{0,6}(?:under |with |as )?(?:company )?(?:(?:no\.?|number|num\.?|#) ?)?[:.]? ?" + _CN_NUM + r"\b", re.I),
     re.compile(r"\b(HRB|HRA)\s?(\d{3,7})\b"),
     re.compile(r"\b(?:SIREN|siren)\s*[:.]?\s*(\d{3}\s?\d{3}\s?\d{3})\b"),
 ]
@@ -318,6 +327,7 @@ def normalise_company_number(num: str) -> str:
 
 
 def find_company_numbers(text: str, limit: int = 5) -> list[str]:
+    text = _WS_ANY.sub(" ", text)
     out: list[str] = []
     for i, rx in enumerate(_COMPANY_NO_RES):
         for m in rx.finditer(text):

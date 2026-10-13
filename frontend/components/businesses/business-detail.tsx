@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SafeLink } from '@/components/contacts/shared';
 import { DomainBadge } from './domain-badge';
 import { DomainDecisionDialog, type Decision } from './domain-decision';
+import { CompletenessPanel, CompletenessSummary } from '@/components/discovery/completeness-panel';
 
 type Detail = Schema<'BusinessDetail'>;
 type Domain = Schema<'DomainOut'>;
@@ -67,7 +68,7 @@ export function BusinessDetailPage({ id }: { id: string }) {
       <PageHeader
         breadcrumbs={[{ label: 'Businesses', href: '/businesses' }, { label: name }]}
         title={<span className="break-words">{name}</span>}
-        meta={<>{best ? <DomainBadge status={best.status} /> : <Badge variant="neutral">No website</Badge>}{d.duplicates_of && <Badge variant="neutral">Merged into <Link className="underline" href={`/businesses/${d.duplicates_of}`}>#{d.duplicates_of}</Link></Badge>}</>}
+        meta={<>{best ? <DomainBadge status={best.status} /> : <Badge variant="neutral">No website</Badge>}<CompletenessSummary orgId={id} />{d.duplicates_of && <Badge variant="neutral">Merged into <Link className="underline" href={`/businesses/${d.duplicates_of}`}>#{d.duplicates_of}</Link></Badge>}</>}
         description={s(o.trading_name) && s(o.legal_name) ? `Trading as ${s(o.trading_name)}` : undefined}
       />
       <Tabs defaultValue="overview">
@@ -80,7 +81,12 @@ export function BusinessDetailPage({ id }: { id: string }) {
           <TabsTrigger value="sources" count={d.evidence_sources.length}>Sources / evidence</TabsTrigger>
           <TabsTrigger value="history" count={d.validation_history.length}>Verification history</TabsTrigger>
           <TabsTrigger value="runs" count={d.runs.length}>Linked runs</TabsTrigger>
+          <TabsTrigger value="completeness" data-testid="completeness-tab">Completeness</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="completeness">
+          <Card><CardContent className="pt-6"><CompletenessPanel orgId={id} /></CardContent></Card>
+        </TabsContent>
 
         <TabsContent value="overview">
           <Card><CardContent className="pt-6">

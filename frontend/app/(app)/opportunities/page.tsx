@@ -1,14 +1,13 @@
-import { PageHeader } from '@/components/composites/page-header';
-import { EmptyState } from '@/components/composites/empty-state';
-import { Construction } from 'lucide-react';
+import { Suspense } from 'react';
+import { LoadingState } from '@/components/composites/loading-state';
+import { OpportunitiesPage } from '@/components/discovery/signals/opportunities-page';
 
-export const metadata = { title: 'Opportunities' };
+export const metadata = { title: 'Opportunity Signals' };
 
 export default function Page() {
   return (
-    <>
-      <PageHeader title="Opportunities" description="Suggested next actions to grow coverage." />
-      <EmptyState icon={Construction} title="Under construction" description="This page is being built." />
-    </>
+    <Suspense fallback={<LoadingState label="Loading signals…" />}>
+      <OpportunitiesPage />
+    </Suspense>
   );
 }
