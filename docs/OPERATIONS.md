@@ -116,7 +116,8 @@ export LEAD_DATABASE_URL=postgresql+asyncpg://lead:lead@localhost:5432/lead
 ../.venv/bin/python -m app.cli migrate && ../.venv/bin/python -m app.cli seed && ../.venv/bin/python -m app.cli create-admin
 ../.venv/bin/uvicorn app.main:create_app --factory --port 8000 &
 ../.venv/bin/python -m app.worker &
-cd ../frontend && npm ci && BACKEND_URL=http://localhost:8000 npm run build && npx next start -p 3000
+cd ../frontend && npm ci && BACKEND_URL=http://localhost:8000 npm run build
+cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ 2>/dev/null; PORT=3000 node .next/standalone/server.js
 ```
 
 `BACKEND_URL` is read when the frontend is **built** (Next.js bakes rewrites into the standalone build). Rebuild the

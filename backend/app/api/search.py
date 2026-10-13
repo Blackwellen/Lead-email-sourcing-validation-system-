@@ -67,7 +67,9 @@ async def global_search(q: str = Query(..., min_length=2, max_length=120), limit
     emails = (await session.execute(
         select(EmailAddress.id, EmailAddress.email_normalised, EmailAddress.organisation_id, func.coalesce(O.trading_name, O.legal_name))
         .join(O, O.id == EmailAddress.organisation_id)
-        .where(EmailAddress.email_normalised.like(pat, escape="\\")).order_by(EmailAddress.email_normalised).limit(limit))).all()
+        .where(or_(EmailAddress.email_normalised.like(pat, escape="\\"),
+                   EmailAddress.registrable_domain == low if _DOMAINISH.match(low) else False))
+        .order_by(EmailAddress.email_normalised).limit(limit))).all()
     runs = (await session.execute(
         select(SourcingRun.id, SourcingRun.name, SourcingRun.status)
         .where(func.lower(SourcingRun.name).like("%" + pat, escape="\\"), not_system_filter(), SourcingRun.archived.is_(False))

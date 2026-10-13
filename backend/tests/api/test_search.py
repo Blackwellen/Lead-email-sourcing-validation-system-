@@ -23,6 +23,8 @@ async def test_global_search(viewer_client, session):  # noqa: F811
     contacts = (await viewer_client.get("/api/search", params={"q": "sales@acme"})).json()["contacts"]
     assert [c["email"] for c in contacts] == ["sales@acme.example.com"] and contacts[0]["organisation"] == "Acme Plumbing Ltd"
 
+    by_domain = (await viewer_client.get("/api/search", params={"q": "acme.example.com"})).json()["contacts"]
+    assert [c["email"] for c in by_domain] == ["sales@acme.example.com"]
     # wildcards are literal: '%' and '_' do not match everything
     assert (await viewer_client.get("/api/search", params={"q": "%%"})).json()["businesses"] == []
     assert [b["name"] for b in (await viewer_client.get("/api/search", params={"q": "100% real_"})).json()["businesses"]] == ["100% Real_Estate Ltd"]
