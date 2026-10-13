@@ -183,7 +183,9 @@ class WikidataAdapter(SourceAdapter):
         ci0, off0 = int(cp.get("ci", 0)), int(cp.get("offset", 0))
         flt = RecordFilter(query)
         own = self.config.get("http_client") is None
-        client: httpx.AsyncClient = self.config.get("http_client") or httpx.AsyncClient(timeout=70.0)
+        if own:
+            from ..crawler.safe_http import safe_client
+        client: httpx.AsyncClient = self.config.get("http_client") or safe_client(timeout=70.0, follow_redirects=False)
         observed = datetime.now(UTC)
         emitted = 0
         pause = float(self.config.get("min_interval_s", 5.0))

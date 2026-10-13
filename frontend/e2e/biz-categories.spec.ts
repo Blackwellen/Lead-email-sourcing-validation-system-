@@ -117,7 +117,7 @@ test.describe('categories', () => {
     await openMenu(page, busy.name);
     await page.getByRole('menuitem', { name: 'Delete…' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Delete category' }).click();
-    await expect(page.getByText(/still has businesses or sub-categories/)).toBeVisible();
+    await expect(page.getByText(/This category still has businesses or sub-categories/)).toBeVisible();
   });
 
   test('taxonomy import previews with a dry run, then imports; export downloads definitions', async ({ page }) => {

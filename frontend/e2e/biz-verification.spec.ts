@@ -123,7 +123,7 @@ test.describe('verification centre', () => {
     const ids = ((await api.get(`/api/contacts?q=${emails[0]}&limit=1`)).items as { id: number }[]).map((i) => i.id);
     const b = await api.post('/api/verification/batches', { name, mode: 'fast', email_ids: ids });
     // there is no worker in this environment, so mark the queued job failed the way a worker would
-    execSync(`PGPASSWORD=lead psql -h localhost -U lead -d lead_fe_b -c "UPDATE sourcing_jobs SET state='failed', error_code='dns_timeout', error_detail='synthetic failure for e2e', attempts=3 WHERE run_id=${b.run_id}"`, { stdio: 'pipe' });
+    execSync(`PGPASSWORD=lead psql -h localhost -U lead -d ${process.env.E2E_BIZ_DB || 'lead_fe_b'} -c "UPDATE sourcing_jobs SET state='failed', error_code='dns_timeout', error_detail='synthetic failure for e2e', attempts=3 WHERE run_id=${b.run_id}"`, { stdio: 'pipe' });
     await page.goto('/verification?tab=batches');
     const row = page.locator('tbody tr[data-row]').filter({ hasText: name });
     await row.getByRole('button', { name: /Inspect 1 failure/ }).click();

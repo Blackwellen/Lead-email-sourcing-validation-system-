@@ -13,7 +13,7 @@ test.describe('business detail', () => {
   test('all tabs render real data', async ({ page }) => {
     await page.goto(`/businesses/${id}`);
     await expect(page.getByRole('heading', { name: 'Acme Synthetic Plumbing Ltd', level: 1 })).toBeVisible();
-    await expect(page.getByRole('tab')).toHaveText([/Overview/, /Contact information/, /Domains \/ websites/, /Contacts/, /Emails/, /Sources \/ evidence/, /Verification history/, /Linked runs/]);
+    await expect(page.getByRole('tab')).toHaveText([/Overview/, /Contact information/, /Domains \/ websites/, /Contacts/, /Emails/, /Sources \/ evidence/, /Verification history/, /Linked runs/, /Completeness/]);
     await expect(page.getByText('E2EACME01')).toBeVisible();
 
     await page.getByRole('tab', { name: /Contact information/ }).click();

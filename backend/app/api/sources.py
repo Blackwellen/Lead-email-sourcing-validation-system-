@@ -9,7 +9,6 @@ import re
 import secrets
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
@@ -21,13 +20,15 @@ from ..db import get_session
 from ..models import SourceAdapterState, User
 from ..security import ApiError, app_settings, audit, require_role
 from ..settings_store import get_setting, set_setting
+from ..sources import secret_config as sc
+from ..sources.access_policy import config_problems, is_path_key, is_url_key
 from .registry import adapter_catalog, optional
 from .runs_support import uploads_dir
 from .uploads import read_limited, sniff
 
 log = logging.getLogger("api.sources")
 router = APIRouter(prefix="/api/sources", tags=["sources"], dependencies=[Depends(require_role("viewer"))])
-SECRET_KEY_RE = re.compile(r"(key|secret|token|password|passwd|credential)", re.I)
+SECRET_KEY_RE = sc.SECRET_KEY_RE  # one definition (app.sources.secret_config)
 _totals_cache: dict[str, Any] = {"t": 0.0, "v": None}
 
 
@@ -125,16 +126,18 @@ def config_schema_for(info: dict[str, Any] | None) -> list[ConfigKeyOut]:
         keys.setdefault(q, _VOCAB.get(q, "string"))
     if (info or {}).get("credentials") in ("required", "optional") or "api key" in text_.lower() or "api_key" in text_:
         keys.setdefault("api_key", "string")
-    return [ConfigKeyOut(key=k, type=t, secret=bool(SECRET_KEY_RE.search(k))) for k, t in sorted(keys.items())]  # type: ignore[arg-type]
+    out = []
+    for k, t in sorted(keys.items()):
+        if t == "string" and is_path_key(k):
+            t = "path"
+        elif t == "string" and is_url_key(k):
+            t = "url"
+        out.append(ConfigKeyOut(key=k, type=t, secret=sc.is_secret_key(k)))  # type: ignore[arg-type]
+    return out
 
 
 def mask_config(cfg: dict[str, Any]) -> dict[str, Any]:
-    def m(k: str, v: Any) -> Any:
-        if isinstance(v, dict):
-            return {kk: m(kk, vv) for kk, vv in v.items()}
-        return "********" if SECRET_KEY_RE.search(k) and v not in (None, "", False) else v
-
-    return {k: m(k, v) for k, v in (cfg or {}).items()}
+    return sc.mask_config(cfg)
 
 
 async def _totals(session: AsyncSession) -> tuple[dict[str, int], dict[str, int]]:
@@ -258,32 +261,36 @@ async def set_source_config(adapter_id: str, body: ConfigIn, request: Request, u
     if len(json.dumps(body.config)) > 32 * 1024:
         raise ApiError(413, "payload_too_large", "Source configuration is limited to 32 KB.")
     st = await _state(session, adapter_id)
-    up = uploads_dir(app_settings(request))
     old = st.config or {}
     new: dict[str, Any] = {}
     allowed = {c.key: c for c in config_schema_for((adapter_catalog() or {}).get(adapter_id))}
+    settings = app_settings(request)
     for k, v in body.config.items():
         spec = allowed.get(k)
-        if spec is None and not SECRET_KEY_RE.search(k):
+        if spec is None and not sc.is_secret_key(k):
             raise ApiError(422, "invalid_config_key", f"'{k[:60]}' is not a permitted configuration key for this source (permitted: {', '.join(sorted(allowed))}).")
         if spec is not None and v not in (None, "********"):
             ok = {"integer": isinstance(v, int) and not isinstance(v, bool), "boolean": isinstance(v, bool), "list": isinstance(v, list), "object": isinstance(v, dict),
                   "path": isinstance(v, str), "url": isinstance(v, str) and v.lower().startswith(("http://", "https://")), "string": isinstance(v, str | int | float)}[spec.type]
             if not ok:
                 raise ApiError(422, "invalid_config_value", f"'{k}' must be of type {spec.type}.")
-        if v == "********" and k in old:  # unchanged masked secret
+        if v == sc.MASK and k in old:  # unchanged masked secret
             new[k] = old[k]
             continue
-        if k.lower() in ("path", "file", "file_path") and isinstance(v, str):
-            try:
-                ok = Path(v).resolve().is_relative_to(up)
-            except (OSError, ValueError):
-                ok = False
-            if not ok:
-                raise ApiError(422, "invalid_path", f"'{k}' must point to a file uploaded through the Sources page.")
+        problems = config_problems({k: v}, settings, allow_permission_keys=True)
+        if problems:
+            code = "invalid_path" if is_path_key(k) else "invalid_config_value"
+            raise ApiError(422, code, f"'{k}': {problems[0][1]}")
+        if (sc.is_secret_key(k) or (spec is not None and spec.secret)) and isinstance(v, str) and v:
+            v = sc.seal_value(v)  # secrets are stored sealed (Fernet), never in plain text
         new[k] = v
+    if new.get("permission_basis") and new.get("permission_basis") != old.get("permission_basis"):
+        new["permission_basis_by"] = user.id
+    elif "permission_basis" in new and "permission_basis_by" in old:
+        new["permission_basis_by"] = old["permission_basis_by"]
     st.config = new
-    await audit(session, user, "source.config", "source", adapter_id, {"keys": sorted(new)})
+    await audit(session, user, "source.config", "source", adapter_id,
+                {"keys": sorted(new), "permission_basis": new.get("permission_basis"), "before_permission_basis": old.get("permission_basis")})
     await session.commit()
     return await _one(session, adapter_id)
 
@@ -295,7 +302,7 @@ async def refresh_source_health(adapter_id: str, user: User = Depends(require_ro
         raise ApiError(501, "not_available", "The source registry is not available in this deployment.")
     st = await session.get(SourceAdapterState, adapter_id)
     try:
-        adapter = base.get_adapter(adapter_id, st.config if st else None)
+        adapter = base.get_adapter(adapter_id, sc.open_config(st.config) if st else None)
     except KeyError:
         raise ApiError(404, "not_found", f"Unknown source '{adapter_id}'.") from None
     try:

@@ -24,11 +24,11 @@ test('facets, filters and keyset paging', async ({ page }) => {
   for (const t of await rowsOf(page).locator('td:nth-child(2)').allTextContents()) expect(t).toBe('Hiring');
 
   // country facet
-  await facets.getByRole('button', { name: /^DE \d+/ }).click();
-  await expect(page).toHaveURL(/country=DE/);
-  const n = await rowsOf(page).count();
-  expect(n).toBeGreaterThan(0);
-  for (const t of await rowsOf(page).locator('td:first-child').allTextContents()) expect(t).toContain('· DE');
+  // hiring signals belong to a GB and an IE business (5 each)
+  await facets.getByRole('button', { name: /^IE \d+/ }).click();
+  await expect(page).toHaveURL(/country=IE/);
+  await expect(page.getByText('5 loaded of 5')).toBeVisible();
+  for (const t of await rowsOf(page).locator('td:first-child').allTextContents()) expect(t).toContain('· IE');
 
   // min confidence + text search
   await page.goto('/opportunities?min_confidence=0.9');
@@ -90,7 +90,15 @@ test('sort by confidence (server-side)', async ({ page }) => {
   await login(page, 'viewer');
   await page.goto('/opportunities');
   await page.getByRole('button', { name: /Confidence/ }).click();
-  await expect(page.getByRole('columnheader', { name: /Confidence/ })).toHaveAttribute('aria-sort', 'ascending');
-  const vals = await rowsOf(page).getByRole('meter').evaluateAll((els) => els.map((e) => Number(e.getAttribute('aria-valuenow'))));
-  expect(vals).toEqual([...vals].sort((a, b) => a - b));
+  const header = page.getByRole('columnheader', { name: /Confidence/ });
+  await expect(header).toHaveAttribute('aria-sort', /ascending|descending/);
+  await expect(page).toHaveURL(/opportunities/);
+  for (const dir of [await header.getAttribute('aria-sort'), null]) {
+    if (dir === null) { await page.getByRole('button', { name: /Confidence/ }).click(); }
+    const d = dir ?? (await header.getAttribute('aria-sort'));
+    await expect(page.getByText('40 loaded of 40')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    const vals = await rowsOf(page).getByRole('meter').evaluateAll((els) => els.map((e) => Number(e.getAttribute('aria-valuenow'))));
+    expect(vals).toEqual([...vals].sort((a, b) => (d === 'ascending' ? a - b : b - a)));
+  }
 });

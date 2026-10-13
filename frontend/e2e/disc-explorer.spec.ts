@@ -79,9 +79,9 @@ test('detail drawer shows configuration requirements; viewers are read-only', as
   await expect(page.getByTestId('permission-status')).toHaveText('Not automatable');
 });
 
-test('operator configures a secret (write-only, never echoed), enables and disables', async ({ page }) => {
+test('admin configures a secret (write-only, never echoed), enables and disables', async ({ page }) => {
   const done = trackPageErrors(page);
-  await login(page, 'operator');
+  await login(page, 'admin');
   await page.goto('/sources/explore?open=brave_search');
   const drawer = page.getByTestId('explorer-drawer');
   await expect(drawer.getByTestId('enable-source')).toBeDisabled();
@@ -127,7 +127,7 @@ test('operator configures a secret (write-only, never echoed), enables and disab
 });
 
 test('invalid configuration key is rejected with a message', async ({ page }) => {
-  await login(page, 'operator');
+  await login(page, 'admin');
   await page.goto('/sources/explore?open=brave_search');
   const drawer = page.getByTestId('explorer-drawer');
   await drawer.getByRole('button', { name: 'Add a setting' }).click();
@@ -135,4 +135,27 @@ test('invalid configuration key is rejected with a message', async ({ page }) =>
   await drawer.getByLabel('Value').fill('x');
   await drawer.getByRole('button', { name: 'Save configuration' }).click();
   await expect(drawer.getByTestId('configure-error')).toContainText('not a valid setting name');
+});
+
+test('operator: no enable/configure (admin-only per API), but can import a dataset', async ({ page }) => {
+  await login(page, 'operator');
+  await page.goto('/sources/explore?open=brave_search');
+  const drawer = page.getByTestId('explorer-drawer');
+  await expect(drawer.getByTestId('admin-only-note')).toBeVisible();
+  await expect(drawer.getByTestId('configure-form')).toHaveCount(0);
+  await expect(drawer.getByTestId('enable-source')).toHaveCount(0);
+  const api = await apiAs(page, 'operator');
+  expect((await api.raw.post('/api/source-explorer/brave_search/configure', { config: { api_key: 'x' } })).status()).toBe(403);
+  expect((await api.raw.post('/api/source-explorer/brave_search/enable')).status()).toBe(403);
+
+  await page.goto('/sources/explore?open=abn_lookup_au');
+  const form = drawer.getByTestId('import-form');
+  await expect(form).toBeVisible();
+  await form.getByLabel('Dataset file').setInputFiles({ name: 'abn-sample.csv', mimeType: 'text/csv', buffer: Buffer.from('abn,name\n12345678901,Example Pty Ltd\n') });
+  await form.getByRole('button', { name: 'Upload dataset' }).click();
+  await expect(form.getByTestId('import-result')).toContainText('Imported CSV');
+  // a disguised executable is rejected by the server and the reason is shown
+  await form.getByLabel('Dataset file').setInputFiles({ name: 'evil.csv', mimeType: 'text/csv', buffer: Buffer.from('MZ\x90\x00binary') });
+  await form.getByRole('button', { name: 'Upload dataset' }).click();
+  await expect(form.getByTestId('import-error')).toContainText('executable');
 });

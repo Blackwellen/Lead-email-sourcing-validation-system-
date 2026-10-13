@@ -1,9 +1,10 @@
 """Authentication, sessions, MFA and user management."""
 from __future__ import annotations
 
+import hmac
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pyotp
 from email_validator import EmailNotValidError, validate_email
@@ -148,10 +149,26 @@ def _check_policy(password: str, email: str | None) -> None:
 
 
 def verify_totp(user: User, code: str, request: Request | None = None) -> bool:
+    """Check a TOTP code (+-1 time step) and consume it: a code whose time step is not newer than the last accepted one
+    is refused (replay protection). On success ``user.totp_last_counter`` is advanced; the caller commits."""
     if not user.totp_secret_enc:
         return False
     secret = decrypt_secret(user.totp_secret_enc, app_settings(request) if request else None)
-    return bool(secret) and pyotp.TOTP(secret).verify(code.strip().replace(" ", ""), valid_window=1)
+    if not secret:
+        return False
+    code = code.strip().replace(" ", "")
+    if not code.isdigit():
+        return False
+    totp = pyotp.TOTP(secret)
+    now = totp.timecode(datetime.now(UTC))
+    last = user.totp_last_counter
+    for counter in (now - 1, now, now + 1):
+        if hmac.compare_digest(totp.generate_otp(counter), code):
+            if last is not None and counter <= last:
+                return False  # already used (or older than a used one)
+            user.totp_last_counter = counter
+            return True
+    return False
 
 
 # --------------------------------------------------------------------------- login / logout / me
@@ -160,6 +177,10 @@ async def login(body: LoginIn, request: Request, response: Response, session: As
     ip = client_ip(request)
     limiter = request.app.state.login_limiter
     allowed, retry = limiter.check(ip)
+    if allowed:
+        acct = getattr(request.app.state, "login_account_limiter", None)
+        if acct is not None:
+            allowed, retry = acct.check(f"{ip}|{body.email.strip().lower()[:320]}")
     if not allowed:
         await audit(session, None, "auth.login_rate_limited", "ip", ip)
         await session.commit()
@@ -174,6 +195,7 @@ async def login(body: LoginIn, request: Request, response: Response, session: As
         raise generic
     now = utcnow()
     if user.locked_until and user.locked_until > now:
+        burn_password_check(body.password)  # same timing as a real check: a locked account is not distinguishable
         await audit(session, user, "auth.login_blocked_locked", "user", user.id, {"ip": ip})
         await session.commit()
         raise generic
@@ -181,7 +203,17 @@ async def login(body: LoginIn, request: Request, response: Response, session: As
     mfa_ok = True
     if password_ok and user.totp_enabled:
         if not body.totp_code:
-            # password was right but a code is needed; this is not counted as a failure
+            # password was right but a code is needed. It counts as an attempt toward the lockout (a successful sign-in
+            # resets the counter), otherwise this answer would be an unlimited password-guessing oracle.
+            user.failed_logins = (user.failed_logins or 0) + 1
+            if user.failed_logins >= MAX_FAILED_LOGINS:
+                user.locked_until = lock_until()
+                user.failed_logins = 0
+                await audit(session, user, "auth.login_failed", "user", user.id, {"ip": ip, "reason": "mfa_code_missing", "locked": True})
+                await session.commit()
+                raise generic
+            await audit(session, user, "auth.login_mfa_required", "user", user.id, {"ip": ip})
+            await session.commit()
             raise ApiError(401, "mfa_required", "A verification code from your authenticator app is required.")
         mfa_ok = verify_totp(user, body.totp_code, request)
     if not (password_ok and mfa_ok and user.is_active):
@@ -250,6 +282,7 @@ async def mfa_setup(request: Request, user: User = Depends(get_current_user), se
     secret = pyotp.random_base32()
     u = await session.get(User, user.id)
     u.totp_secret_enc = encrypt_secret(secret, app_settings(request))
+    u.totp_last_counter = None
     await audit(session, user, "auth.mfa_setup_started", "user", user.id)
     await session.commit()
     return MfaSetupOut(secret=secret, provisioning_uri=pyotp.TOTP(secret).provisioning_uri(name=user.email, issuer_name="Lead Intelligence"))
@@ -279,6 +312,7 @@ async def mfa_disable(body: MfaDisableIn, request: Request, user: User = Depends
         raise ApiError(403, "invalid_credentials", "Password or verification code is incorrect.")
     u.totp_enabled = False
     u.totp_secret_enc = None
+    u.totp_last_counter = None
     await audit(session, user, "auth.mfa_disabled", "user", user.id)
     await session.commit()
     return Ok(message="Two-factor authentication disabled.")

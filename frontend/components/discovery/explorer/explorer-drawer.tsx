@@ -146,7 +146,9 @@ function OperatorControls({ d }: { d: ExplorerDetail }) {
   const blockReason = !d.permission.can_enable ? d.permission.reason : d.requirements.requires_config && d.requirements.config_keys_set.length === 0 ? 'Configure this source (credentials / dataset) before enabling it.' : null;
   return (
     <section aria-labelledby="ex-ops" className="space-y-5">
-      <h3 id="ex-ops" className="text-sm font-semibold">Operator actions</h3>
+      <h3 id="ex-ops" className="text-sm font-semibold">Source actions</h3>
+      {/* RBAC mirrors the API: enable / disable / configure = admin; dataset import = operator. */}
+      <Can role="admin" fallback={<p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground" data-testid="admin-only-note">Enabling, disabling and configuring sources requires the Admin role.{d.requirements.accepts_file_upload ? ' You can import a dataset below.' : ''}</p>}>
       <div className="flex flex-wrap items-center gap-2">
         {d.state.enabled ? (
           <ConfirmDialog title={`Disable ${d.name}?`} description="New runs will stop using this source. Existing data is kept." confirmLabel="Disable" destructive
@@ -157,6 +159,7 @@ function OperatorControls({ d }: { d: ExplorerDetail }) {
         {!d.state.enabled && blockReason && <p id="ex-enable-why" className="text-xs text-muted-foreground">{blockReason}</p>}
       </div>
       <ConfigureForm d={d} key={d.id} />
+      </Can>
       {d.requirements.accepts_file_upload && <ImportForm d={d} />}
       {me.user && <p className="text-xs text-muted-foreground">Every change is recorded in the audit log as {me.user.email}.</p>}
     </section>

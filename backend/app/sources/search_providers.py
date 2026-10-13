@@ -179,7 +179,10 @@ class SearchProvider(ABC):
             return c, False
         s = get_settings()
         ua = s.user_agent.replace("set LEAD_CONTACT_EMAIL", s.contact_email or "unset")
-        return httpx.AsyncClient(timeout=float(self.config.get("timeout_s", 20.0)), headers={"User-Agent": ua}), True
+        from ..crawler.safe_http import safe_client
+
+        # SSRF-safe: base_url (SearXNG) is operator-supplied; every hop validated, connections pinned to public IPs
+        return safe_client(timeout=float(self.config.get("timeout_s", 20.0)), headers={"User-Agent": ua}, follow_redirects=False), True
 
 
 class ManualSearchResultsImport(SearchProvider):

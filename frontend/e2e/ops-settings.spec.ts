@@ -168,6 +168,7 @@ test('data retention: run-now is confirmed and reports what was deleted', async 
 });
 
 test('MFA enrolment: QR (drawn locally) + secret + URI, confirm with a computed TOTP, sign-in then needs a code, disable', async ({ page }) => {
+  test.setTimeout(120_000); // may wait up to one 30s TOTP step (server-side replay protection)
   const admin = await apiAs('admin');
   const u = await makeUser(admin, 'operator', 'mfa');
   const external: string[] = [];
@@ -201,15 +202,21 @@ test('MFA enrolment: QR (drawn locally) + secret + URI, confirm with a computed 
   const noCode = await anon.post('/api/auth/login', { data: { email: u.email, password: u.password } });
   expect(noCode.status()).toBe(401);
   expect((await noCode.json()).error.code).toBe('mfa_required');
-  const withCode = await anon.post('/api/auth/login', { data: { email: u.email, password: u.password, totp_code: totp(secret) } });
+  // The server refuses a code whose 30s step is not newer than the last accepted one (replay protection), so sign in with
+  // the NEXT step's code (accepted: +-1 step tolerance) instead of re-using the enrolment code.
+  const step = (ms = Date.now()) => Math.floor(ms / 30_000);
+  const loginStep = step() + 1;
+  const withCode = await anon.post('/api/auth/login', { data: { email: u.email, password: u.password, totp_code: totp(secret, loginStep * 30_000) } });
   expect(withCode.ok()).toBeTruthy();
   await anon.dispose();
 
-  // disable (password + code)
+  // disable (password + code): needs a step newer than loginStep and within +-1 of now -> wait until now >= loginStep
+  while (step() < loginStep) await page.waitForTimeout(1000);
+  const disableCode = totp(secret, (step() + 1) * 30_000);
   await page.getByTestId('mfa-disable-open').click();
   const off = page.getByRole('form', { name: 'Turn off two-step verification' });
   await off.getByLabel('Password').fill('wrong-password-here');
-  await off.getByLabel('Verification code').fill(totp(secret));
+  await off.getByLabel('Verification code').fill(disableCode);
   await off.getByRole('button', { name: 'Turn off two-step verification' }).click();
   await expect(off.getByText(/incorrect/i).first()).toBeVisible();
   await off.getByLabel('Password').fill(u.password);
@@ -320,7 +327,9 @@ test('RBAC: operators and viewers see only account + read-only sections; admin A
     const nav = page.getByRole('navigation', { name: 'Primary' });
     await expect(nav.getByRole('link', { name: 'Exports' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'System' })).toHaveCount(0);
-    await expect(nav.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+    // Settings is in every role's nav (Account & security: password / MFA); the page itself restricts the other tabs.
+    await nav.getByRole('link', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { name: 'Change password' })).toBeVisible();
 
     await page.goto('/settings?tab=users'); // direct URL to an admin tab falls back to Account
     const tabs = page.getByRole('tablist', { name: 'Settings sections' });

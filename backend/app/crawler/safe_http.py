@@ -478,6 +478,59 @@ def _tls_context(settings: Settings) -> ssl.SSLContext | bool:
     return True
 
 
+def default_guard(settings: Settings | None = None, *, resolver: Resolver | None = None) -> Guard:
+    """A Guard that follows ``settings.allow_private_networks`` LIVE (tests flip it at runtime)."""
+    s = settings or get_settings()
+    return Guard(resolver=resolver, allow_private=lambda: bool(s.allow_private_networks))
+
+
+def safe_transport(settings: Settings | None = None, *, guard: Guard | None = None, limits: httpx.Limits | None = None,
+                   verify: bool | ssl.SSLContext | None = None) -> httpx.AsyncHTTPTransport:
+    """An httpx transport whose TCP connections go only to addresses the SSRF guard validated at connect time
+    (``PinnedBackend``: DNS-rebinding safe). Proxy environment variables are ignored; the CA bundle follows
+    ``_tls_context`` (settings.ca_bundle / SSL_CERT_FILE / certifi)."""
+    s = settings or get_settings()
+    g = guard or default_guard(s)
+    at = httpx.AsyncHTTPTransport(verify=_tls_context(s) if verify is None else verify, trust_env=False, http1=True, http2=False,
+                                  limits=limits or httpx.Limits(max_connections=20, max_keepalive_connections=10, keepalive_expiry=20.0))
+    at._pool._network_backend = PinnedBackend(g)  # type: ignore[attr-defined]
+    return at
+
+
+def url_hook(guard: Guard) -> Callable[[httpx.Request], Awaitable[None]]:
+    """httpx ``request`` event hook: validates EVERY request URL -- httpx runs request hooks for each redirect hop, so a
+    redirect to ``http://169.254.169.254/`` or ``file://`` is refused before it is sent."""
+
+    async def _check(request: httpx.Request) -> None:
+        try:
+            guard.check_url(str(request.url))
+        except ValueError as e:
+            raise SSRFBlocked(f"invalid url: {e}") from None
+
+    return _check
+
+
+def safe_client(*, transport: httpx.AsyncBaseTransport | None = None, timeout: float | httpx.Timeout = 60.0,
+                headers: dict[str, str] | None = None, follow_redirects: bool = True, max_redirects: int = 5,
+                settings: Settings | None = None, guard: Guard | None = None) -> httpx.AsyncClient:
+    """SSRF-safe ``httpx.AsyncClient`` for source adapters, downloads and search providers.
+
+    * every hop's URL is checked (scheme http/https, no credentials, port allow-list, private / metadata IP literals,
+      local host names) by a request hook -- redirects are followed by httpx but each hop is re-validated;
+    * the connection itself goes through ``PinnedBackend`` (resolved addresses validated, connect to the validated IP);
+    * ``transport`` is the test seam (``httpx.MockTransport``): URL checks still apply, address pinning does not.
+
+    ``settings.allow_private_networks`` relaxes only the address / port checks (local fixture servers in tests).
+    Raises :class:`SSRFBlocked` / :class:`DnsFailure` (not httpx errors) for policy refusals.
+    """
+    s = settings or get_settings()
+    g = guard or default_guard(s)
+    return httpx.AsyncClient(
+        transport=transport or safe_transport(s, guard=g), timeout=timeout, headers=headers, follow_redirects=follow_redirects,
+        max_redirects=max_redirects, trust_env=False, event_hooks={"request": [url_hook(g)]},
+    )
+
+
 class SafeFetcher:
     """Connection-pooled, SSRF-safe, size/type-bounded HTTP fetcher.
 

@@ -50,7 +50,7 @@ export function triMeta(state: string | null | undefined): TriMeta {
 export function TriStateBadge({ state, className }: { state: string | null | undefined; className?: string }) {
   const m = triMeta(state);
   return (
-    <Badge variant={m.variant} className={className} title={m.help} data-state={state ?? 'unknown'}>
+    <Badge variant={m.variant} className={className} title={m.help} data-state={state ?? 'unknown'} data-testid="tri-state">
       <m.Icon aria-hidden className={cn(m.spin && 'animate-spin motion-reduce:animate-none')} />
       <span>{m.label}</span>
     </Badge>

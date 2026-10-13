@@ -121,7 +121,25 @@ async def test_deactivated_user_cannot_use_session(admin_client):
         assert (await other.get("/api/me")).status_code == 401
 
 
-async def test_mfa_enrolment_and_login(app):
+def _freeze_auth_clock(monkeypatch, at):
+    """Pin the clock the TOTP check uses, so codes for neighbouring time steps are deterministic."""
+    from datetime import datetime as real_dt
+
+    import app.api.auth as authmod
+
+    class FrozenDT(real_dt):
+        @classmethod
+        def now(cls, tz=None):
+            return at if tz is not None else at.replace(tzinfo=None)
+
+    monkeypatch.setattr(authmod, "datetime", FrozenDT)
+
+
+async def test_mfa_enrolment_and_login(app, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    t0 = datetime.now(UTC).replace(microsecond=0)
+    _freeze_auth_clock(monkeypatch, t0)
     u = await create_user("mfa@example.com", "operator")
     async with ApiClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
         assert (await c.login(u.email)).status_code == 200
@@ -134,19 +152,90 @@ async def test_mfa_enrolment_and_login(app):
             enc = (await s.execute(select(User.totp_secret_enc).where(User.id == u.id))).scalar_one()
         assert enc != setup["secret"] and decrypt_secret(enc, app.state.settings) == setup["secret"]
         totp = pyotp.TOTP(setup["secret"])
+        prev, cur, nxt = (totp.at(t0 + timedelta(seconds=d)) for d in (-30, 0, 30))
         assert (await c.post("/api/auth/mfa/confirm", json={"code": "000000"})).status_code == 422
-        assert (await c.post("/api/auth/mfa/confirm", json={"code": totp.now()})).status_code == 200
+        assert (await c.post("/api/auth/mfa/confirm", json={"code": prev})).status_code == 200
         await c.post("/api/auth/logout")
         # login now requires the code
         r = await c.login(u.email)
         assert r.status_code == 401 and r.json()["error"]["code"] == "mfa_required"
         assert (await c.login(u.email, totp_code="123456")).status_code == 401
-        assert (await c.login(u.email, totp_code=totp.now())).status_code == 200
+        assert (await c.login(u.email, totp_code=prev)).status_code == 401  # already used for the confirmation
+        assert (await c.login(u.email, totp_code=cur)).status_code == 200
         # disable requires password and code
-        assert (await c.post("/api/auth/mfa/disable", json={"password": "bad", "code": totp.now()})).status_code == 403
-        assert (await c.post("/api/auth/mfa/disable", json={"password": PASSWORD, "code": totp.now()})).status_code == 200
+        assert (await c.post("/api/auth/mfa/disable", json={"password": "bad", "code": nxt})).status_code == 403
+        assert (await c.post("/api/auth/mfa/disable", json={"password": PASSWORD, "code": cur})).status_code == 403  # replay
+        assert (await c.post("/api/auth/mfa/disable", json={"password": PASSWORD, "code": nxt})).status_code == 200
         await c.post("/api/auth/logout")
         assert (await c.login(u.email)).status_code == 200
+
+
+async def test_totp_code_cannot_be_replayed(app, monkeypatch):
+    """Finding 12: a TOTP code (time step) is accepted once; a captured code cannot be reused within its window."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.db import sessionmaker
+    from app.security import encrypt_secret
+
+    t0 = datetime.now(UTC).replace(microsecond=0)
+    _freeze_auth_clock(monkeypatch, t0)
+    secret = pyotp.random_base32()
+    u = await create_user("replay@example.com", "operator")
+    async with sessionmaker()() as s:
+        await s.execute(text("UPDATE users SET totp_secret_enc=:e, totp_enabled=true WHERE id=:i"), {"e": encrypt_secret(secret, app.state.settings), "i": u.id})
+        await s.commit()
+    totp = pyotp.TOTP(secret)
+    async with ApiClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        code = totp.at(t0)
+        assert (await c.login(u.email, totp_code=code)).status_code == 200
+        await c.post("/api/auth/logout")
+        assert (await c.login(u.email, totp_code=code)).status_code == 401  # same code again: refused
+        assert (await c.login(u.email, totp_code=totp.at(t0 - timedelta(seconds=30)))).status_code == 401  # older step: refused
+        assert (await c.login(u.email, totp_code=totp.at(t0 + timedelta(seconds=30)))).status_code == 200  # newer step: fine
+    async with sessionmaker()() as s:
+        assert (await s.execute(select(User.totp_last_counter).where(User.id == u.id))).scalar_one() == totp.timecode(t0) + 1
+
+
+async def test_mfa_required_counts_toward_lockout(app):
+    """Finding 12: the 'mfa_required' answer (right password, no code) counts as an attempt, so it cannot be used as an
+    unlimited password oracle; a successful sign-in resets the counter."""
+    from app.db import sessionmaker
+    from app.security import MAX_FAILED_LOGINS
+
+    u = await create_user("oracle@example.com", "operator")
+    async with sessionmaker()() as s:
+        await s.execute(text("UPDATE users SET totp_secret_enc='x', totp_enabled=true WHERE id=:i"), {"i": u.id})
+        await s.commit()
+    async with ApiClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        codes = [(await c.login(u.email)).json()["error"]["code"] for _ in range(MAX_FAILED_LOGINS)]
+    assert codes[:-1] == ["mfa_required"] * (MAX_FAILED_LOGINS - 1) and codes[-1] == "invalid_credentials"
+    async with sessionmaker()() as s:
+        assert (await s.execute(select(User.locked_until).where(User.id == u.id))).scalar_one() is not None
+
+
+async def test_locked_account_spends_password_hash_time(app, monkeypatch):
+    """Finding 13: the locked-account path does the same argon2 work as the normal path (no timing oracle)."""
+    import app.api.auth as authmod
+    from app.db import sessionmaker
+
+    calls = []
+    monkeypatch.setattr(authmod, "burn_password_check", lambda pw: calls.append(pw))
+    u = await create_user("locked@example.com", "operator")
+    async with sessionmaker()() as s:
+        await s.execute(text("UPDATE users SET locked_until = now() + interval '10 minutes' WHERE id=:i"), {"i": u.id})
+        await s.commit()
+    async with ApiClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        r = await c.login(u.email)
+    assert r.status_code == 401 and r.json()["error"]["code"] == "invalid_credentials" and calls == [PASSWORD]
+
+
+async def test_login_limiter_per_ip_and_account():
+    """Finding 6: one address hammering one account is throttled before the per-address limit."""
+    app = build_app(login_rate_limit_per_minute=8)
+    async with ApiClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+        same = [(await c.post("/api/auth/login", json={"email": "victim@example.com", "password": "whatever-123456"})).status_code for _ in range(5)]
+        other = (await c.post("/api/auth/login", json={"email": "someone@example.com", "password": "whatever-123456"})).status_code
+    assert same == [401, 401, 401, 401, 429] and other == 401
 
 
 async def test_password_policy_and_change_password(operator_client):

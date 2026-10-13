@@ -243,11 +243,20 @@ async def _source_candidates(ctx: StepContext) -> tuple[list[str], list[str]]:
 
 # --------------------------------------------------------------------------- default steps
 async def step_recheck_imported_website(ctx: StepContext) -> StepResult:
+    from ..pipeline.identity import stored_candidates
+
     sites, _bulk = await _source_candidates(ctx)
-    rows = (await ctx.session.execute(select(OrganisationDomain.domain).where(
+    rows = (await ctx.session.execute(select(OrganisationDomain).where(
         OrganisationDomain.organisation_id == ctx.org.id, OrganisationDomain.verified_match_status.in_(("unknown", "review"))))).scalars().all()
-    doms = list(dict.fromkeys(sites + _domains_from(list(rows))))
-    return await _resolve(ctx, [Candidate(d, "dataset", "website published by the source dataset") for d in doms])
+    # genuine dataset websites are 'dataset'; stored rows keep their RECORDED provenance (a stored name guess stays a guess)
+    cands = [Candidate(d, "dataset", "website published by the source dataset") for d in sites]
+    have = set(sites)
+    for c in await stored_candidates(ctx.session, rows, ctx.org.id):
+        d = _domains_from([c.domain])
+        if d and d[0] not in have:
+            have.add(d[0])
+            cands.append(Candidate(d[0], c.source, c.detail))
+    return await _resolve(ctx, cands)
 
 
 async def step_resolve_bulk_candidate_domains(ctx: StepContext) -> StepResult:

@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import ipaddress
 import logging
 import re
 import secrets
@@ -171,14 +172,68 @@ class SlidingWindowLimiter:
 
 
 # --------------------------------------------------------------------------- request -> user
-def client_ip(request: Request) -> str:
+_DEFAULT_TRUSTED = ("127.0.0.0/8", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
+_trusted_cache: dict[str, tuple] = {}
+
+
+def _trusted_networks(spec: str) -> tuple:
+    nets = _trusted_cache.get(spec)
+    if nets is None:
+        out = []
+        for part in (spec.split(",") if spec.strip() else _DEFAULT_TRUSTED):
+            try:
+                out.append(ipaddress.ip_network(part.strip(), strict=False))
+            except ValueError:
+                log.warning("ignoring invalid trusted proxy network %r", part)
+        nets = _trusted_cache[spec] = tuple(out)
+    return nets
+
+
+def _parse_ip(v: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    v = v.strip().strip('"')
+    if v.startswith("[") and "]" in v:  # [v6]:port
+        v = v[1:v.index("]")]
+    elif v.count(":") == 1:  # v4:port
+        v = v.split(":", 1)[0]
+    try:
+        return ipaddress.ip_address(v)
+    except ValueError:
+        return None
+
+
+def _trust_proxy_enabled(settings: Settings) -> bool:
     import os
 
-    if os.environ.get("LEAD_TRUST_PROXY") == "1":
-        xff = request.headers.get("x-forwarded-for")
-        if xff:
-            return xff.split(",")[0].strip()[:64]
-    return request.client.host if request.client else "unknown"
+    return bool(settings.trust_proxy) or os.environ.get("LEAD_TRUST_PROXY", "").lower() in ("1", "true", "yes")
+
+
+def client_ip(request: Request) -> str:
+    """The client address used for rate limiting and audit.
+
+    Without proxy trust (default) this is the TCP peer. With ``trust_proxy`` (LEAD_TRUST_PROXY=1, set by the compose file
+    because Caddy fronts the API) and a peer that is a trusted proxy, ``X-Forwarded-For`` is walked from the RIGHT and
+    the first hop that is not itself a trusted proxy is the client -- left-most entries are client-controlled and are
+    never believed."""
+    peer = request.client.host if request.client else "unknown"
+    try:
+        settings = app_settings(request)
+    except Exception:
+        settings = get_settings()
+    if not _trust_proxy_enabled(settings):
+        return peer
+    nets = _trusted_networks(settings.trusted_proxies or "")
+    pip = _parse_ip(peer)
+    if pip is None or not any(pip in n for n in nets):
+        return peer
+    xff = ",".join(request.headers.getlist("x-forwarded-for")) if hasattr(request.headers, "getlist") else (request.headers.get("x-forwarded-for") or "")
+    hops = [h for h in (x.strip() for x in xff.split(",")) if h]
+    for hop in reversed(hops):
+        ip = _parse_ip(hop)
+        if ip is None:
+            return peer  # garbage in the chain: do not guess
+        if not any(ip in n for n in nets):
+            return str(ip)
+    return str(_parse_ip(hops[0])) if hops else peer
 
 
 def app_settings(request: Request) -> Settings:

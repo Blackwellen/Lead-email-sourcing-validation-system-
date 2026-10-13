@@ -35,6 +35,11 @@ services:
       LEAD_SMTP_AUTHORISED_DOMAINS: ${LEAD_SMTP_AUTHORISED_DOMAINS:-}
       LEAD_INITIAL_ADMIN_EMAIL: ${LEAD_INITIAL_ADMIN_EMAIL:-}
       LEAD_INITIAL_ADMIN_PASSWORD: ${LEAD_INITIAL_ADMIN_PASSWORD:-}
+      # Caddy fronts the API: take the client address from X-Forwarded-For, trusting only hops on the compose networks
+      LEAD_TRUST_PROXY: "1"
+      LEAD_TRUSTED_PROXIES: ${INTERNAL_SUBNET:-172.31.250.0/24},${EGRESS_SUBNET:-172.31.251.0/24}
+      # uvicorn --proxy-headers: only the compose networks may set X-Forwarded-For / -Proto
+      FORWARDED_ALLOW_IPS: ${INTERNAL_SUBNET:-172.31.250.0/24},${EGRESS_SUBNET:-172.31.251.0/24}
     depends_on:
       db: {condition: service_healthy}
     networks: [internal]
@@ -42,11 +47,13 @@ services:
   api:
     build: ./backend
     restart: unless-stopped
+    command: ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers",
+              "--forwarded-allow-ips", "${INTERNAL_SUBNET:-172.31.250.0/24},${EGRESS_SUBNET:-172.31.251.0/24}"]
     environment: *appenv
     volumes: [appdata:/data]
     depends_on:
       migrate: {condition: service_completed_successfully}
-    networks: [internal]
+    networks: [internal, egress]   # egress: source health checks / SMTP egress check (outbound only)
     deploy: {resources: {limits: {memory: 1g}}}
 
   worker:
@@ -106,6 +113,11 @@ services:
     networks: [internal]
 
 networks:
-  internal: {internal: false}
-  egress: {}
+  # internal: no route to the outside world (db, migrate, web, backup live ONLY here)
+  internal:
+    internal: true
+    ipam: {config: [{subnet: "${INTERNAL_SUBNET:-172.31.250.0/24}"}]}
+  # egress: outbound internet for the worker / api, and the published ports of the proxy
+  egress:
+    ipam: {config: [{subnet: "${EGRESS_SUBNET:-172.31.251.0/24}"}]}
 volumes: {pgdata: {}, appdata: {}, caddy_data: {}, backups: {}}

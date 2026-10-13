@@ -211,3 +211,21 @@ async def test_data_verb_is_structurally_impossible(smtp_server):
             await p._send(W(), verb)
     src = open(smtpmod.__file__).read()
     assert 'f"DATA' not in src and '"DATA' not in src.replace('"DATA", "BDAT"', "")
+
+
+async def test_mx_resolving_to_private_address_is_never_contacted(session, smtp_server, probe_settings):
+    """Finding 15: without the test seam the MX host is resolved by us and private / loopback / metadata addresses are
+    refused before any connection (allow_private_networks relaxes it, for tests only)."""
+    srv = smtp_server()
+
+    async def to_loopback(host, port):
+        return ["127.0.0.1"]
+
+    p = SmtpProbe(settings=probe_settings, port=srv.port, connect_timeout=1, command_timeout=1, resolver=to_loopback)
+    res = await p.probe(session, ADDR, ["mx.evil-rebind.example", "169.254.169.254"])
+    assert res.reason_code == "smtp_blocked_address" and res.recipient_evidence_status == "inconclusive"
+    assert srv.connections == 0 and p.verbs_sent == []
+    relaxed = SmtpProbe(settings=probe_settings.model_copy(update={"allow_private_networks": True}), port=srv.port,
+                        connect_timeout=2, command_timeout=1, resolver=to_loopback)
+    res2 = await relaxed.probe(session, ADDR, HOSTS)
+    assert res2.reason_code != "smtp_blocked_address" and srv.connections >= 1

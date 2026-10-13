@@ -92,7 +92,7 @@ class RunPlan:
 
 async def load_plan(session: AsyncSession, run_id: int) -> RunPlan:
     snap = (await session.execute(text("SELECT configuration_snapshot FROM sourcing_runs WHERE id=:r"), {"r": run_id})).scalar_one()
-    cfg = RunConfig.model_validate(snap)
+    cfg = RunConfig.from_snapshot(snap)
     return RunPlan(cfg, strat.plan_from_config(cfg), legacy="discovery" not in (snap or {}))
 
 
@@ -224,10 +224,13 @@ async def enqueue_unvalidated_verifies(session: AsyncSession, run_id: int | None
     """Verify jobs for the organisation's addresses that have never been validated (e.g. found by documents / gap recovery)."""
     if run_id is None:
         return 0
+    from .ingest import live_evidence_sql
+
+    # archived-only (Common Crawl) addresses wait for a live re-observation; a permutation guess is not "live" evidence
     ids = (await session.execute(text(
         "SELECT e.id FROM email_addresses e WHERE e.organisation_id=:o AND e.last_validated_at IS NULL AND e.suppressed_at IS NULL "
         "AND NOT (EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id=ce.evidence_id WHERE ce.email_id=e.id AND es.historical) "
-        "AND NOT EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id=ce.evidence_id WHERE ce.email_id=e.id AND NOT es.historical)) "
+        f"AND NOT {live_evidence_sql('e.id')}) "
         "ORDER BY e.id LIMIT 200"), {"o": org_id})).scalars().all()
     n = 0
     for i in ids:

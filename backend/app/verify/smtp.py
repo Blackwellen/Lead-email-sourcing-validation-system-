@@ -237,6 +237,7 @@ class SmtpProbe:
         target_override: TargetResolver | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         max_mx_hosts: int = 3,
+        resolver: Callable[[str, int], Awaitable[list[str]]] | None = None,
     ) -> None:
         st = settings or get_settings()
         self.settings = st
@@ -251,6 +252,7 @@ class SmtpProbe:
         self.backoff_base = backoff_base
         self.backoff_max = backoff_max
         self.target_override = target_override
+        self._resolver = resolver
         self._sleep = sleep
         self.max_mx_hosts = max_mx_hosts
         self.verbs_sent: list[str] = []
@@ -294,6 +296,32 @@ class SmtpProbe:
 
     def _targets(self, host: str) -> tuple[str, int]:
         return self.target_override(host) if self.target_override else (host, self.port)
+
+    async def _safe_target(self, host: str) -> tuple[str, int] | ProbeResult:
+        """Resolve the MX host ourselves and refuse private / loopback / link-local / metadata addresses (the same
+        policy as the HTTP SSRF guard; ``settings.allow_private_networks`` relaxes it for tests). The connection then
+        goes to the validated IP, so DNS cannot be rebound between check and connect. ``target_override`` is the
+        explicit test seam and bypasses resolution."""
+        if self.target_override:
+            return self.target_override(host)
+        from ..crawler.safe_http import DnsFailure, classify_ip, system_resolver
+        from ..crawler.urls import is_ip_literal
+
+        h = host.strip().rstrip(".").strip("[]")
+        try:
+            addrs = [h] if is_ip_literal(h) else await (self._resolver or system_resolver)(h, self.port)
+        except DnsFailure as e:
+            return ProbeResult("inconclusive", "inconclusive", "smtp_dns_failed", mx_host=host, reply_category="connect_error",
+                               reply_text=_sanitise(str(e), 120))
+        if not addrs:
+            return ProbeResult("inconclusive", "inconclusive", "smtp_dns_failed", mx_host=host, reply_category="connect_error")
+        if not self.settings.allow_private_networks:
+            for a in addrs:
+                reason = classify_ip(a)
+                if reason:
+                    return ProbeResult("inconclusive", "inconclusive", "smtp_blocked_address", mx_host=host, reply_category="connect_error",
+                                       reply_text=_sanitise(f"MX resolves to a non-public address ({reason})", 120))
+        return addrs[0], self.port
 
     async def probe(
         self,
@@ -345,7 +373,10 @@ class SmtpProbe:
         return last
 
     async def _attempt(self, host: str, address: str, transcript: list[dict[str, Any]], tls: dict[str, Any]) -> ProbeResult:
-        addr, port = self._targets(host)
+        tgt = await self._safe_target(host)
+        if isinstance(tgt, ProbeResult):
+            return tgt  # refused before any connection
+        addr, port = tgt
         allow_tls = self.use_starttls
         for _round in range(2):  # second round only if STARTTLS handshake broke the connection
             log: list[SmtpReply] = []

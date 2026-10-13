@@ -97,7 +97,7 @@ function Finder() {
         <div className="grid gap-3 md:grid-cols-2">
           {seedKind === 'org' && <FormField label="Seed business" htmlFor="sim-org"><OrgCombobox id="sim-org" aria-label="Seed business" value={org?.id ?? null} selectedLabel={org?.label} onChange={(id, label) => setOrg(id ? { id, label } : null)} /></FormField>}
           {seedKind === 'category' && <FormField label="Seed category" htmlFor="sim-cat"><Combobox id="sim-cat" aria-label="Seed category" options={cats.options} value={cat} onChange={setCat} loading={cats.isPending} clearable placeholder="Choose a category…" /></FormField>}
-          {seedKind === 'run' && <FormField label="Seed run" htmlFor="sim-run"><Combobox id="sim-run" aria-label="Seed run" options={runs.all.map((r) => ({ value: String(r.id), label: runLabel(r) }))} value={run} onChange={setRun} loading={runs.isPending} clearable placeholder="Choose a run…" /></FormField>}
+          {seedKind === 'run' && <FormField label="Seed run" htmlFor="sim-run" error={runs.isError ? `Could not load runs: ${runs.error.message}` : undefined}><Combobox id="sim-run" aria-label="Seed run" options={runs.all.map((r) => ({ value: String(r.id), label: runLabel(r) }))} value={run} onChange={setRun} loading={runs.isPending} clearable placeholder="Choose a run…" /></FormField>}
           <FormField label="Limit to countries" htmlFor="sim-cc" hint="Optional; any country when empty."><MultiSelect id="sim-cc" aria-label="Limit to countries" options={COUNTRY_OPTIONS} value={countries} onChange={setCountries} max={20} /></FormField>
           <FormField label="Minimum score (0–1)" htmlFor="sim-min"><Input id="sim-min" inputMode="decimal" value={minScore} onChange={(e) => setMinScore(e.target.value)} /></FormField>
           <FormField label="Results (1–100)" htmlFor="sim-lim"><Input id="sim-lim" inputMode="numeric" value={limit} onChange={(e) => setLimit(e.target.value)} /></FormField>
@@ -112,7 +112,7 @@ function Finder() {
             <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-muted/30 p-3">
               <p className="text-sm"><strong className="tabular">{formatNumber(items.length)}</strong> lookalikes found. Expand them into a run to resolve their websites and crawl them.</p>
               <div className="flex flex-wrap items-end gap-2">
-                <FormField label="Target run" htmlFor="sim-target" className="w-64">
+                <FormField label="Target run" htmlFor="sim-target" className="w-64" error={runs.isError ? `Could not load runs: ${runs.error.message}` : undefined}>
                   <Combobox id="sim-target" aria-label="Target run" options={runs.runs.map((r) => ({ value: String(r.id), label: runLabel(r) }))} value={target} onChange={setTarget} placeholder={runs.runs.length ? 'Choose a draft, running or paused run…' : 'No active runs'} />
                 </FormField>
                 <ConfirmDialog

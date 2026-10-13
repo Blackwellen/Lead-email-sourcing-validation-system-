@@ -408,3 +408,53 @@ async def test_robots_object_shared_across_crawls(server, fetcher):
     n = server.hits("/robots.txt")
     await crawl_domain(fetcher, server.url("/"), options=opts(max_pdfs=0), limiter=lim(), robots=rc)
     assert n == 1 and server.hits("/robots.txt") == 1
+
+
+class _FakeReq:
+    def __init__(self, url, resource_type="document", method="GET"):
+        self.url, self.resource_type, self.method = url, resource_type, method
+
+
+class _FakeRoute:
+    def __init__(self, req):
+        self.request = req
+        self.outcome = None
+
+    async def abort(self, code="failed"):
+        self.outcome = ("abort", code)
+
+    async def continue_(self):
+        self.outcome = ("continue", None)
+
+    async def fulfill(self, status=200, headers=None, body=b""):
+        self.outcome = ("fulfill", status, body)
+
+
+async def test_render_gate_isolates_the_browser(server, allow_private, monkeypatch):
+    """Finding 10: the browser never connects itself; every request is guard-checked and fetched by SafeFetcher."""
+    from app.config import get_settings
+    from app.crawler.crawl import BROWSER_ARGS, render_gate
+    from app.crawler.safe_http import SafeFetcher
+
+    assert "--host-resolver-rules=MAP * ~NOTFOUND" in BROWSER_ARGS
+    server.add("/", "<html><body>hello render</body></html>")
+    f = SafeFetcher()
+    try:
+        ok = _FakeRoute(_FakeReq(server.url("/")))
+        await render_gate(ok, f)
+        assert ok.outcome[0] == "fulfill" and b"hello render" in ok.outcome[2]
+        for req in (_FakeReq("file:///etc/passwd"), _FakeReq("ws://example.com/socket", "websocket"), _FakeReq("ftp://example.com/x"),
+                    _FakeReq(server.url("/"), "image"), _FakeReq(server.url("/"), "fetch", "POST")):
+            r = _FakeRoute(req)
+            await render_gate(r, f)
+            assert r.outcome[0] == "abort", req.url
+        local = _FakeRoute(_FakeReq("data:text/html,hi"))
+        await render_gate(local, f)
+        assert local.outcome[0] == "continue"
+        monkeypatch.setattr(get_settings(), "allow_private_networks", False)
+        for url in ("http://169.254.169.254/latest/meta-data/", server.url("/"), "http://localhost/"):
+            r = _FakeRoute(_FakeReq(url, "xhr"))
+            await render_gate(r, f)
+            assert r.outcome[0] == "abort", url
+    finally:
+        await f.aclose()

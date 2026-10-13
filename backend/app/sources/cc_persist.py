@@ -6,8 +6,12 @@ Rules (enforced here, not left to callers):
   ``observed_at=<capture time>`` and ``source_reliability <= 0.3`` (:data:`HISTORICAL_RELIABILITY_CAP`).  The verification
   scorer multiplies by ``0.7 + 0.3 * reliability``, so archive-only evidence contributes the least weight.
 * ``ContactEvidence.context`` carries ``{"historical": true, "unconfirmed": true, "archive_timestamp": ...}``.
-* An e-mail that has ONLY historical evidence stays ``origin='published'`` and ``needs_review=True`` -- archive pages can
-  never "corroborate" each other into a higher origin, and contacts created from archive-only names have capped confidence.
+* An e-mail first seen in an archive is stored ``origin='published'``, ``needs_review=True`` with ``first_seen_at`` = the capture
+  time.  An archive observation NEVER upgrades an existing address's origin (a permutation guess stays speculative), never
+  bumps ``last_seen_at`` and never resets evidence a live crawl already confirmed.  Archive pages can never "corroborate" each
+  other into a higher origin, and contacts created from archive-only names have capped confidence.
+* "Live" evidence means a current, non-archived observation that is not a permutation guess
+  (:func:`app.pipeline.ingest.live_evidence_sql`); only that ever makes an archived address count as published.
 * :func:`confirm_against_live` clears ``unconfirmed`` ONLY for e-mails that a *current live crawl* observation (a source other
   than ``commoncrawl``) actually contains; the historical evidence row itself stays historical.
 
@@ -26,7 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..crawler.types import EmailObservation
 from ..models import Contact, ContactEvidence, EmailAddress, EvidenceSource, OrganisationDomain
-from ..pipeline.ingest import normalise_email, persist_observations
+from ..pipeline.ingest import NON_LIVE_EVIDENCE_TYPES, normalise_email, persist_observations
 
 ADAPTER = "commoncrawl"
 LICENCE = "Common Crawl Terms of Use (archived content remains the property of its owners)"
@@ -49,7 +53,8 @@ def _merge_context(patch: dict[str, Any]):
 async def _has_live_evidence(session: AsyncSession, email_id: int) -> bool:
     q = (select(func.count()).select_from(ContactEvidence)
          .join(EvidenceSource, EvidenceSource.id == ContactEvidence.evidence_id)
-         .where(ContactEvidence.email_id == email_id, EvidenceSource.historical.is_(False)))
+         .where(ContactEvidence.email_id == email_id, EvidenceSource.historical.is_(False),
+                EvidenceSource.evidence_type.not_in(NON_LIVE_EVIDENCE_TYPES)))
     return (await session.execute(q)).scalar_one() > 0
 
 
@@ -65,6 +70,7 @@ async def persist_historical_observations(
         archive_timestamp = archive_timestamp.replace(tzinfo=UTC)
     results = await persist_observations(
         session, org_id, None, obs, run_id=run_id, source_adapter=ADAPTER, licence=LICENCE, now=datetime.now(UTC),
+        archived_at=archive_timestamp,
     )
     urls = sorted({o.page_url for o in obs})
     ev_ids = list((await session.execute(
@@ -77,21 +83,24 @@ async def persist_historical_observations(
                 source_reliability=func.least(EvidenceSource.source_reliability, HISTORICAL_RELIABILITY_CAP),
             )
         )
-        patch = {"historical": True, "unconfirmed": True, "archive_timestamp": archive_timestamp.isoformat()}
+        patch = {"historical": True, "archive_timestamp": archive_timestamp.isoformat()}
         if crawl_id:
             patch["crawl_id"] = crawl_id
         email_ids = [e for e, _ in results]
+        rows = (ContactEvidence.evidence_id.in_(ev_ids), ContactEvidence.email_id.in_(email_ids))
+        await session.execute(update(ContactEvidence).where(*rows).values(context=_merge_context(patch), observed_at=archive_timestamp))
+        # a re-archived address that a live crawl already confirmed stays confirmed
         await session.execute(
-            update(ContactEvidence)
-            .where(ContactEvidence.evidence_id.in_(ev_ids), ContactEvidence.email_id.in_(email_ids))
-            .values(context=_merge_context(patch), observed_at=archive_timestamp)
-        )
+            update(ContactEvidence).where(*rows, func.coalesce(ContactEvidence.context["unconfirmed"].astext, "") != "false")
+            .values(context=_merge_context({"unconfirmed": True})))
     out: list[HistoricalResult] = []
     for email_id, created in results:
         em = (await session.execute(select(EmailAddress).where(EmailAddress.id == email_id))).scalar_one()
         live = await _has_live_evidence(session, email_id)
         if not live:
-            await session.execute(update(EmailAddress).where(EmailAddress.id == email_id).values(origin="published", needs_review=True))
+            # archive-only: flag for review; the origin is left as stored (new rows are 'published' with needs_review; an existing
+            # speculative / inferred guess is NOT promoted by an archive sighting)
+            await session.execute(update(EmailAddress).where(EmailAddress.id == email_id).values(needs_review=True))
             if em.contact_id is not None:
                 await session.execute(
                     update(Contact).where(Contact.id == em.contact_id).values(

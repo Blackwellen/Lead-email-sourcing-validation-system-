@@ -24,7 +24,7 @@ from ..sources.base import DiscoveryQuery, NotPermitted, get_adapter, record_ada
 from ..sources.persist import upsert_business
 from ..worker import JobContext, handler
 from . import flow, runtime
-from .identity import Candidate, candidate_domains_from_name, resolve_organisation_domain
+from .identity import Candidate, candidate_domains_from_name, resolve_organisation_domain, stored_candidates
 from .ingest import persist_observations
 from .measure import measured
 
@@ -40,7 +40,7 @@ async def _cfg(ctx: JobContext) -> tuple[RunConfig, int]:
     if run_id is None:
         raise jq.PermanentError("job has no run", "no_run")
     row = (await ctx.session.execute(text("SELECT configuration_snapshot FROM sourcing_runs WHERE id=:r"), {"r": run_id})).scalar_one()
-    return RunConfig.model_validate(row), run_id
+    return RunConfig.from_snapshot(row), run_id
 
 
 async def _plan(ctx: JobContext) -> tuple[flow.RunPlan, int]:
@@ -87,14 +87,24 @@ async def discover(ctx: JobContext) -> None:
 
     stored = await ctx.session.get(SourceAdapterState, adapter_id)  # operator configuration (Source Explorer); secrets opened here
     params = {**open_config(stored.config if stored else None), **cfg.source_params.get(adapter_id, {}), **p.get("params", {})}
+    from ..sources.access_policy import assert_adapter_runnable
+
+    try:
+        base_info = get_adapter(adapter_id).info
+    except KeyError:
+        raise jq.PermanentError(f"unknown adapter {adapter_id}", "unknown_adapter") from None
+    if not rp.legacy and not strat.adapter_allowed(cfg.discovery, adapter_id, base_info.source_type):
+        raise jq.PermanentError(f"source {adapter_id} belongs to category '{strat.category_of(adapter_id, base_info.source_type)}' "
+                                f"which this run did not select", "category_not_selected")
+    try:  # the single source-configuration policy, re-checked at execution time (drafts, scheduled runs, direct DB edits)
+        await assert_adapter_runnable(ctx.session, adapter_id, params)
+    except NotPermitted as e:
+        raise jq.PermanentError(str(e), "not_permitted") from e
     try:
         adapter = get_adapter(adapter_id, params or None)
     except KeyError:
         raise jq.PermanentError(f"unknown adapter {adapter_id}", "unknown_adapter") from None
     info = adapter.info
-    if not rp.legacy and not strat.adapter_allowed(cfg.discovery, adapter_id, info.source_type):
-        raise jq.PermanentError(f"source {adapter_id} belongs to category '{strat.category_of(adapter_id, info.source_type)}' "
-                                f"which this run did not select", "category_not_selected")
     # ---- hard constraints: concurrency across ALL workers, and the adapter's request-rate policy (per process)
     if await flow.other_leased_discovers(ctx.session, adapter_id, ctx.job.id) >= max(1, info.rate_policy.concurrency):
         raise jq.Requeue(2.0)
@@ -154,6 +164,8 @@ async def discover(ctx: JobContext) -> None:
                             raise jq.Requeue(3.0)
                         if await _queue_depth(ctx, run_id) > MAX_QUEUE_DEPTH:
                             raise jq.Requeue(5.0)  # backpressure: downstream is saturated
+                        if ctx.should_yield():
+                            raise jq.Requeue(0.5)  # soft time budget used: resume from the checkpoint just saved
                         await quota.refresh(ctx.session, run_id, adapter_id, cat)
                         rem = quota.remaining()
                         batch_limit = CHECKPOINT_EVERY if rem is None else max(1, min(CHECKPOINT_EVERY, rem))
@@ -169,8 +181,11 @@ async def discover(ctx: JobContext) -> None:
                 await ctx.session.commit()
                 raise
             await flush()
-            await ctx.checkpoint({"cp": cp, "seen": seen, "created": created_n, "finished": True, **({"stopped": stop_reason} if stop_reason else {})})
             await record_adapter_run(ctx.session, adapter_id, ok=True, recovered=created_n)
+            # commit the tail batch BEFORE the final checkpoint (which commits independently): a crash in between must replay the
+            # tail from the previous checkpoint, never skip records that were not committed
+            await ctx.session.commit()
+            await ctx.checkpoint({"cp": cp, "seen": seen, "created": created_n, "finished": True, **({"stopped": stop_reason} if stop_reason else {})})
             if stop_reason:
                 log.info("discover stopped by %s", stop_reason, extra={"run_id": run_id, "stage": "discover"})
     finally:
@@ -315,7 +330,8 @@ async def resolve_domain(ctx: JobContext) -> None:
         fetcher, limiter, robots = net
         existing = (await ctx.session.execute(select(OrganisationDomain).where(OrganisationDomain.organisation_id == org_id))).scalars().all()
         was_confirmed = any(d.verified_match_status in ("confirmed", "high") for d in existing)
-        cands: list[Candidate | str] = [Candidate(d.domain, source="dataset") for d in existing if d.verified_match_status != "mismatch"]
+        # stored rows are re-scored with their RECORDED provenance: a row created by name guessing stays a guess (capped at 'review')
+        cands: list[Candidate | str] = list(await stored_candidates(ctx.session, [d for d in existing if d.verified_match_status != "mismatch"], org_id))
         if not cands:  # guessed domains are probe candidates only; identity scoring decides (capped at 'review')
             cands = list(candidate_domains_from_name(org.legal_name or org.trading_name, country_code=org.country_code, max_candidates=4))
         if not cands:

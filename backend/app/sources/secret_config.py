@@ -10,13 +10,25 @@ from typing import Any
 
 from ..security import decrypt_secret, encrypt_secret
 
-SECRET_KEY_RE = re.compile(r"(key|secret|token|password|passwd|credential)", re.I)
+# Secret-looking configuration keys: api keys in all spellings (api_key, apikey, subscription_key, x_api_key ...), any
+# *_key / key, secrets, tokens, passwords (password, passwd, pwd, pass, passphrase), credentials, auth / authorization /
+# bearer values, GUIDs (ABN Lookup), subscription ids/keys, signatures, cookies and session ids. ``authority_codes`` /
+# ``authorised`` are deliberately NOT matched.
+SECRET_KEY_RE = re.compile(
+    r"(api_?key|apikey|(^|_)keys?($|_)|secret|token|passw|passphrase|(^|_)pwd($|_)|(^|_)pass($|_)|credential|"
+    r"(^|_)auth($|_)|authori[sz]ation|bearer|guid|subscription|signature|(^|_)sig($|_)|cookie|session_?id|private|access_?key)",
+    re.I,
+)
 PREFIX = "enc:v1:"
 MASK = "********"
 
 
 def is_sealed(v: Any) -> bool:
     return isinstance(v, str) and v.startswith(PREFIX)
+
+
+def is_secret_key(k: Any) -> bool:
+    return bool(SECRET_KEY_RE.search(str(k)))
 
 
 def seal_value(v: str) -> str:

@@ -46,6 +46,7 @@ class User(Base, TimestampMixin):
     role: Mapped[str] = mapped_column(String(16), default="operator", server_default=sa_text("'operator'"))  # admin | operator | viewer
     totp_secret_enc: Mapped[str | None] = mapped_column(Text)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_text('false'))
+    totp_last_counter: Mapped[int | None] = mapped_column(BigInteger)  # last accepted TOTP time step (replay protection)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_text('true'))
     failed_logins: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text('0'))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

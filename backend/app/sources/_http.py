@@ -18,6 +18,7 @@ from typing import Any
 
 import httpx
 
+from ..crawler.safe_http import DnsFailure, SSRFBlocked
 from .base import AdapterError
 from .download import make_client
 
@@ -91,6 +92,8 @@ class PoliteClient:
             self.stats["requests"] += 1
             try:
                 resp = await self.client.request(method, url, headers=hdrs, **kw)
+            except (SSRFBlocked, DnsFailure) as exc:  # policy refusal: never retried
+                raise HttpFailure(0, f"refused {url.split('?')[0]}: {exc}") from exc
             except httpx.TransportError as exc:
                 if attempt >= self.max_attempts:
                     raise HttpFailure(0, f"transport error after {attempt} attempts: {exc}") from exc

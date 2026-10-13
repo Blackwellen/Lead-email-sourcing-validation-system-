@@ -35,6 +35,7 @@ from .models import (
     Export,
     Organisation,
     OrganisationDomain,
+    RunYield,
     User,
 )
 from .security import ApiError
@@ -124,17 +125,28 @@ def _src_subq():
 
 
 async def filter_conditions(session: AsyncSession, f: ExportFilters) -> list:
-    conds = await build_conditions(session, f)
+    from .pipeline.ingest import live_evidence_exists, nonlive_evidence_exists
+
+    run_id = f.run_id
+    conds = await build_conditions(session, f.model_copy(update={"run_id": None}) if run_id is not None else f)
+    if run_id is not None:
+        # run membership: evidence first recorded by the run, OR an address the run counted (contact_evidence keeps the FIRST run
+        # that recorded an observation; later runs that re-observe and qualify an address are attributed via run_yield)
+        conds.append(or_(exists().where(ContactEvidence.email_id == E.id, ContactEvidence.run_id == run_id),
+                         exists().where(RunYield.email_id == E.id, RunYield.run_id == run_id)))
+    # "published" = origin published/corroborated AND live evidence. Archived (Common Crawl) or speculative (permutation) evidence
+    # alone never makes an address published (addresses with no evidence rows at all keep their stored origin).
+    published = and_(E.origin.in_(("published", "corroborated")), or_(~nonlive_evidence_exists(E.id), live_evidence_exists(E.id)))
     if f.published_only:
-        conds.append(E.origin.in_(("published", "corroborated")))
-        # archived (Common Crawl) evidence only = unconfirmed historical contact: never exported as "published"
-        hist = exists().where(ContactEvidence.email_id == E.id).where(ContactEvidence.evidence_id.in_(select(EvidenceSource.id).where(EvidenceSource.historical.is_(True))))
-        live = exists().where(ContactEvidence.email_id == E.id).where(ContactEvidence.evidence_id.in_(select(EvidenceSource.id).where(EvidenceSource.historical.is_(False))))
-        conds.append(or_(~hist, live))
+        conds.append(published)
     if f.exclude_suppressed:
         conds.extend(not_suppressed_conds(E))
     if f.marketing_eligible_only:
         conds.append(E.marketing_status == "eligible")
+        conds.append(published)  # an archive-only / guessed address is never marketing-ready, whatever its stored status says
+        conds.append(E.overall_reachability.is_distinct_from("invalid"))
+        conds.append(E.previously_bounced.is_not(True))
+        conds.append(E.is_disposable.is_not(True))
         conds.extend(not_suppressed_conds(E))
     if f.has_job_title:
         conds.append(and_(C.job_title.is_not(None), C.job_title != ""))
@@ -365,6 +377,12 @@ async def create_export(
 ) -> Export:
     if fmt not in FORMATS:
         raise ApiError(422, "invalid_format", f"Format must be one of: {', '.join(FORMATS)}.")
+    if run_id is not None:  # a run's export contains that run's contacts only
+        if filters.run_id is not None and filters.run_id != run_id:
+            raise ApiError(422, "run_mismatch", f"filters.run_id ({filters.run_id}) does not match the export's run ({run_id}).")
+        filters = filters.model_copy(update={"run_id": run_id})
+    elif filters.run_id is not None:
+        run_id = filters.run_id
     f = apply_preset(preset, filters)
     if preset == "listmonk_ready":
         fmt = "csv"

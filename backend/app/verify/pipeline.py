@@ -18,7 +18,7 @@ from typing import Any, Literal
 from urllib.parse import urlparse
 
 import dns.asyncresolver
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -439,7 +439,7 @@ async def _verify_email(
                                           ttl=interval if conclusive else timedelta(hours=1), permission_context=probe_res.permission_context)
                             ran.append("V07_smtp")
                     if o.catch_all:
-                        prev6 = await _domain_catchall(session, domain, now)
+                        prev6 = await _domain_catchall(session, domain, now, include_passive=False)
                         if not o.force and prev6 is not None:
                             catch_all = prev6.result
                             reused.append("V06_catchall")
@@ -499,10 +499,6 @@ async def _verify_email(
     )
     sr: ScoreResult = score_email(inputs)
 
-    # ---- marketing
-    sups = await _suppressions(session, email, org)
-    md = marketing_decision(email, org, sups, st)
-
     # ---- persist independent statuses
     email.syntax_status = syntax_status
     email.domain_mail_status = mail_status
@@ -510,6 +506,11 @@ async def _verify_email(
     email.catch_all_status = catch_all
     email.overall_reachability = sr.reachability
     email.confidence = float(sr.score)
+
+    # ---- marketing (operator policy from the admin 'validation' settings; eligibility gated on origin / live evidence / reachability)
+    sups = await _suppressions(session, email, org)
+    md = marketing_decision(email, org, sups, await _marketing_settings(session, settings),
+                            live_evidence=await _has_live_evidence(session, email))
     email.confidence_breakdown = {**sr.as_dict(), "verifier_version": VERIFIER_VERSION, "mode": mode, "checks_run": ran, "checks_reused": reused,
                                   "marketing_reason": md.reason}
     email.marketing_status = md.status
@@ -522,13 +523,54 @@ async def _verify_email(
     )
 
 
-async def _domain_catchall(session: AsyncSession, domain: str, now: datetime) -> ValidationResult | None:
-    """Fresh catch-all result from an *active* (authorised) test of any address on this domain."""
+async def _domain_catchall(session: AsyncSession, domain: str, now: datetime, *, include_passive: bool = True) -> ValidationResult | None:
+    """Fresh domain-level catch-all result of any address on this domain.
+
+    Conclusive results of an *active* (authorised) test win; otherwise (``include_passive``) a fresh passive 'suspected' verdict
+    (e.g. accept-then-bounce delivery feedback) is shared by every address of the domain too, so a sibling address checked
+    without the catch-all stage is not reported 'safe'. The authorised path passes ``include_passive=False`` so a passive
+    suspicion never replaces a real test."""
+    active = and_(ValidationResult.permission_context.is_not(None), ValidationResult.result.in_(("confirmed", "rejected_unknown_recipient")))
+    cond = or_(active, ValidationResult.result == "suspected") if include_passive else active
     row = (await session.execute(
         select(ValidationResult).join(EmailAddress, EmailAddress.id == ValidationResult.email_id)
         .where(EmailAddress.domain == domain, ValidationResult.check_type == "V06_catchall", ValidationResult.expires_at > now,
-               ValidationResult.verifier_version == VERIFIER_VERSION, ValidationResult.permission_context.is_not(None),
-               ValidationResult.result.in_(("confirmed", "rejected_unknown_recipient")))
-        .order_by(ValidationResult.observed_at.desc()).limit(1)
+               ValidationResult.verifier_version == VERIFIER_VERSION, cond)
+        .order_by(ValidationResult.permission_context.is_not(None).desc(), ValidationResult.observed_at.desc()).limit(1)
     )).scalar_one_or_none()
     return row
+
+
+# --------------------------------------------------------------------------- marketing policy / live evidence
+_POLICY_CACHE: dict[str, Any] = {"at": -1e9, "value": None}
+POLICY_CACHE_S = 10.0
+
+
+def invalidate_marketing_policy_cache() -> None:
+    _POLICY_CACHE.update(at=-1e9, value=None)
+
+
+async def _marketing_settings(session: AsyncSession, settings: Any) -> Any:
+    """Settings object for :func:`marketing_decision`: an explicit ``marketing_policy`` on ``settings`` wins; otherwise the
+    operator's policy from the admin 'validation' settings section (cached for :data:`POLICY_CACHE_S` seconds)."""
+    if getattr(settings, "marketing_policy", None):
+        return settings
+    import time
+
+    now = time.monotonic()
+    if _POLICY_CACHE["value"] is None or now - _POLICY_CACHE["at"] > POLICY_CACHE_S:
+        from ..settings_schema import load_section
+
+        sec = await load_section(session, "validation")
+        _POLICY_CACHE.update(at=now, value={k: v.model_dump() for k, v in (sec.marketing_policy or {}).items()})
+    return {"marketing_policy": _POLICY_CACHE["value"] or {}}
+
+
+async def _has_live_evidence(session: AsyncSession, email: EmailAddress) -> bool | None:
+    """True / False when the address has evidence rows (live = not archived and not a permutation guess); None when it has none."""
+    from ..pipeline.ingest import live_evidence_exists
+
+    any_ev = (await session.execute(select(ContactEvidence.id).where(ContactEvidence.email_id == email.id).limit(1))).first()
+    if any_ev is None:
+        return None
+    return bool((await session.execute(select(live_evidence_exists(email.id)))).scalar())

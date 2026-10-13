@@ -337,39 +337,49 @@ async def rebalance(session: AsyncSession, run_id: int, *, config: SchedulerConf
     spec = DiscoverySpec.model_validate((run.configuration_snapshot or {}).get("discovery") or {}) if run else DiscoverySpec()
 
     rows = (await session.execute(text(
-        f"SELECT {_ADAPTER_EXPR} AS a, "
-        "count(*) FILTER (WHERE state='queued') AS queued, "
-        "count(*) FILTER (WHERE state IN ('leased','done','failed','dead')) AS work "
+        f"SELECT {_ADAPTER_EXPR} AS a, count(*) FILTER (WHERE state='queued') AS queued "
         "FROM sourcing_jobs WHERE run_id=:r GROUP BY 1"), {"r": run_id})).all()
     queued = {r.a: r.queued for r in rows if r.a and r.queued}
-    work = {r.a: r.work for r in rows if r.a}
     if not queued:
         return out
     disabled = {s.adapter_id for s in (await session.execute(select(SourceAdapterState).where(SourceAdapterState.enabled.is_(False)))).scalars()}
 
-    # ---- hard quotas first: exhausted sources lose their queued work
+    # ---- hard quotas first: an exhausted source loses its queued DISCOVER work. Quotas are measured exactly like the discover
+    # handler's QuotaGuard: source records delivered (source_effectiveness.records_seen). Downstream work (resolve / crawl / verify
+    # jobs attributed to the adapter via payload.source_adapter) is never counted and never cancelled: the records already delivered
+    # within the quota must be finished.
     infos = {a: _info_for(a) for a in queued}
+    used = {a: int(n or 0) for a, n in (await session.execute(text(
+        "SELECT adapter_id, records_seen FROM source_effectiveness WHERE run_id=:r"), {"r": run_id})).all()}
     cat_work: dict[str, int] = {}
-    for a, w in work.items():
+    for a, w in used.items():
         cat = category_of(a, getattr(_info_for(a), "source_type", None))
         if cat:
             cat_work[cat] = cat_work.get(cat, 0) + w
-    total_work = sum(work.values())
+    total_work = sum(used.values())
+    queued_discover = {r.a for r in (await session.execute(text(
+        "SELECT DISTINCT payload->>'adapter_id' AS a FROM sourcing_jobs WHERE run_id=:r AND state='queued' AND stage='discover'"),
+        {"r": run_id})).all() if r.a}
     for a in list(queued):
+        if a not in queued_discover:
+            continue
         cat = category_of(a, getattr(infos[a], "source_type", None))
         reason = None
         if spec.overall_max_work is not None and total_work >= spec.overall_max_work:
             reason = "overall_work_limit"
-        elif a in spec.source_quotas and work.get(a, 0) >= spec.source_quotas[a]:
+        elif a in spec.source_quotas and used.get(a, 0) >= spec.source_quotas[a]:
             reason = "quota_exhausted"
         elif cat and cat in spec.source_quotas and cat_work.get(cat, 0) >= spec.source_quotas[cat]:
             reason = "quota_exhausted"
         if reason:
             r = await session.execute(text(
-                f"UPDATE sourcing_jobs SET state='cancelled', finished_at=now(), error_code=:c WHERE run_id=:r AND state='queued' "
-                f"AND {_ADAPTER_EXPR}=:a"), {"c": reason, "r": run_id, "a": a})
+                "UPDATE sourcing_jobs SET state='cancelled', finished_at=now(), error_code=:c WHERE run_id=:r AND state='queued' "
+                "AND stage='discover' AND payload->>'adapter_id'=:a"), {"c": reason, "r": run_id, "a": a})
             out.cancelled[a] = r.rowcount or 0
-            queued.pop(a)
+            left = (await session.execute(text(
+                f"SELECT count(*) FROM sourcing_jobs WHERE run_id=:r AND state='queued' AND {_ADAPTER_EXPR}=:a"), {"r": run_id, "a": a})).scalar_one()
+            if not left:
+                queued.pop(a)
     active = [a for a in queued if a not in disabled]
     if not active:
         return out

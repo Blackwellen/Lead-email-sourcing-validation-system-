@@ -41,6 +41,14 @@ class JobContext:
     session: AsyncSession
     worker: Worker
     extra: dict = field(default_factory=dict)
+    deadline: float | None = None  # monotonic time after which a long (checkpointed) job should yield cooperatively
+
+    def time_left(self) -> float | None:
+        return None if self.deadline is None else self.deadline - time.monotonic()
+
+    def should_yield(self) -> bool:
+        """True once the job has used its soft time budget: checkpoint, commit and raise ``Requeue`` to resume later."""
+        return self.deadline is not None and time.monotonic() >= self.deadline
 
     async def checkpoint(self, data: dict) -> None:
         """Persist a resume point (committed immediately, independent of the handler's transaction)."""
@@ -60,6 +68,15 @@ class Worker:
         "network_expand": 2, "gap_recovery": 4, "signals": 4, "change_check": 4, "similar_expand": 1, "monitor": 1, "cc_lookup": 2,
         "completeness": 4,
     }
+    # per-job wall-clock limits (seconds). A job past its limit is cancelled and retried (attempt consumed); its lease is no longer
+    # extended past limit + LEASE_GRACE_S, so a wedged job is reaped even if cancellation does not land.
+    STAGE_TIMEOUT_S = {"discover": 3600.0, "export": 3600.0, "import": 3600.0, "retention": 3600.0, "similar_expand": 1800.0,
+                       "network_expand": 1800.0, "gap_recovery": 1800.0, "monitor": 1800.0}
+    DEFAULT_TIMEOUT_S = 900.0
+    # streaming jobs (discover) checkpoint every batch: after this soft budget they commit, checkpoint and requeue themselves so
+    # other work gets a turn and no job runs into the hard limit
+    SOFT_BUDGET_S = {"discover": 600.0}
+    LEASE_GRACE_S = 60.0
     REBALANCE_EVERY_S = 30.0  # scheduler.rebalance per running run (rate limited)
     MONITOR_EVERY_S = 300.0  # recurring-monitor tick (run_due_monitors) enqueued from the supervisor
 
@@ -70,7 +87,10 @@ class Worker:
         self.stages = stages or list(HANDLERS)
         self.stop_event = asyncio.Event()
         self.tasks: set[asyncio.Task] = set()
-        self.stage_sems = {st: asyncio.Semaphore(min(self.concurrency, self.DEFAULT_STAGE_LIMITS.get(st, 4))) for st in self.stages}
+        self.stage_limits = {st: max(1, min(self.concurrency, self.DEFAULT_STAGE_LIMITS.get(st, 4))) for st in self.stages}
+        self.stage_sems = {st: asyncio.Semaphore(n) for st, n in self.stage_limits.items()}
+        self.inflight: dict[str, int] = {}
+        self._attempts_cache: dict[int, tuple[float, int]] = {}
         self._status_cache: dict[int, tuple[float, str]] = {}
         self._last_rebalance: dict[int, float] = {}
         self._last_monitor_tick = 0.0
@@ -96,6 +116,31 @@ class Worker:
         return self.proc.memory_info().rss / 1e6
 
     # ------------------------------------------------------------------ job execution
+    def job_timeout(self, stage: str) -> float:
+        return float(self.STAGE_TIMEOUT_S.get(stage, self.DEFAULT_TIMEOUT_S))
+
+    async def max_attempts_for(self, run_id: int | None) -> int:
+        """The run's ``performance.retry_max_attempts`` (system runs / no run: the worker setting)."""
+        default = self.settings.max_job_attempts
+        if run_id is None:
+            return default
+        now = time.monotonic()
+        hit = self._attempts_cache.get(run_id)
+        if hit and now - hit[0] < 30.0:
+            return hit[1]
+        n = default
+        try:
+            async with sessionmaker()() as s:
+                snap = (await s.execute(text("SELECT configuration_snapshot FROM sourcing_runs WHERE id=:r"), {"r": run_id})).scalar_one_or_none() or {}
+            if not snap.get("system"):
+                v = (snap.get("performance") or {}).get("retry_max_attempts")
+                if isinstance(v, int) and v >= 1:
+                    n = v
+        except Exception:
+            log.exception("could not load retry policy for run %s", run_id)
+        self._attempts_cache[run_id] = (now, n)
+        return n
+
     async def _run_job(self, job: jq.Job) -> None:
         h = HANDLERS.get(job.stage)
         t0 = time.monotonic()
@@ -107,20 +152,27 @@ class Worker:
             if sem:
                 await sem.acquire()
             try:
+                soft = self.SOFT_BUDGET_S.get(job.stage)
                 async with sessionmaker()() as s:
-                    ctx = JobContext(job=job, session=s, worker=self)
-                    await h(ctx)
-                    await s.commit()
+                    ctx = JobContext(job=job, session=s, worker=self, deadline=(time.monotonic() + soft) if soft else None)
+                    try:
+                        async with asyncio.timeout(self.job_timeout(job.stage)) as cm:
+                            await h(ctx)
+                            await s.commit()
+                    except TimeoutError:
+                        if cm.expired():
+                            raise jq.RetryableError(f"job exceeded its {self.job_timeout(job.stage):.0f}s time limit", "job_timeout") from None
+                        raise
             finally:
                 if sem:
                     sem.release()
             async with sessionmaker()() as s:
-                await jq.complete(s, job.id)
+                await jq.complete(s, job.id, worker_id=self.worker_id)
                 await s.commit()
         except jq.Requeue as e:
             outcome = "requeue"
             async with sessionmaker()() as s:
-                await jq.requeue(s, job.id, e.delay_s)
+                await jq.requeue(s, job.id, e.delay_s, worker_id=self.worker_id)
                 await s.commit()
         except jq.RetryableError as e:
             outcome = "retry"
@@ -136,14 +188,29 @@ class Worker:
             log.exception("job crashed", extra={"job_id": job.id, "stage": job.stage})
             await self._record_fail(job, e, True, "unhandled")
         finally:
+            self.inflight[job.stage] = max(0, self.inflight.get(job.stage, 0) - 1)
             metrics.JOBS_TOTAL.labels(job.stage, outcome).inc()
             metrics.JOB_SECONDS.labels(job.stage).observe(time.monotonic() - t0)
             self.processed += 1
 
     async def _record_fail(self, job, err, retryable, code, delay=None):
+        max_attempts = await self.max_attempts_for(job.run_id)
         async with sessionmaker()() as s:
-            await jq.fail(s, job, err, retryable=retryable, max_attempts=self.settings.max_job_attempts, code=code, delay_s=delay)
+            await jq.fail(s, job, err, retryable=retryable, max_attempts=max_attempts, code=code, delay_s=delay, worker_id=self.worker_id)
             await s.commit()
+
+    def lease_ids(self) -> list[int]:
+        """Jobs whose lease the heartbeat keeps alive: in flight and not past their time limit (+ grace)."""
+        now = time.monotonic()
+        out = []
+        for t in list(self.tasks):
+            jid = getattr(t, "job_id", None)
+            if jid is None:
+                continue
+            started = getattr(t, "job_started", now)
+            if now - started <= self.job_timeout(getattr(t, "job_stage", "")) + self.LEASE_GRACE_S:
+                out.append(jid)
+        return out
 
     # ------------------------------------------------------------------ loops
     async def heartbeat_loop(self):
@@ -162,33 +229,78 @@ class Worker:
                          "cpu": self.proc.cpu_percent(None), "a": len(self.tasks),
                          "stats": f'{{"processed": {self.processed}}}'},
                     )
-                    ids = [t.job_id for t in self.tasks if hasattr(t, "job_id")]
-                    await jq.extend_lease(s, ids, self.worker_id, self.settings.worker_lease_seconds)
+                    await jq.extend_lease(s, self.lease_ids(), self.worker_id, self.settings.worker_lease_seconds)
                     await s.commit()
             except Exception:
                 log.exception("heartbeat failed")
             await self._sleep(self.settings.worker_heartbeat_seconds)
 
+    LEADER_LOCK = 727001
+
     async def supervisor_loop(self):
-        """Leader-elected (advisory lock) maintenance: lease reaping, run state, scheduled starts."""
+        """Leader-elected maintenance: lease reaping, run state, scheduled starts, scheduler rebalance."""
         while not self.stop_event.is_set():
             try:
-                async with sessionmaker()() as s:
-                    got = (await s.execute(text("SELECT pg_try_advisory_xact_lock(727001)"))).scalar()
-                    if got:
-                        n = await jq.reap_expired(s, self.settings.max_job_attempts)
-                        if n:
-                            log.warning("recovered %d expired leases", n)
-                        await runs.start_due_scheduled(s)
-                        active = await runs.active_run_ids(s)
-                        for rid in active:
-                            if await runs.evaluate_run(s, rid) == "completed":
-                                await self._final_completeness(s, rid)
-                        await self._scheduler_tick(s, active)
-                        await s.commit()
+                await self.supervisor_tick()
             except Exception:
                 log.exception("supervisor tick failed")
             await self._sleep(2.0)
+
+    async def supervisor_tick(self) -> bool:
+        """One supervision pass. Leadership is a SESSION-level advisory lock held for the whole tick (commits inside the tick do
+        not release it), so two workers never supervise concurrently. Each run is evaluated in its own short transaction (its row
+        lock is held only for that run, never across the tick) and a failing run is logged and skipped, never aborting the
+        others. Returns whether this worker was the leader."""
+        from .db import get_engine
+
+        # one dedicated connection for the whole tick: a session-level lock belongs to the connection, so the session must not hand
+        # its connection back to the pool between commits
+        async with get_engine().connect() as conn:
+            s = AsyncSession(bind=conn, expire_on_commit=False)
+            got = bool((await s.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": self.LEADER_LOCK})).scalar())
+            await s.commit()
+            if not got:
+                await s.close()
+                return False
+            try:
+                n = await jq.reap_expired(s, self.settings.max_job_attempts)
+                if n:
+                    log.warning("recovered %d expired leases", n)
+                try:
+                    await runs.start_due_scheduled(s)
+                    await s.commit()
+                except Exception:
+                    log.exception("starting scheduled runs failed")
+                    await s.rollback()
+                active = await runs.active_run_ids(s, include_system=False)  # system runs never auto-complete: never locked here
+                await s.commit()
+                for rid in active:
+                    try:
+                        if await runs.evaluate_run(s, rid) == "completed":
+                            await self._final_completeness(s, rid)
+                        await s.commit()
+                    except Exception:
+                        log.exception("supervising run %s failed", rid)
+                        await s.rollback()
+                try:
+                    await self._scheduler_tick(s, active)
+                    await s.commit()
+                except Exception:
+                    log.exception("scheduler tick failed")
+                    await s.rollback()
+            finally:
+                released = False
+                try:
+                    await s.rollback()
+                    released = bool((await s.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": self.LEADER_LOCK})).scalar())
+                    await s.commit()
+                except Exception:
+                    log.exception("releasing supervisor leadership failed")
+                finally:
+                    await s.close()
+                if not released:  # never return a connection that may still hold the leader lock to the pool
+                    await conn.invalidate()
+            return True
 
     async def _scheduler_tick(self, s: AsyncSession, active: list[int]) -> None:
         """Rate-limited discovery maintenance inside the supervisor transaction: source-scheduler rebalance per running run and the
@@ -274,21 +386,29 @@ class Worker:
         except TimeoutError:
             pass
 
+    def free_stage_slots(self) -> dict[str, int]:
+        return {st: n - self.inflight.get(st, 0) for st, n in self.stage_limits.items() if n - self.inflight.get(st, 0) > 0}
+
     async def claim_loop(self):
         while not self.stop_event.is_set():
             free = self.concurrency - len(self.tasks)
             over_mem = self.max_rss_mb is not None and self.rss_mb() > self.max_rss_mb
-            if free <= 0 or over_mem:
-                await self._sleep(0.2 if free <= 0 else 2.0)  # backpressure
+            slots = self.free_stage_slots() if free > 0 else {}
+            if free <= 0 or over_mem or not slots:
+                await self._sleep(0.2 if (free <= 0 or not slots) and not over_mem else 2.0)  # backpressure
                 continue
             async with sessionmaker()() as s:
-                jobs = await jq.claim(s, self.worker_id, self.stages, free, self.settings.worker_lease_seconds)
+                # claim per stage only up to the free capacity of that stage: no leased-but-idle jobs behind a stage semaphore
+                jobs = await jq.claim(s, self.worker_id, self.stages, free, self.settings.worker_lease_seconds, stage_limits=slots)
             if not jobs:
                 await self._sleep(self.settings.worker_poll_interval_s)
                 continue
             for j in jobs:
+                self.inflight[j.stage] = self.inflight.get(j.stage, 0) + 1
                 t = asyncio.create_task(self._run_job(j))
                 t.job_id = j.id  # type: ignore[attr-defined]
+                t.job_stage = j.stage  # type: ignore[attr-defined]
+                t.job_started = time.monotonic()  # type: ignore[attr-defined]
                 self.tasks.add(t)
                 t.add_done_callback(self.tasks.discard)
             metrics.WORKER_ACTIVE.set(len(self.tasks))

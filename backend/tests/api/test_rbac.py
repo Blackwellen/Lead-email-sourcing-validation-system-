@@ -19,6 +19,7 @@ ADMIN_RULES = [
     ("POST", r"^/api/categories/(\d+/(disable|enable|merge)|import)$"), ("DELETE", r"^/api/categories/\d+$"),
     ("POST", r"^/api/businesses/merge$"), ("DELETE", r"^/api/contacts/\d+$"), ("DELETE", r"^/api/suppressions/\d+$"),
     ("POST", r"^/api/sources/[\w-]+/(enable|disable)$"), ("PUT", r"^/api/sources/[\w-]+/(priority|config)$"),
+    ("POST", r"^/api/source-explorer/[\w-]+/(configure|enable|disable)$"),  # operators may only upload (import)
     ("DELETE", r"^/api/discovery/monitors/\d+$"),  # destructive discovery operations
     ("PUT", r"^/api/verification/domain-permissions/[\w.-]+$"), ("DELETE", r"^/api/verification/domain-permissions/[\w.-]+$"),
 ]

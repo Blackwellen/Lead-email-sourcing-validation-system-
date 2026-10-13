@@ -119,10 +119,12 @@ async def refresh_from_url(url: str = DEFAULT_REFRESH_URL, *, client=None, timeo
     Returns the number of domains in the merged file. Merges with the existing seed so a bad/empty
     download never shrinks the list. Operator-triggered only.
     """
-    import httpx
 
     own = client is None
-    client = client or httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+    if client is None:
+        from ..crawler.safe_http import safe_client
+
+        client = safe_client(timeout=timeout)
     try:
         r = await client.get(url)
         r.raise_for_status()

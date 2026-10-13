@@ -88,6 +88,11 @@ def _search_fn(rp: flow.RunPlan):
 
     for aid in cfg.sources:
         if aid in ("brave_search", "searxng", "manual_search_results"):
+            from ..sources.access_policy import config_problems
+
+            if config_problems(cfg.source_params.get(aid)):  # same policy as the API (paths in uploads, SSRF-safe URLs)
+                log.warning("search provider %s skipped: its run parameters violate the source configuration policy", aid)
+                continue
             prov = get_adapter(aid, cfg.source_params.get(aid))._provider()  # type: ignore[attr-defined]
 
             async def fn(org: Organisation, _prov=prov) -> list[str]:

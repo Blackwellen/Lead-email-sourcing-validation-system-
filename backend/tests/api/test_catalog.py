@@ -162,7 +162,10 @@ async def test_sources_listing_state_and_admin_controls(operator_client, admin_c
     r = await admin_client.put("/api/sources/csv_import/config", json={"config": {"country_code": "IE", "api_key": "********"}})
     async with sessionmaker()() as s:
         cfg = (await s.execute(text("SELECT config FROM source_adapter_state WHERE adapter_id='csv_import'"))).scalar_one()
-    assert cfg == {"country_code": "IE", "api_key": "sk-supersecret"}  # masked placeholder keeps the stored secret
+    from app.sources.secret_config import open_config
+
+    assert cfg["api_key"].startswith("enc:v1:") and "sk-supersecret" not in json.dumps(cfg)  # sealed at rest (finding 11)
+    assert open_config(cfg) == {"country_code": "IE", "api_key": "sk-supersecret"}  # masked placeholder keeps the stored secret
     assert (await admin_client.put("/api/sources/csv_import/config", json={"config": {"path": "/etc/passwd"}})).status_code == 422
     # a disabled source cannot be used by a run
     v = (await c.post("/api/runs/validate", json={"name": "n", "sources": ["csv_import"]})).json()

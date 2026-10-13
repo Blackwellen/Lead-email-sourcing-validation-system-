@@ -34,7 +34,7 @@ export async function apiAs(role: RoleName, creds: { email: string; password: st
 
 /** psql against the e2e database (synthetic fixtures only). */
 export function sql(statement: string): string {
-  return execFileSync('psql', ['-h', 'localhost', '-U', 'lead', '-d', 'lead_fe_c', '-v', 'ON_ERROR_STOP=1', '-tA', '-c', statement], { env: { ...process.env, PGPASSWORD: 'lead' }, encoding: 'utf8' }).trim();
+  return execFileSync('psql', ['-h', 'localhost', '-U', 'lead', '-d', process.env.E2E_OPS_DB || 'lead_fe_c', '-v', 'ON_ERROR_STOP=1', '-tA', '-c', statement], { env: { ...process.env, PGPASSWORD: 'lead' }, encoding: 'utf8' }).trim();
 }
 
 /* ------------------------------------------------------------------ TOTP (RFC 6238, SHA-1, 30 s, 6 digits) */

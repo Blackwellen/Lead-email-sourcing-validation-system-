@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationInfo, model_validator
 
 
 class TargetDefinition(StrEnum):
@@ -36,8 +36,22 @@ class TargetSpec(BaseModel):
     exclude_catchall_or_inconclusive: bool = False
     exclude_previous_bounces: bool = True
     exclude_suppressed: bool = True
-    max_runtime_minutes: int | None = Field(None, ge=1)
+    max_runtime_minutes: int | None = Field(None, ge=1)  # ACTIVE runtime (time spent paused is not counted)
     max_work_jobs: int | None = Field(None, ge=1)
+
+    @model_validator(mode="after")
+    def _check_combination(self, info: ValidationInfo):
+        # 'distinct_published_emails' counts published / corroborated addresses with live evidence ONLY (enforced in
+        # runs.record_yield). Asking inferred candidates to count towards it is contradictory: reject it for new configurations.
+        # Stored snapshots (validated with context {"snapshot": True}) stay loadable; the definition still wins at count time.
+        snapshot = bool((info.context or {}).get("snapshot")) if info is not None else False
+        if (not snapshot and self.definition == TargetDefinition.distinct_published_emails and self.allow_inferred
+                and not self.published_only):
+            raise ValueError(
+                "target definition 'distinct_published_emails' only counts published (or corroborated) addresses, so inferred "
+                "candidates can never count towards it: choose the 'validated_contacts' (or 'business_email_pairs') definition to "
+                "let inferred research candidates count, or turn 'allow_inferred' off")
+        return self
 
 
 class VerificationSpec(BaseModel):
@@ -135,6 +149,11 @@ class RunConfig(BaseModel):
     schedule_at: str | None = None  # ISO timestamp
     crawl_max_pages: int = Field(12, ge=1, le=100)
     discovery: DiscoverySpec = Field(default_factory=DiscoverySpec)
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict[str, Any] | None) -> RunConfig:
+        """Load a STORED run configuration (lenient about combinations that newer validation rejects)."""
+        return cls.model_validate(snapshot, context={"snapshot": True})
 
     @model_validator(mode="after")
     def _check(self):

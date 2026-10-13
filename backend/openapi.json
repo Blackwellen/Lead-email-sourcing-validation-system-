@@ -8409,32 +8409,56 @@
       "ReadyOut": {
         "properties": {
           "database": {
-            "title": "Database",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Database"
           },
           "maintenance": {
-            "default": false,
-            "title": "Maintenance",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maintenance"
           },
           "migration": {
-            "additionalProperties": true,
-            "title": "Migration",
-            "type": "object"
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Migration"
           },
           "ready": {
             "title": "Ready",
             "type": "boolean"
           },
           "workers": {
-            "$ref": "#/components/schemas/WorkerSummary"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkerSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "ready",
-          "database",
-          "migration",
-          "workers"
+          "ready"
         ],
         "title": "ReadyOut",
         "type": "object"
@@ -12419,6 +12443,12 @@
             "default": "path",
             "title": "Config Key",
             "type": "string"
+          },
+          "configured": {
+            "default": false,
+            "description": "true when the file was set as the source's 'path' (admins only; operators pass the path as run source_params)",
+            "title": "Configured",
+            "type": "boolean"
           },
           "kind": {
             "title": "Kind",
@@ -18055,6 +18085,7 @@
         ]
       },
       "patch": {
+        "description": "Save a (possibly incomplete) draft. The full safety validation (paths, URLs, source permissions) runs on every\nsave: an invalid draft is stored but flagged (``valid=false`` + errors) and cannot be started; a *scheduled* run must\nstay valid, so an invalid change to it is refused.",
         "operationId": "autosave_draft",
         "parameters": [
           {
@@ -18291,6 +18322,7 @@
     },
     "/api/runs/{run_id}/events": {
       "get": {
+        "description": "Live run progress. Authenticated with a short-lived DB session; every snapshot uses its own short session, so an\nopen stream holds no database connection between snapshots. At most ``sse_max_streams_per_user`` streams per user and\n``sse_max_streams`` per API process; the viewer's session is re-validated every few snapshots (revoked => stream ends).",
         "operationId": "run_events",
         "parameters": [
           {
@@ -19835,7 +19867,7 @@
     },
     "/api/source-explorer/{source_id}/import": {
       "post": {
-        "description": "Upload a dataset file for a file-based adapter; its stored path becomes the adapter's ``path`` configuration.",
+        "description": "Upload a dataset file for a file-based adapter. Operators may upload (the returned ``path`` can be used as run\n``source_params``); only an administrator's upload also becomes the adapter's stored ``path`` configuration.",
         "operationId": "import_source_file",
         "parameters": [
           {
@@ -22473,6 +22505,7 @@
     },
     "/readyz": {
       "get": {
+        "description": "Readiness. In production an anonymous caller only learns ``ready``; details need a signed-in session.",
         "operationId": "readyz",
         "responses": {
           "200": {

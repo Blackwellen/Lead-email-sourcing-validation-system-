@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ from ..discovery import scheduler as sched
 from ..discovery.similar import expand_from_seed, find_similar
 from ..models import MonitorSchedule, SourcingRun, User
 from ..security import ApiError, app_settings, audit, require_role
+from ..sources.access_policy import check_url, is_forbidden_key, path_inside
 from ..sources.base import SOURCE_TYPES, get_adapter, list_adapters
 from ..sources.catalogue_full import source_catalogue
 from ..sources.signals_util import SIGNAL_TYPES
@@ -366,12 +368,14 @@ def _clean_monitor_config(kind: str, cfg: dict[str, Any], up: Path) -> dict[str,
     allowed: dict[str, Any] = {
         "website_changes": {"older_than_days": (1, 365), "limit": (1, 200), "max_pages": (1, 20)},
         "signals": {"limit": (1, 200), "freshness_days": (1, 3650), "types": None},
-        "new_registrations": {"current_path": "path", "previous_path": "path", "previous_index": "path", "store_index": "path", "url": "url", "auto_download": "bool",
+        "new_registrations": {"current_path": "path", "previous_path": "path", "previous_index": "path", "url": "url", "auto_download": "bool",
                               "mode": "str", "days": (1, 400), "kinds": "list", "limit": (1, 100000), "sic_codes": "list", "postcodes": "list", "keywords": "list",
                               "active_only": "bool", "commit_every": (0, 100000)},
     }[kind]
     out: dict[str, Any] = {}
     for k, v in cfg.items():
+        if is_forbidden_key(k):
+            raise ApiError(422, "invalid_config_key", f"'{k[:60]}' cannot be configured: index stores and working directories are derived from the server settings.")
         if k not in allowed:
             raise ApiError(422, "invalid_config_key", f"'{k[:60]}' is not a valid setting for a {kind} monitor (allowed: {', '.join(sorted(allowed))}).")
         rule = allowed[k]
@@ -382,16 +386,15 @@ def _clean_monitor_config(kind: str, cfg: dict[str, Any], up: Path) -> dict[str,
                 raise ApiError(422, "invalid_config_value", f"'types' must be a list of: {', '.join(SIGNAL_TYPES)}.")
             out[k] = v
         elif rule == "path":
-            try:
-                ok = isinstance(v, str) and Path(v).resolve().is_relative_to(up)
-            except (OSError, ValueError):
-                ok = False
-            if not ok:
+            if not path_inside(v, Path(os.path.realpath(up))):
                 raise ApiError(422, "invalid_path", f"'{k}' must point to a file uploaded through the Source Explorer.")
             out[k] = v
         elif rule == "url":
             if not isinstance(v, str) or not v.lower().startswith(("http://", "https://")):
                 raise ApiError(422, "invalid_config_value", f"'{k}' must be an http(s) URL.")
+            problem = check_url(v)
+            if problem:
+                raise ApiError(422, "invalid_config_value", f"'{k}' {problem}.")
             out[k] = v
         elif rule == "bool":
             if not isinstance(v, bool):

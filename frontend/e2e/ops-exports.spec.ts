@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { apiAs, loginAs, parseCsv, sql, USERS, requireBackend } from './support/ops';
+import { API, apiAs, loginAs, parseCsv, sql, USERS, requireBackend } from './support/ops';
 import { request as pwRequest } from '@playwright/test';
 
 /** DASH-012 /exports against the real backend. Run with --workers=1; seed: e2e/support/ops-seed.sql. */
@@ -157,7 +157,7 @@ test('downloads need authentication; exports are private to their creator', asyn
   const adminId = (await (await a.get('/api/me')).json()).user.id;
   const done = list.items.find((e: { status: string; created_by: number }) => e.status === 'done' && e.created_by === adminId);
   expect(done).toBeTruthy();
-  const anon = await pwRequest.newContext({ baseURL: 'http://localhost:8103' });
+  const anon = await pwRequest.newContext({ baseURL: API });
   expect((await anon.get(done.download_url)).status()).toBe(401);
   await anon.dispose();
   const op = await apiAs('operator');

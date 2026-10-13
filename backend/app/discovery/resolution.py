@@ -660,8 +660,13 @@ _FLAGS = ("official_website", "contact_page_inspected", "published_email", "cont
           "email_infrastructure_checked", "recipient_evidence", "campaign_eligibility", "recently_checked")
 _SIMPLE_MOVES = (
     ("email_addresses", "organisation_id"), ("contact_evidence", "organisation_id"), ("document_records", "organisation_id"),
-    ("run_yield", "organisation_id"),
 )
+# run_yield unique keys embed the organisation id ('org:<id>', 'pair:<id>:<email>'): re-key them to the kept organisation, dropping
+# the dropped organisation's rows that would then collide (the run already counts that company / pair once).
+_YIELD_REKEY = ("CASE WHEN {t}.unique_key = 'org:' || :from_s THEN 'org:' || :to_s "
+                "WHEN {t}.unique_key LIKE 'pair:' || :from_s || ':%' "
+                "THEN 'pair:' || :to_s || substr({t}.unique_key, length('pair:' || :from_s) + 1) "
+                "ELSE {t}.unique_key END")
 
 
 async def _ids(session: AsyncSession, sql: str, **p) -> list[int]:
@@ -750,6 +755,15 @@ async def merge_organisations(
             if ids:
                 await session.execute(text(f"UPDATE {table} SET {col}=:k WHERE id = ANY(:ids)"), {"k": K, "ids": ids})
             moved[table] = ids
+
+        # -- run yield: re-key per-organisation keys so a merged pair of companies counts once per run
+        r = await session.execute(text(
+            f"DELETE FROM run_yield x USING run_yield y WHERE x.organisation_id=:d AND y.run_id=x.run_id AND y.id<>x.id "
+            f"AND y.unique_key = {_YIELD_REKEY.format(t='x')}"), {"d": D, "from_s": str(D), "to_s": str(K)})
+        deleted["run_yield"] = r.rowcount or 0
+        moved["run_yield"] = [row[0] for row in (await session.execute(text(
+            f"UPDATE run_yield SET organisation_id=:k, unique_key={_YIELD_REKEY.format(t='run_yield')} WHERE organisation_id=:d RETURNING id"),
+            {"k": K, "d": D, "from_s": str(D), "to_s": str(K)})).all()]
 
         # -- (adapter, ref)-unique tables: drop D's duplicates of K's rows, move the rest
         for table, a, b in (("organisation_sources", "adapter_id", "source_ref"), ("organisation_record_links", "source_adapter", "source_ref")):
@@ -882,6 +896,10 @@ async def split_organisation(session: AsyncSession, org_id: int, user_id: int | 
                 r = await session.execute(text(f"UPDATE business_relationships SET {side}=:d WHERE id = ANY(:ids) AND {side}=:k"),
                                           {"d": org_id, "k": keep_id, "ids": ids})
                 restored[f"business_relationships.{side}"] = r.rowcount or 0
+        if moved.get("run_yield"):  # restore the organisation-scoped keys the merge re-keyed (K -> D)
+            await session.execute(text(
+                f"UPDATE run_yield SET unique_key={_YIELD_REKEY.format(t='run_yield')} WHERE id = ANY(:ids) AND organisation_id=:k"),
+                {"k": org_id, "from_s": str(keep_id), "to_s": str(org_id), "ids": moved["run_yield"]})
         runs = moved.get("run_organisations") or []
         if runs:
             r = await session.execute(text(

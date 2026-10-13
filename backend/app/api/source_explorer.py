@@ -1,6 +1,9 @@
 """Source Explorer: search the full source catalogue (adapters + directory catalogue), inspect, configure, enable and feed it.
 
-Roles: viewer = read, operator = configure / enable / disable / import. Secrets (API keys ...) are sealed with the application's
+Roles: viewer = read; operator = upload a dataset file (``import``); admin = configure (incl. the permission basis),
+enable / disable, and point a source at an uploaded file. Configuration keys are restricted to the adapter's
+``config_schema`` (the same allow-list as ``PUT /api/sources/{id}/config``) and checked by
+:mod:`app.sources.access_policy` (paths inside the uploads directory, no server directories, SSRF-safe URLs). Secrets (API keys ...) are sealed with the application's
 Fernet helper at rest and are never returned (a mask is). Uploaded datasets are stored under ``data_dir/uploads`` with a random
 name, size- and type-limited, and only their path is recorded in the adapter configuration.
 """
@@ -29,18 +32,19 @@ from ..models import SourceAdapterState, User
 from ..security import ApiError, app_settings, audit, require_role
 from ..settings_store import get_setting
 from ..sources import secret_config as sc
+from ..sources.access_policy import PERMISSION_BASES, config_problems, is_path_key
 from ..sources.base import get_adapter, list_adapters
 from ..sources.catalogue_full import ACCESS_METHODS, search_catalogue, source_catalogue
 from .common import Page, check_enum, clean_q
+from .registry import adapter_catalog
 from .runs_support import uploads_dir
+from .sources import config_schema_for
 from .uploads import read_limited
 
 log = logging.getLogger("api.source_explorer")
 router = APIRouter(prefix="/api/source-explorer", tags=["source-explorer"], dependencies=[Depends(require_role("viewer"))])
 
-PERMISSION_BASES = ("open_licence", "licence_agreement", "api_terms", "written_permission", "public_domain")
 KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
-PATH_KEYS = {"path", "file_path", "file", "rr_path", "columnar_index_path"}
 MAX_KEYS = 30
 MAX_CONFIG_BYTES = 16 * 1024
 IMPORT_EXTS = {"zip": "zip", "gz": "gz", "bz2": "bz2", "xlsx": "xlsx", "text": "csv"}
@@ -134,6 +138,7 @@ class ImportOut(BaseModel):
     size: int
     path: str
     config_key: str = "path"
+    configured: bool = Field(False, description="true when the file was set as the source's 'path' (admins only; operators pass the path as run source_params)")
 
 
 class ToggleOut(BaseModel):
@@ -194,7 +199,7 @@ def _permission(row: dict[str, Any], cfg: dict[str, Any]) -> PermissionOut:
                              reason="The source's terms do not permit automated collection; it cannot be enabled.")
     if basis in PERMISSION_BASES:
         return PermissionOut(status="permission_declared", basis=basis, note=note, can_enable=True,
-                             reason=f"Operator declared the permission basis '{basis}'.")
+                             reason=f"An administrator declared the permission basis '{basis}'.")
     if row["credentials_required"] or row["cost"] == "paid":
         return PermissionOut(status="permission_needed", basis=None, note=note, can_enable=False,
                              reason="This source needs credentials or a paid licence: configure it and declare the permission basis first.")
@@ -277,39 +282,42 @@ async def get_source_detail(source_id: str, session: AsyncSession = Depends(get_
     return await _detail(session, source_id)
 
 
-def _validate_config(body: ConfigureIn, up: Path, old: dict[str, Any]) -> dict[str, Any]:
+def _validate_config(body: ConfigureIn, up: Path, old: dict[str, Any], *, adapter_id: str | None = None, user_id: int | None = None,
+                     settings: Any = None) -> dict[str, Any]:
+    allowed = {c.key: c for c in config_schema_for((adapter_catalog() or {}).get(adapter_id) if adapter_id else None)}
     new = dict(old)
     for k in body.remove_keys:
         new.pop(k, None)
     if body.permission_basis is not None:
         if body.permission_basis not in PERMISSION_BASES:
             raise ApiError(422, "invalid_permission_basis", f"permission_basis must be one of: {', '.join(PERMISSION_BASES)}.")
+        if new.get("permission_basis") != body.permission_basis:
+            new["permission_basis_by"] = user_id
         new["permission_basis"] = body.permission_basis
     if body.permission_note is not None:
         new["permission_note"] = body.permission_note.strip()[:500]
     for k, v in body.config.items():
         if not KEY_RE.match(k):
             raise ApiError(422, "invalid_config_key", f"'{k[:60]}' is not a valid configuration key (lower-case letters, digits, underscore).")
-        if k in ("permission_basis", "permission_note"):
+        if k in ("permission_basis", "permission_note", "permission_basis_by"):
             raise ApiError(422, "invalid_config_key", f"Use the dedicated '{k}' field.")
+        spec = allowed.get(k)
+        if spec is None and not sc.is_secret_key(k):
+            raise ApiError(422, "invalid_config_key", f"'{k[:60]}' is not a permitted configuration key for this source (permitted: {', '.join(sorted(allowed))}).")
         if isinstance(v, dict) or (isinstance(v, list) and (len(v) > 100 or any(isinstance(x, dict | list) for x in v))):
             raise ApiError(422, "invalid_config_value", f"'{k}' must be a scalar or a short list of scalars.")
         if isinstance(v, str) and len(v) > 2000:
             raise ApiError(422, "invalid_config_value", f"'{k}' is too long.")
         if v == sc.MASK and k in old:  # unchanged masked secret echoed back by the client
             continue
-        if k.lower() in PATH_KEYS:
-            if not isinstance(v, str):
-                raise ApiError(422, "invalid_path", f"'{k}' must be a path string.")
-            try:
-                ok = Path(v).resolve().is_relative_to(up)
-            except (OSError, ValueError):
-                ok = False
-            if not ok:
-                raise ApiError(422, "invalid_path", f"'{k}' must point to a file uploaded through the Source Explorer.")
+        problems = config_problems({k: v}, settings)
+        if problems:
+            if is_path_key(k):
+                raise ApiError(422, "invalid_path", f"'{k}' must point to a file uploaded through the Source Explorer ({problems[0][1]})")
+            raise ApiError(422, "invalid_config_value", f"'{k}': {problems[0][1]}")
         if k.lower().endswith("url") and isinstance(v, str) and v and not re.match(r"^https?://", v, re.I):
             raise ApiError(422, "invalid_config_value", f"'{k}' must be an http(s) URL.")
-        if sc.SECRET_KEY_RE.search(k) and isinstance(v, str) and v:
+        if (sc.is_secret_key(k) or (spec is not None and spec.secret)) and isinstance(v, str) and v:
             new[k] = sc.seal_value(v)
         else:
             new[k] = v
@@ -319,7 +327,7 @@ def _validate_config(body: ConfigureIn, up: Path, old: dict[str, Any]) -> dict[s
 
 
 @router.post("/{source_id}/configure", response_model=ExplorerDetail)
-async def configure_source(source_id: str, body: ConfigureIn, request: Request, user: User = Depends(require_role("operator")),
+async def configure_source(source_id: str, body: ConfigureIn, request: Request, user: User = Depends(require_role("admin")),
                            session: AsyncSession = Depends(get_session)) -> ExplorerDetail:
     rows, states = await _catalogue(session)
     row = _find(rows, source_id)
@@ -331,9 +339,13 @@ async def configure_source(source_id: str, body: ConfigureIn, request: Request, 
         session.add(st)
         await session.flush()
     before = sc.mask_config(st.config)
-    st.config = _validate_config(body, uploads_dir(app_settings(request)), dict(st.config or {}))
-    await audit(session, user, "source_explorer.configure", "source", aid,
-                {"before": before, "after": sc.mask_config(st.config), "secret_keys": sc.secret_keys(st.config)})
+    old = dict(st.config or {})
+    settings = app_settings(request)
+    st.config = _validate_config(body, uploads_dir(settings), old, adapter_id=row["adapter_id"], user_id=user.id, settings=settings)
+    detail: dict[str, Any] = {"before": before, "after": sc.mask_config(st.config), "secret_keys": sc.secret_keys(st.config)}
+    if st.config.get("permission_basis") != old.get("permission_basis"):
+        detail["permission_basis_change"] = {"before": old.get("permission_basis"), "after": st.config.get("permission_basis"), "declared_by": user.id}
+    await audit(session, user, "source_explorer.configure", "source", aid, detail)
     await session.commit()
     return await _detail(session, aid)
 
@@ -364,12 +376,12 @@ async def _toggle(session: AsyncSession, user: User, source_id: str, enable: boo
 
 
 @router.post("/{source_id}/enable", response_model=ToggleOut)
-async def enable_explorer_source(source_id: str, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> ToggleOut:
+async def enable_explorer_source(source_id: str, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> ToggleOut:
     return await _toggle(session, user, source_id, True)
 
 
 @router.post("/{source_id}/disable", response_model=ToggleOut)
-async def disable_explorer_source(source_id: str, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> ToggleOut:
+async def disable_explorer_source(source_id: str, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> ToggleOut:
     return await _toggle(session, user, source_id, False)
 
 
@@ -414,7 +426,8 @@ def _sniff_dataset(data: bytes) -> str:
 @router.post("/{source_id}/import", response_model=ImportOut, status_code=201)
 async def import_source_file(source_id: str, request: Request, file: UploadFile = File(...), user: User = Depends(require_role("operator")),
                              session: AsyncSession = Depends(get_session)) -> ImportOut:
-    """Upload a dataset file for a file-based adapter; its stored path becomes the adapter's ``path`` configuration."""
+    """Upload a dataset file for a file-based adapter. Operators may upload (the returned ``path`` can be used as run
+    ``source_params``); only an administrator's upload also becomes the adapter's stored ``path`` configuration."""
     rows, states = await _catalogue(session)
     row = _find(rows, source_id)
     if not _accepts_upload(row):
@@ -430,16 +443,20 @@ async def import_source_file(source_id: str, request: Request, file: UploadFile 
     with os.fdopen(fd, "wb") as fh:
         fh.write(data)
     aid = row["adapter_id"]
-    st = states.get(aid)
-    if st is None:
-        st = SourceAdapterState(adapter_id=aid, enabled=False, priority=get_adapter(aid).info.default_priority, config={})
-        session.add(st)
-        await session.flush()
-    before = dict(st.config or {}).get("path")
-    st.config = {**(st.config or {}), "path": str(path)}
-    await audit(session, user, "source_explorer.import", "source", aid, {"upload_id": uid, "kind": kind, "size": len(data), "before_path": before})
+    configured = user.role == "admin"
+    before = None
+    if configured:
+        st = states.get(aid)
+        if st is None:
+            st = SourceAdapterState(adapter_id=aid, enabled=False, priority=get_adapter(aid).info.default_priority, config={})
+            session.add(st)
+            await session.flush()
+        before = dict(st.config or {}).get("path")
+        st.config = {**(st.config or {}), "path": str(path)}
+    await audit(session, user, "source_explorer.import", "source", aid,
+                {"upload_id": uid, "kind": kind, "size": len(data), "before_path": before, "configured": configured})
     await session.commit()
-    return ImportOut(adapter_id=aid, upload_id=uid, kind=IMPORT_EXTS.get(kind, kind), size=len(data), path=str(path))
+    return ImportOut(adapter_id=aid, upload_id=uid, kind=IMPORT_EXTS.get(kind, kind), size=len(data), path=str(path), configured=configured)
 
 
-_ = (list_adapters, ACCESS_METHODS)
+_ = (list_adapters, ACCESS_METHODS, PERMISSION_BASES)

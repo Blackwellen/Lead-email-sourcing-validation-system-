@@ -232,70 +232,119 @@ def playwright_available() -> bool:
     return True
 
 
-async def render_with_playwright(url: str, *, guard: sh.Guard | None = None, timeout_s: float = 20.0,
-                                 pool_size: int = 2) -> str | None:
+# Chromium must never reach the network on its own (it does its own DNS, so it could not be pinned to a validated
+# address): every host name resolves to NOTFOUND inside the browser, and every http(s) request the page makes is
+# intercepted and answered by our SSRF-safe fetcher (guard check + DNS-pinned connection) via ``route.fulfill``.
+BROWSER_ARGS = (
+    "--host-resolver-rules=MAP * ~NOTFOUND",
+    "--dns-prefetch-disable",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-domain-reliability",
+    "--disable-sync",
+    "--no-pings",
+    "--disable-features=NetworkService.DnsOverHttps,DnsOverHttps,AsyncDns",
+)
+RENDER_ACCEPT = frozenset({
+    "text/html", "application/xhtml+xml", "text/plain", "application/json", "application/xml", "text/xml",
+    "application/javascript", "text/javascript", "application/x-javascript", "application/ecmascript", "text/ecmascript",
+})
+_RENDER_SKIP_TYPES = frozenset({"image", "media", "font", "stylesheet", "websocket", "eventsource", "manifest", "texttrack", "ping", "beacon", "other"})
+_LOCAL_SCHEMES = frozenset({"data", "blob", "about"})
+
+
+async def render_gate(route, fetcher: sh.SafeFetcher, max_bytes: int = 2_000_000) -> None:
+    """Playwright route handler: answer allowed requests ourselves, abort everything else.
+
+    * non-http(s) schemes (file:, ftp:, chrome:, ws: ...) -> abort; data:/blob:/about: stay local to the browser;
+    * sub-resources that are not needed for the DOM (images, media, fonts, css, websockets, beacons) -> abort;
+    * only GET is fetched (no form posts / beacons from rendered pages);
+    * the URL is checked by the SSRF guard and fetched with the DNS-pinned ``SafeFetcher`` (redirect hops re-checked),
+      then handed to the browser with ``route.fulfill`` -- Chromium itself never opens a connection.
+    """
+    req = route.request
+    scheme = urlsplit(req.url).scheme.lower()
+    if scheme in _LOCAL_SCHEMES:
+        return await route.continue_()
+    if scheme not in ("http", "https") or req.resource_type in _RENDER_SKIP_TYPES or req.method.upper() != "GET":
+        return await route.abort("blockedbyclient")
+    try:
+        fetcher.guard.check_url(req.url)
+    except Exception:
+        return await route.abort("blockedbyclient")
+    res = await fetcher.fetch(req.url, accept=RENDER_ACCEPT, max_bytes=max_bytes, conditional=False)
+    if res.error_code is not None and not res.usable_body:
+        return await route.abort("blockedbyclient" if res.error_code == sh.BLOCKED_SSRF else "failed")
+    ctype = res.headers.get("content-type") or (res.content_type or "text/html")
+    await route.fulfill(status=res.status or 200, headers={"content-type": ctype}, body=res.body)
+
+
+async def _refuse_websocket(ws) -> None:
+    try:
+        await ws.close()
+    except Exception:
+        pass
+
+
+async def render_with_playwright(url: str, *, guard: sh.Guard | None = None, fetcher: sh.SafeFetcher | None = None,
+                                 timeout_s: float = 20.0, pool_size: int = 2) -> str | None:
     """Render a page with headless Chromium and return the DOM HTML, or None if unavailable.
 
-    Safety: only used when explicitly enabled and robots.txt already allowed the URL. Every
-    request the browser makes is re-checked against the SSRF guard (scheme/port/resolved IPs) and
-    non-document sub-resources (images, media, fonts) are aborted. Downloads are not accepted.
-    Limitation: the browser performs its own DNS resolution, so unlike ``SafeFetcher`` this path
-    cannot pin the connection to the validated address.
+    JavaScript rendering is OFF by default (a run enables it only with ``performance.browser_workers > 0`` and the
+    worker image must be built with ``WITH_BROWSER=1``); it is only used after robots.txt allowed the URL.
+
+    Network isolation: the browser is launched with ``--host-resolver-rules=MAP * ~NOTFOUND`` so it cannot resolve or
+    reach any host by itself; every request is intercepted by :func:`render_gate`, which validates it with the SSRF
+    guard and fetches it through the DNS-pinned ``SafeFetcher`` (the same path as normal crawling). WebSockets are
+    closed, non-http(s) schemes and non-GET requests are aborted, downloads are refused.
     """
     global _JS_POOL, _JS_BROWSER, _JS_LOCK
     try:
         from playwright.async_api import async_playwright
     except Exception:
         return None
-    guard = guard or sh.Guard()
+    guard = guard or (fetcher.guard if fetcher is not None else sh.Guard())
     try:
         target = guard.check_url(url)
         await guard.resolve(target.host, target.port)
     except Exception:
         return None
+    own_fetcher = fetcher is None
+    if fetcher is None:
+        fetcher = sh.SafeFetcher(allow_private_networks=guard.allow_private)
     if _JS_POOL is None:
         _JS_POOL = asyncio.Semaphore(pool_size)
         _JS_LOCK = asyncio.Lock()
-    async with _JS_POOL:
-        assert _JS_LOCK is not None
-        try:
-            async with _JS_LOCK:
-                if _JS_BROWSER is None or not _JS_BROWSER.is_connected():
-                    pw = await async_playwright().start()
-                    _JS_BROWSER = await pw.chromium.launch(headless=True)
-            ctx = await _JS_BROWSER.new_context(accept_downloads=False, java_script_enabled=True,
-                                                user_agent=None, ignore_https_errors=False)
+    try:
+        async with _JS_POOL:
+            assert _JS_LOCK is not None
             try:
-                page = await ctx.new_page()
-                checked: dict[str, bool] = {}
-
-                async def gate(route):
-                    req = route.request
-                    if req.resource_type in ("image", "media", "font", "stylesheet"):
-                        return await route.abort()
-                    try:
-                        t = guard.check_url(req.url)
-                        key = f"{t.host}:{t.port}"
-                        if key not in checked:
-                            await guard.resolve(t.host, t.port)
-                            checked[key] = True
-                    except Exception:
-                        return await route.abort()
-                    await route.continue_()
-
-                await page.route("**/*", gate)
-                await page.goto(url, wait_until="domcontentloaded", timeout=int(timeout_s * 1000))
+                async with _JS_LOCK:
+                    if _JS_BROWSER is None or not _JS_BROWSER.is_connected():
+                        pw = await async_playwright().start()
+                        _JS_BROWSER = await pw.chromium.launch(headless=True, args=list(BROWSER_ARGS))
+                ctx = await _JS_BROWSER.new_context(accept_downloads=False, java_script_enabled=True, service_workers="block",
+                                                    user_agent=None, ignore_https_errors=False)
                 try:
-                    await page.wait_for_load_state("networkidle", timeout=int(timeout_s * 500))
-                except Exception:
-                    pass
-                html = await page.content()
-                return html[:3_000_000]
-            finally:
-                await ctx.close()
-        except Exception as e:
-            log.debug("playwright render failed for %s: %s", url, e)
-            return None
+                    page = await ctx.new_page()
+                    await page.route("**/*", lambda route: render_gate(route, fetcher))
+                    if hasattr(page, "route_web_socket"):
+                        await page.route_web_socket("**/*", _refuse_websocket)
+                    await page.goto(target.url, wait_until="domcontentloaded", timeout=int(timeout_s * 1000))
+                    try:
+                        await page.wait_for_load_state("networkidle", timeout=int(timeout_s * 500))
+                    except Exception:
+                        pass
+                    html = await page.content()
+                    return html[:3_000_000]
+                finally:
+                    await ctx.close()
+            except Exception as e:
+                log.debug("playwright render failed for %s: %s", url, e)
+                return None
+    finally:
+        if own_fetcher:
+            await fetcher.aclose()
 
 
 # --------------------------------------------------------------------------- crawler
@@ -623,7 +672,7 @@ async def _run(cr: _Crawler, cands: list[str], host: str, had_scheme: bool) -> N
     if home_x is not None and o.allow_js_render and not home_x.emails and home_x.script_count >= 1 and home_x.text_length < 400:
         renderer = o.js_renderer
         if renderer is None and playwright_available():
-            renderer = functools.partial(render_with_playwright, guard=cr.f.guard)
+            renderer = functools.partial(render_with_playwright, guard=cr.f.guard, fetcher=cr.f)
         if renderer is not None:
             chk = await cr.robots.check(home_rec.final_url) if o.respect_robots else None
             if chk is None or chk.allowed:

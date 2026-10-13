@@ -9,11 +9,11 @@ test('choose a business, render the bounded graph, select a node, open the busin
   const done = trackPageErrors(page);
   await login(page, 'viewer');
   await page.goto('/discovery/network');
-  await expect(page.getByText('Choose a business')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose a business' })).toBeVisible();
   // the table fallback is available even before choosing
   await expect(page.getByRole('table', { name: 'Business relationships' })).toBeVisible();
 
-  await page.getByRole('combobox', { name: 'Business' }).click();
+  await page.getByRole('combobox', { name: 'Business', exact: true }).click();
   await page.getByPlaceholder('Type a company name or domain…').fill('Disc Hub');
   await page.getByRole('option', { name: /Disc Hub Holdings Ltd/ }).click();
   const graph = page.getByTestId('network-graph');
@@ -61,7 +61,7 @@ test('keyboard: focus the graph, arrow to a node and select it with Enter', asyn
   await page.keyboard.press('Enter');
   const id = active!.replace('gnode-', '');
   const name = await page.locator(`#${active}`).getAttribute('aria-label');
-  await expect(page.getByTestId('node-panel').getByRole('heading')).toHaveText(name!.split(',')[0]);
+  await expect(page.getByTestId('node-panel').getByRole('heading', { level: 3 })).toHaveText(name!.split(',')[0]);
   expect(Number(id)).toBeGreaterThan(0);
   await page.keyboard.press('End');
   await page.keyboard.press('Home');
@@ -91,7 +91,7 @@ test('relationships table: filters, keyset paging, keyboard row open', async ({ 
   await page.getByRole('button', { name: 'Load more' }).click();
   await expect(table.getByRole('row')).toHaveCount(101);
   // relationship filter (no "supplier_of" around the mega group)
-  await page.getByRole('combobox', { name: 'Relationship' }).click();
+  await page.getByRole('combobox', { name: 'Relationship', exact: true }).click();
   await page.getByRole('option', { name: 'Supplier of' }).click();
   await expect(page.getByText('Nothing here yet')).toBeVisible();
   await page.getByRole('button', { name: 'Clear all' }).click();

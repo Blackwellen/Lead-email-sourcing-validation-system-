@@ -22,7 +22,7 @@ async def audits(action: str):
 
 
 # --------------------------------------------------------------------------- source explorer
-async def test_source_explorer_search_detail_configure_and_secrets(operator_client, viewer_client, session):
+async def test_source_explorer_search_detail_configure_and_secrets(admin_client, operator_client, viewer_client, session):
     r = (await viewer_client.get("/api/source-explorer?country=GB&limit=5")).json()
     assert r["items"] and all(i["score_breakdown"] for i in r["items"])
     assert r["items"] == sorted(r["items"], key=lambda i: (-i["score"], i["id"]))
@@ -31,8 +31,11 @@ async def test_source_explorer_search_detail_configure_and_secrets(operator_clie
     assert (await viewer_client.get("/api/source-explorer?access_method=nope")).status_code == 422
     d = (await viewer_client.get("/api/source-explorer/brave_search")).json()
     assert d["requirements"]["credentials"] and d["permission"]["status"] in ("permission_needed", "restricted", "open_licence") and d["state"]["enabled"] is False
+    # configure / enable / disable are admin-only (finding 2); operators get 403
+    assert (await operator_client.post("/api/source-explorer/brave_search/configure", json={"config": {"api_key": "x"}})).status_code == 403
+    assert (await operator_client.post("/api/source-explorer/brave_search/enable")).status_code == 403
     # configure: secrets sealed, never returned; unknown/invalid keys rejected
-    c = await operator_client.post("/api/source-explorer/brave_search/configure", json={"config": {"api_key": "sk-very-secret-123", "country_code": "GB"}, "permission_basis": "api_terms"})
+    c = await admin_client.post("/api/source-explorer/brave_search/configure", json={"config": {"api_key": "sk-very-secret-123"}, "permission_basis": "api_terms"})
     assert c.status_code == 200, c.text
     assert "sk-very-secret-123" not in c.text and c.json()["config"]["api_key"] == "********" and c.json()["requirements"]["secret_keys_set"] == ["api_key"]
     async with dbmod.sessionmaker()() as s:
@@ -40,19 +43,23 @@ async def test_source_explorer_search_detail_configure_and_secrets(operator_clie
     assert stored["api_key"].startswith("enc:v1:") and "sk-very" not in json.dumps(stored)
     for a in await audits("source_explorer.configure"):
         assert "sk-very-secret-123" not in json.dumps(a)
-    assert (await operator_client.post("/api/source-explorer/brave_search/configure", json={"config": {"Bad Key!": 1}})).status_code == 422
-    assert (await operator_client.post("/api/source-explorer/brave_search/configure", json={"config": {"path": "/etc/passwd"}})).status_code == 422
-    assert (await operator_client.post("/api/source-explorer/brave_search/configure", json={"permission_basis": "because"})).status_code == 422
+    assert (await admin_client.post("/api/source-explorer/brave_search/configure", json={"config": {"Bad Key!": 1}})).status_code == 422
+    # same allow-list as PUT /api/sources/{id}/config: keys outside the adapter's config_schema are refused
+    assert (await admin_client.post("/api/source-explorer/brave_search/configure", json={"config": {"country_code": "GB"}})).status_code == 422
+    stored_basis = (await audits("source_explorer.configure"))[0]
+    assert stored_basis["permission_basis_change"]["after"] == "api_terms" and stored_basis["permission_basis_change"]["declared_by"]
+    assert (await admin_client.post("/api/source-explorer/brave_search/configure", json={"config": {"path": "/etc/passwd"}})).status_code == 422
+    assert (await admin_client.post("/api/source-explorer/brave_search/configure", json={"permission_basis": "because"})).status_code == 422
     assert (await viewer_client.post("/api/source-explorer/brave_search/configure", json={})).status_code == 403
     # enable honours permission + configuration; disable is audited with before/after
-    e = await operator_client.post("/api/source-explorer/brave_search/enable")
+    e = await admin_client.post("/api/source-explorer/brave_search/enable")
     assert e.status_code == 200 and e.json()["enabled"] is True
-    assert (await operator_client.post("/api/source-explorer/brave_search/disable")).json()["enabled"] is False
+    assert (await admin_client.post("/api/source-explorer/brave_search/disable")).json()["enabled"] is False
     assert [a["after"] for a in await audits("source_explorer.enable")] == [True]
     # a restricted / info-only catalogue entry can never be enabled
     items = (await viewer_client.get("/api/source-explorer?access_method=restricted&limit=50")).json()["items"]
     assert items
-    assert (await operator_client.post(f"/api/source-explorer/{items[0]['id']}/enable")).status_code == 409
+    assert (await admin_client.post(f"/api/source-explorer/{items[0]['id']}/enable")).status_code == 409
 
 
 async def test_source_import_limits_and_types():
@@ -62,6 +69,13 @@ async def test_source_import_limits_and_types():
         assert ok.status_code == 201, ok.text
         path = ok.json()["path"]
         assert "uploads" in path and ok.json()["kind"] == "csv"
+        # an operator's upload is stored but does NOT re-point the source (admin-only); it can be used as run source_params
+        assert ok.json()["configured"] is False
+        d = (await c.get("/api/source-explorer/companies_house_bulk")).json()
+        assert "path" not in d["requirements"]["config_keys_set"]
+        async with make_client("admin", app) as a:
+            ok2 = await a.post("/api/source-explorer/companies_house_bulk/import", files={"file": ("x.csv", b"CompanyName,CompanyNumber\nA,1\n", "text/csv")})
+            assert ok2.status_code == 201 and ok2.json()["configured"] is True
         d = (await c.get("/api/source-explorer/companies_house_bulk")).json()
         assert "path" in d["requirements"]["config_keys_set"]
         assert (await c.post("/api/source-explorer/companies_house_bulk/import", files={"file": ("big.csv", b"a,b\n" + b"x" * (1024 * 1024 + 10), "text/csv")})).status_code == 413

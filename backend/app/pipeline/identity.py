@@ -36,7 +36,7 @@ from ..models import Organisation, OrganisationDomain
 __all__ = [
     "Candidate", "DomainMatch", "INTERMEDIARY_DOMAINS", "ResolutionResult", "candidate_domains_from_name",
     "is_intermediary_domain", "normalise_company_name", "registrable_domain", "resolve_organisation_domain",
-    "score_domain_match", "same_registrable",
+    "score_domain_match", "same_registrable", "stored_candidate_source", "stored_candidates",
 ]
 
 # --------------------------------------------------------------------------- names
@@ -465,24 +465,139 @@ def _as_candidate(c: str | Candidate) -> Candidate | None:
     return Candidate(strip_www(to_ascii_host(d) or d), cand.source, cand.detail)
 
 
+# --------------------------------------------------------------------------- candidate provenance
+# How a domain row came to exist is stored on the row itself (``evidence`` entry ``{"type": "candidate_source", "detail": <source>}``)
+# so that re-scoring a stored row later uses the SAME provenance: a domain that was only ever guessed from the company name must
+# stay capped at 'review' no matter how many times it is re-checked.
+_SOURCE_RANK = {"guess": 0, "search": 1, "osm": 2, "directory": 2, "dataset": 2, "registry": 3}
+_KEEP_EVIDENCE = {"candidate_source", "source_candidate", "operator_supplied", "manual"}
+MAX_DOMAIN_EVIDENCE = 40
+
+
+def stored_candidate_source(evidence: Iterable[dict[str, Any]] | None) -> str:
+    """Provenance of a stored ``organisation_domains`` row (strongest recorded source; 'guess' when nothing says otherwise)."""
+    best: str | None = None
+
+    def take(src: str | None) -> None:
+        nonlocal best
+        if src in _SOURCE_RANK and (best is None or _SOURCE_RANK[src] > _SOURCE_RANK[best]):
+            best = src
+
+    for e in evidence or []:
+        if not isinstance(e, dict):
+            continue
+        t = e.get("type")
+        if t == "candidate_source":
+            take(str(e.get("detail") or ""))
+        elif t in ("source_candidate", "operator_supplied"):  # website published by a source dataset / supplied by the operator
+            take("dataset")
+        # NOTE: 'directory_reference' entries written by the scorer are NOT trusted as provenance: before provenance was stored,
+        # guessed rows were re-scored as 'dataset' and carry that (wrong) entry. Callers that know a genuine source (the
+        # organisation's source records) pass it explicitly.
+    return best or "guess"
+
+
+async def dataset_registrables(session: AsyncSession, org_id: int) -> set[str]:
+    """Registrable domains of the websites the organisation's own source records publish (genuine 'dataset' provenance)."""
+    from ..models import OrganisationSource
+
+    out: set[str] = set()
+    for w in (await session.execute(select(OrganisationSource.website).where(
+            OrganisationSource.organisation_id == org_id, OrganisationSource.website.is_not(None)))).scalars():
+        host = str(w).strip().split("://")[-1].split("/")[0].split(":")[0].lower()
+        reg = registrable_domain(host) if host else None
+        if reg:
+            out.add(reg)
+    return out
+
+
+async def stored_candidates(session: AsyncSession, rows: Iterable[OrganisationDomain], org_id: int) -> list[Candidate]:
+    """Re-check candidates for stored domain rows, each carrying its RECORDED provenance (never blanket 'dataset')."""
+    ds = await dataset_registrables(session, org_id)
+    return [Candidate(r.domain, "dataset" if r.registrable_domain in ds else stored_candidate_source(r.evidence), "stored domain row")
+            for r in rows]
+
+
+def stronger_source(a: str, b: str) -> str:
+    return a if _SOURCE_RANK.get(a, 0) >= _SOURCE_RANK.get(b, 0) else b
+
+
+def merge_evidence(old: list[dict[str, Any]] | None, new: list[dict[str, Any]] | None, *, limit: int = MAX_DOMAIN_EVIDENCE) -> list[dict[str, Any]]:
+    """Union of two evidence lists: de-duplicated on (type, detail) keeping the newest copy, bounded to ``limit`` entries; provenance /
+    operator / manual entries are always kept."""
+    seen: dict[tuple, dict[str, Any]] = {}
+    for e in [*(old or []), *(new or [])]:
+        if not isinstance(e, dict):
+            continue
+        key = (e.get("type"), e.get("detail"), e.get("decision"), e.get("adapter"), e.get("source_ref"))
+        seen.pop(key, None)
+        seen[key] = e
+    items = list(seen.values())
+    keep = [e for e in items if e.get("type") in _KEEP_EVIDENCE]
+    rest = [e for e in items if e.get("type") not in _KEEP_EVIDENCE]
+    room = max(0, limit - len(keep))
+    rest = rest[-room:] if room else []
+    kept = {id(e) for e in keep + rest}
+    return [e for e in items if id(e) in kept]
+
+
+def _provenance_entry(source: str, now: datetime) -> dict[str, Any]:
+    return {"type": "candidate_source", "detail": source, "weight": 0.0, "observed_at": now.isoformat()}
+
+
 async def _upsert_domain(session: AsyncSession, org_id: int, cand: Candidate, match: DomainMatch, *,
                          website_url: str | None, parked: bool, now: datetime, crawled: bool) -> OrganisationDomain:
-    vals = {
-        "organisation_id": org_id, "domain": cand.domain, "registrable_domain": registrable_domain(cand.domain),
-        "website_url": website_url, "verified_match_status": match.status, "confidence": match.confidence,
-        "evidence": match.evidence, "parked": parked, "last_checked_at": now,
-    }
+    """Insert or update the (organisation, domain) row.
+
+    * a NEW row records its candidate provenance (``candidate_source`` evidence entry);
+    * an existing row is never downgraded by a transient result: 'unknown' (unreachable / nothing verified) keeps the stored
+      status, confidence and website; only POSITIVE mismatch evidence (parked, intermediary, conflicting company number, a reachable
+      site showing no trace of the organisation) lowers it. Otherwise the stronger of stored and new status wins;
+    * evidence lists are merged (bounded, de-duplicated), so operator / provenance entries survive re-checks;
+    * ``manual_override`` rows are never touched.
+    """
+    reg = registrable_domain(cand.domain)
+    q = select(OrganisationDomain).where(OrganisationDomain.organisation_id == org_id, OrganisationDomain.domain == cand.domain)
+    existing = (await session.execute(q.with_for_update().execution_options(populate_existing=True))).scalar_one_or_none()
+    if existing is None:
+        vals = {
+            "organisation_id": org_id, "domain": cand.domain, "registrable_domain": reg, "website_url": website_url,
+            "verified_match_status": match.status, "confidence": match.confidence,
+            "evidence": merge_evidence(match.evidence, [_provenance_entry(cand.source, now)]), "parked": parked, "last_checked_at": now,
+        }
+        if crawled:
+            vals["last_crawled_at"] = now
+        res = await session.execute(pg_insert(OrganisationDomain).values(**vals).on_conflict_do_nothing(constraint="uq_orgdomain")
+                                    .returning(OrganisationDomain.id))
+        if res.scalar_one_or_none() is not None:
+            return (await session.execute(q.execution_options(populate_existing=True))).scalar_one()
+        existing = (await session.execute(q.with_for_update().execution_options(populate_existing=True))).scalar_one()  # lost a race
+    if existing.manual_override:
+        return existing
+    old_status = existing.verified_match_status or "unknown"
+    new_status = match.status
+    if new_status == "mismatch":
+        status, conf = "mismatch", match.confidence  # positive counter-evidence
+        existing.parked = parked
+    elif new_status == "unknown" or _RANK.get(new_status, 0) < _RANK.get(old_status, 0):
+        status, conf = old_status, existing.confidence  # transient / weaker re-check never downgrades
+        if old_status == "mismatch" and new_status == "unknown":
+            status, conf = "mismatch", existing.confidence
+    else:
+        status = new_status
+        conf = match.confidence if _RANK.get(new_status, 0) > _RANK.get(old_status, 0) else max(match.confidence, existing.confidence or 0.0)
+        existing.parked = parked
+    prov = stronger_source(stored_candidate_source(existing.evidence), cand.source)
+    ev = merge_evidence(existing.evidence, [*match.evidence, _provenance_entry(prov, now)])
+    existing.verified_match_status, existing.confidence, existing.evidence = status, conf, ev
+    if website_url:
+        existing.website_url = website_url
+    existing.registrable_domain = reg or existing.registrable_domain
+    existing.last_checked_at = now
     if crawled:
-        vals["last_crawled_at"] = now
-    stmt = pg_insert(OrganisationDomain).values(**vals)
-    upd = {k: v for k, v in vals.items() if k not in ("organisation_id", "domain")}
-    stmt = stmt.on_conflict_do_update(
-        constraint="uq_orgdomain", set_=upd, where=OrganisationDomain.manual_override.is_(False))
-    await session.execute(stmt)
-    row = (await session.execute(select(OrganisationDomain).where(
-        OrganisationDomain.organisation_id == org_id, OrganisationDomain.domain == cand.domain
-    ).execution_options(populate_existing=True))).scalar_one()
-    return row
+        existing.last_crawled_at = now
+    await session.flush()
+    return existing
 
 
 async def resolve_organisation_domain(
@@ -533,6 +648,8 @@ async def resolve_organisation_domain(
             out.rows.append((existing, None))
             out.skipped.append((cand.domain, "manual_override"))
             continue
+        if existing is not None:  # re-scoring a stored row: its recorded provenance applies (a stored guess stays a guess)
+            cand = Candidate(cand.domain, stronger_source(stored_candidate_source(existing.evidence), cand.source), cand.detail)
         if is_intermediary_domain(cand.domain):
             match = score_domain_match(org, SiteEvidence(domain=cand.domain, source_kind=cand.source), now=now)
             row = await _upsert_domain(session, org_id, cand, match, website_url=None, parked=False, now=now, crawled=False)

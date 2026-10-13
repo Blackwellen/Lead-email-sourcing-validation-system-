@@ -29,6 +29,7 @@ from ..models import (
 )
 from ..run_config import RunConfig
 from ..security import SESSION_COOKIE, ApiError, app_settings, audit, require_role, resolve_session
+from ..sources import secret_config as sc
 from ..system_runs import not_system_filter
 from .common import Ok, Page, SortSpec, apply_keyset, check_enum, clean_q, finish_page, prefix_pattern
 from .contacts import ContactRow, contact_rows
@@ -36,6 +37,10 @@ from .runs_support import FieldError, RunEstimateOut, ValidateOut, estimate_conf
 
 log = logging.getLogger("api.runs")
 router = APIRouter(prefix="/api/runs", tags=["runs"], dependencies=[Depends(require_role("viewer"))])
+# The SSE endpoint lives on its own router WITHOUT the router-level ``require_role`` dependency: that dependency holds a
+# request-scoped DB session (idle in transaction) until the response finishes, i.e. for the whole stream.
+sse_router = APIRouter(prefix="/api/runs", tags=["runs"])
+extra_routers = [sse_router]
 
 TABS = {
     "active": ["running", "queued", "pausing", "stopping"],
@@ -248,6 +253,49 @@ def _snapshot_cfg(run: SourcingRun) -> tuple[RunConfig | None, list[FieldError]]
         return None, [FieldError(field=".".join(str(p) for p in x["loc"]), message=str(x["msg"]).removeprefix("Value error, ")) for x in e.errors()]
 
 
+def mask_params(params: Any) -> Any:
+    """Mask secret-looking values of per-adapter parameters (API keys, tokens ...) for API responses."""
+    return sc.mask_config(params) if isinstance(params, dict) else params
+
+
+def mask_run_config(cfg: dict[str, Any] | None) -> dict[str, Any]:
+    out = dict(cfg or {})
+    sp = out.get("source_params")
+    if isinstance(sp, dict):
+        out["source_params"] = {k: mask_params(v) for k, v in sp.items()}
+    return out
+
+
+def mask_job_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    out = dict(payload or {})
+    for k in ("params", "config", "source_params"):
+        if isinstance(out.get(k), dict):
+            out[k] = mask_params(out[k]) if k != "source_params" else {a: mask_params(v) for a, v in out[k].items()}
+    return out
+
+
+def _restore_masked(new_cfg: dict[str, Any], old_cfg: dict[str, Any] | None) -> None:
+    """A client that echoes a masked secret back ('********') keeps the stored value instead of overwriting it."""
+    sp = new_cfg.get("source_params")
+    if not isinstance(sp, dict):
+        return
+    old_sp = (old_cfg or {}).get("source_params") or {}
+    for aid, params in sp.items():
+        if not isinstance(params, dict):
+            continue
+        old = old_sp.get(aid) if isinstance(old_sp.get(aid), dict) else {}
+        for k in [k for k, v in params.items() if v == sc.MASK]:
+            if k in old:
+                params[k] = old[k]
+            else:
+                params.pop(k)
+
+
+def _config_error(errors: list[FieldError]) -> ApiError:
+    return ApiError(422, "invalid_run_config", "The run configuration has problems: " + "; ".join(f"{e.field}: {e.message}" for e in errors[:5]),
+                    [e.model_dump() for e in errors])
+
+
 # --------------------------------------------------------------------------- list / counts
 SORTS = {
     "id": SortSpec(SourcingRun.id, "int"),
@@ -310,7 +358,7 @@ async def estimate_run(payload: dict[str, Any], request: Request, session: Async
 async def create_run(body: RunCreateIn, request: Request, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> RunSummary:
     cfg, v = await validate_config(session, body.config.model_dump(mode="json"), app_settings(request))
     if not v.valid:
-        raise ApiError(422, "invalid_run_config", "The run configuration has problems: " + "; ".join(f"{e.field}: {e.message}" for e in v.errors[:5]), [e.model_dump() for e in v.errors])
+        raise _config_error(v.errors)
     assert cfg is not None
     run = await core.create_run(session, cfg, user_id=user.id, status="draft")
     scheduled_dt = None
@@ -334,16 +382,27 @@ async def create_run(body: RunCreateIn, request: Request, user: User = Depends(r
 
 
 @router.patch("/{run_id}", response_model=DraftSaved)
-async def autosave_draft(run_id: int, body: RunDraftPatchIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> DraftSaved:
+async def autosave_draft(run_id: int, body: RunDraftPatchIn, request: Request, user: User = Depends(require_role("operator")),
+                         session: AsyncSession = Depends(get_session)) -> DraftSaved:
+    """Save a (possibly incomplete) draft. The full safety validation (paths, URLs, source permissions) runs on every
+    save: an invalid draft is stored but flagged (``valid=false`` + errors) and cannot be started; a *scheduled* run must
+    stay valid, so an invalid change to it is refused."""
     run = (await session.execute(select(SourcingRun).where(SourcingRun.id == run_id, not_system_filter()).with_for_update())).scalar_one_or_none()
     if run is None:
         raise ApiError(404, "not_found", "Run not found.")
     if run.status not in ("draft", "scheduled"):
         raise ApiError(409, "invalid_run_state", f"Only drafts can be edited; this run is {run.status}.")
     merged = dict(run.configuration_snapshot or {}) | body.config
+    _restore_masked(merged, run.configuration_snapshot)
     if body.name:
         merged["name"] = body.name
     cfg, errors = _snapshot_cfg_from(merged)
+    valid = cfg is not None
+    if cfg is not None:
+        _, v = await validate_config(session, cfg.model_dump(mode="json"), app_settings(request))
+        errors, valid = v.errors, v.valid
+        if run.status == "scheduled" and not valid:
+            raise _config_error(errors)
     if cfg is not None:
         merged = cfg.model_dump(mode="json")
         run.name, run.target_count = cfg.name, cfg.target.count
@@ -353,9 +412,9 @@ async def autosave_draft(run_id: int, body: RunDraftPatchIn, user: User = Depend
     elif isinstance(merged.get("name"), str) and merged["name"].strip():
         run.name = merged["name"][:200]
     run.configuration_snapshot = merged
-    await audit(session, user, "run.draft_save", "run", run.id, {"valid": cfg is not None})
+    await audit(session, user, "run.draft_save", "run", run.id, {"valid": valid, "errors": [e.field for e in errors[:20]]})
     await session.commit()
-    return DraftSaved(run=summary(run), valid=cfg is not None, errors=errors)
+    return DraftSaved(run=summary(run), valid=valid, errors=errors)
 
 
 def _snapshot_cfg_from(raw: dict[str, Any]) -> tuple[RunConfig | None, list[FieldError]]:
@@ -392,12 +451,17 @@ async def _transition(session: AsyncSession, user: User, run_id: int, action: st
 
 
 @router.post("/{run_id}/start", response_model=RunSummary)
-async def start_run(run_id: int, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> RunSummary:
+async def start_run(run_id: int, request: Request, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> RunSummary:
     run = await _load(session, run_id)
     if run.status in ("draft", "scheduled", "failed", "queued"):
         cfg, errors = _snapshot_cfg(run)
         if cfg is None:
             raise ApiError(422, "invalid_run_config", "This draft is incomplete: " + "; ".join(f"{e.field}: {e.message}" for e in errors[:5]), [e.model_dump() for e in errors])
+        # the same safety validation as creating a run (a draft may have been autosaved with an invalid configuration)
+        _, v = await validate_config(session, run.configuration_snapshot or {}, app_settings(request))
+        problems = [e for e in v.errors if e.field != "schedule_at"]  # starting now: a past schedule time is irrelevant
+        if problems:
+            raise _config_error(problems)
     return await _transition(session, user, run_id, "start", lambda: core.start_run(session, run_id))
 
 
@@ -508,6 +572,8 @@ async def get_run(run_id: int, request: Request, window_minutes: int = Query(15,
         counters["progress"] = core.progress_value(run.target_definition, counters)
     progress = int(counters.get("progress", 0))
     cfg, cfg_errors = _snapshot_cfg(run)
+    if cfg is not None and run.status == "draft":
+        cfg_errors = (await validate_config(session, run.configuration_snapshot or {}, app_settings(request)))[1].errors
     funnel = [FunnelRow(stage=s, state=st, count=n) for s, st, n in (await session.execute(
         select(SourcingJob.stage, SourcingJob.state, func.count()).where(SourcingJob.run_id == run_id).group_by(SourcingJob.stage, SourcingJob.state).order_by(SourcingJob.stage, SourcingJob.state))).all()]
     backlog: dict[str, int] = {}
@@ -541,7 +607,7 @@ async def get_run(run_id: int, request: Request, window_minutes: int = Query(15,
     }
     s = summary(run)
     return RunDetail(
-        **s.model_dump(), config=run.configuration_snapshot or {}, counters=counters,
+        **s.model_dump(), config=mask_run_config(run.configuration_snapshot), counters=counters,
         stop_condition=StopCondition(
             definition=run.target_definition, target=run.target_count, progress=progress, percent=_pct(progress, run.target_count),
             max_runtime_minutes=cfg.target.max_runtime_minutes if cfg else None, max_work_jobs=cfg.target.max_work_jobs if cfg else None, stop_reason=run.stop_reason,
@@ -559,8 +625,8 @@ JOB_STATES = {"queued", "leased", "done", "failed", "dead", "cancelled", "paused
 
 def job_row(j: SourcingJob) -> JobRow:
     return JobRow(id=j.id, stage=j.stage, state=j.state, dedupe_key=j.dedupe_key, attempts=j.attempts, error_code=j.error_code, error_detail=j.error_detail,
-                  host_key=j.host_key, next_attempt_at=j.next_attempt_at, started_at=j.started_at, finished_at=j.finished_at, payload=j.payload,
-                  run_id=j.run_id)
+                  host_key=j.host_key, next_attempt_at=j.next_attempt_at, started_at=j.started_at, finished_at=j.finished_at,
+                  payload=mask_job_payload(j.payload), run_id=j.run_id)
 
 
 async def page_jobs(session: AsyncSession, run_cond, state: str | None, stage: str | None, error_code: str | None, limit: int, cursor: str | None) -> Page[JobRow]:
@@ -600,8 +666,7 @@ async def list_run_jobs(
         stmt = stmt.where(SourcingJob.error_code == error_code)
     stmt = apply_keyset(stmt, sorts, "id", "desc", SourcingJob.id, cursor, limit)
     rows, nxt = finish_page((await session.execute(stmt)).all(), "id", "desc", limit)
-    items = [JobRow(id=j.id, stage=j.stage, state=j.state, dedupe_key=j.dedupe_key, attempts=j.attempts, error_code=j.error_code, error_detail=j.error_detail,
-                    host_key=j.host_key, next_attempt_at=j.next_attempt_at, started_at=j.started_at, finished_at=j.finished_at, payload=j.payload) for j, *_ in rows]
+    items = [job_row(j) for j, *_ in rows]
     return Page[JobRow](items=items, next_cursor=nxt)
 
 
@@ -617,8 +682,7 @@ async def retry_run_job(run_id: int, job_id: int, user: User = Depends(require_r
     await audit(session, user, "run.retry_job", "job", job_id, {"run_id": run_id, "stage": job.stage})
     await session.commit()
     await session.refresh(job)
-    return JobRow(id=job.id, stage=job.stage, state=job.state, dedupe_key=job.dedupe_key, attempts=job.attempts, error_code=job.error_code, error_detail=job.error_detail,
-                  host_key=job.host_key, next_attempt_at=job.next_attempt_at, started_at=job.started_at, finished_at=job.finished_at, payload=job.payload)
+    return job_row(job)
 
 
 @router.get("/{run_id}/contacts", response_model=Page[ContactRow])
@@ -651,8 +715,38 @@ async def list_run_organisations(run_id: int, stage: str | None = Query(None, ma
 
 
 # --------------------------------------------------------------------------- SSE
+SSE_REVALIDATE_EVERY = 5  # snapshots between re-checks of the viewer's auth session
+
+
+class _StreamSlots:
+    """Per-process accounting of open SSE streams (per user and in total)."""
+
+    def __init__(self) -> None:
+        self.per_user: dict[int, int] = {}
+        self.total = 0
+
+    def acquire(self, user_id: int, per_user: int, total: int) -> bool:
+        if self.total >= total or self.per_user.get(user_id, 0) >= per_user:
+            return False
+        self.per_user[user_id] = self.per_user.get(user_id, 0) + 1
+        self.total += 1
+        return True
+
+    def release(self, user_id: int) -> None:
+        n = self.per_user.get(user_id, 0)
+        if n <= 1:
+            self.per_user.pop(user_id, None)
+        else:
+            self.per_user[user_id] = n - 1
+        self.total = max(0, self.total - 1)
+
+
+SSE_SLOTS = _StreamSlots()
+
+
 async def sse_user(request: Request) -> User:
-    """Cookie auth for EventSource without keeping a DB connection for the stream's lifetime."""
+    """Cookie auth for EventSource without keeping a DB connection for the stream's lifetime: the session used for the
+    lookup is closed (connection back in the pool, no open transaction) before the stream starts."""
     async with sessionmaker()() as s:
         found = await resolve_session(s, request.cookies.get(SESSION_COOKIE))
     if found is None:
@@ -660,15 +754,22 @@ async def sse_user(request: Request) -> User:
     return found[0]
 
 
+async def _session_still_valid(token: str | None) -> bool:
+    async with sessionmaker()() as s:
+        found = await resolve_session(s, token)
+    return found is not None
+
+
 async def _snapshot(run_id: int) -> dict[str, Any] | None:
     async with sessionmaker()() as s:
-        run = (await s.execute(select(SourcingRun).where(SourcingRun.id == run_id))).scalar_one_or_none()
+        run = (await s.execute(select(SourcingRun).where(SourcingRun.id == run_id, not_system_filter()))).scalar_one_or_none()
         if run is None:
             return None
         states = {st: n for st, n in (await s.execute(select(SourcingJob.state, func.count()).where(SourcingJob.run_id == run_id).group_by(SourcingJob.state))).all()}
         done_1m = (await s.execute(text("SELECT count(*) FROM sourcing_jobs WHERE run_id=:r AND state='done' AND finished_at > now() - interval '1 minute'"), {"r": run_id})).scalar_one()
         yield_1m = (await s.execute(text("SELECT count(*) FROM run_yield WHERE run_id=:r AND created_at > now() - interval '1 minute'"), {"r": run_id})).scalar_one()
         qy = int((await s.execute(text("SELECT count(*) FROM run_yield WHERE run_id=:r"), {"r": run_id})).scalar_one())
+    # leaving the block closed the session: transaction ended, connection back in the pool before the next sleep
     c = dict(run.counters or {})
     prog = int(c.get("progress", qy if run.target_definition not in YIELD_BASED_NOT else 0))
     return {
@@ -679,50 +780,72 @@ async def _snapshot(run_id: int) -> dict[str, Any] | None:
     }
 
 
-@router.get("/{run_id}/events", response_class=StreamingResponse, responses={200: {"content": {"text/event-stream": {}}, "description": "Server-sent events: `snapshot` every interval, `: heartbeat` comments"}})
+@sse_router.get("/{run_id}/events", response_class=StreamingResponse, responses={200: {"content": {"text/event-stream": {}}, "description": "Server-sent events: `snapshot` every interval, `: heartbeat` comments"}})
 async def run_events(
     run_id: int, request: Request, interval: float = Query(2.0, ge=0.2, le=30), max_events: int | None = Query(None, ge=1, le=100000, description="Close after N snapshots (default: until the client disconnects or the run ends)"),
-    _user: User = Depends(sse_user),
+    user: User = Depends(sse_user),
 ):
+    """Live run progress. Authenticated with a short-lived DB session; every snapshot uses its own short session, so an
+    open stream holds no database connection between snapshots. At most ``sse_max_streams_per_user`` streams per user and
+    ``sse_max_streams`` per API process; the viewer's session is re-validated every few snapshots (revoked => stream ends)."""
+    settings: Settings = app_settings(request)
     async with sessionmaker()() as s:
-        exists = (await s.execute(select(SourcingRun.id).where(SourcingRun.id == run_id))).scalar_one_or_none()
+        exists = (await s.execute(select(SourcingRun.id).where(SourcingRun.id == run_id, not_system_filter()))).scalar_one_or_none()
     if exists is None:
         raise ApiError(404, "not_found", "Run not found.")
+    if not SSE_SLOTS.acquire(user.id, settings.sse_max_streams_per_user, settings.sse_max_streams):
+        raise ApiError(429, "too_many_streams", "Too many live views are open. Close other run tabs and try again.", headers={"Retry-After": "10"})
+    token = request.cookies.get(SESSION_COOKIE)
+    released = False
+
+    def release() -> None:
+        nonlocal released
+        if not released:
+            released = True
+            SSE_SLOTS.release(user.id)
 
     async def gen():
-        sent = 0
-        last_hb = asyncio.get_event_loop().time()
-        yield "retry: 3000\n\n"
-        while True:
-            if await request.is_disconnected():
-                return
-            try:
-                snap = await _snapshot(run_id)
-            except Exception:
-                log.exception("sse snapshot failed")
-                yield "event: error\ndata: {\"message\": \"snapshot failed\"}\n\n"
-                return
-            if snap is None:
-                yield "event: closed\ndata: {\"reason\": \"run_deleted\"}\n\n"
-                return
-            yield f"event: snapshot\nid: {sent}\ndata: {json.dumps(snap, default=str)}\n\n"
-            sent += 1
-            if max_events and sent >= max_events:
-                return
-            if snap["status"] in ("completed", "failed", "cancelled", "archived") and sent > 1:
-                yield "event: closed\ndata: {\"reason\": \"run_finished\"}\n\n"
-                return
-            waited = 0.0
-            while waited < interval:
-                step = min(0.5, interval - waited)
-                await asyncio.sleep(step)
-                waited += step
+        try:
+            sent = 0
+            last_hb = asyncio.get_running_loop().time()
+            yield "retry: 3000\n\n"
+            while True:
                 if await request.is_disconnected():
                     return
-            now = asyncio.get_event_loop().time()
-            if now - last_hb > 15:
-                yield ": heartbeat\n\n"
-                last_hb = now
+                if sent and sent % SSE_REVALIDATE_EVERY == 0 and not await _session_still_valid(token):
+                    yield "event: closed\ndata: {\"reason\": \"session_ended\"}\n\n"
+                    return
+                try:
+                    snap = await _snapshot(run_id)
+                except Exception:
+                    log.exception("sse snapshot failed")
+                    yield "event: error\ndata: {\"message\": \"snapshot failed\"}\n\n"
+                    return
+                if snap is None:
+                    yield "event: closed\ndata: {\"reason\": \"run_deleted\"}\n\n"
+                    return
+                yield f"event: snapshot\nid: {sent}\ndata: {json.dumps(snap, default=str)}\n\n"
+                sent += 1
+                if max_events and sent >= max_events:
+                    return
+                if snap["status"] in ("completed", "failed", "cancelled", "archived") and sent > 1:
+                    yield "event: closed\ndata: {\"reason\": \"run_finished\"}\n\n"
+                    return
+                waited = 0.0
+                while waited < interval:
+                    step = min(0.5, interval - waited)
+                    await asyncio.sleep(step)
+                    waited += step
+                    if await request.is_disconnected():
+                        return
+                now = asyncio.get_running_loop().time()
+                if now - last_hb > 15:
+                    yield ": heartbeat\n\n"
+                    last_hb = now
+        finally:
+            release()
 
-    return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
+    from starlette.background import BackgroundTask
 
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+                             background=BackgroundTask(release))

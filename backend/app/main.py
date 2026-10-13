@@ -18,11 +18,16 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import metrics
 from .bootstrap import ensure_initial_admin
-from .config import Settings, get_settings
+from .config import Settings, ensure_secret_key, get_settings
 from .db import dispose_engine, sessionmaker
 from .logging_setup import mask_pii, setup_logging
-from .middleware import MaintenanceMiddleware, RateLimitMiddleware, RequestContextMiddleware
-from .security import ApiError, SlidingWindowLimiter
+from .middleware import (
+    BodySizeLimitMiddleware,
+    MaintenanceMiddleware,
+    RateLimitMiddleware,
+    RequestContextMiddleware,
+)
+from .security import SESSION_COOKIE, ApiError, SlidingWindowLimiter, resolve_session
 
 log = logging.getLogger("api")
 
@@ -51,10 +56,10 @@ class WorkerSummary(BaseModel):
 
 class ReadyOut(BaseModel):
     ready: bool
-    database: bool
-    migration: dict[str, Any]
-    workers: WorkerSummary
-    maintenance: bool = False
+    database: bool | None = None
+    migration: dict[str, Any] | None = None
+    workers: WorkerSummary | None = None
+    maintenance: bool | None = None
 
 
 def _err(status: int, code: str, message: str, detail: Any = None, headers: dict[str, str] | None = None) -> JSONResponse:
@@ -78,12 +83,10 @@ def _alembic_head() -> str | None:
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    settings = settings or get_settings()
-    if settings.env == "production":
-        if settings.secret_key.startswith("change-me") or len(settings.secret_key) < 32:
-            raise RuntimeError("LEAD_SECRET_KEY must be set to a unique value of at least 32 characters in production")
-        if not settings.cookie_secure:
-            log.warning("LEAD_COOKIE_SECURE is false in production: session cookies will be sent over plain HTTP")
+    settings = ensure_secret_key(settings or get_settings())  # production + default/short key -> RuntimeError
+    production = settings.env == "production"
+    if production and not settings.cookie_secure:
+        raise RuntimeError("LEAD_COOKIE_SECURE must be true in production (session cookies must never travel over plain HTTP)")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -101,13 +104,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version="1.0.0",
         description="REST API for the lead-intelligence platform (auth, runs, businesses, contacts, verification, exports).",
         lifespan=lifespan,
-        docs_url="/api/docs",
-        redoc_url="/api/redoc",
-        openapi_url="/api/openapi.json",
+        # interactive docs and the schema are not served in production (scripts/dump_openapi.py builds it offline)
+        docs_url=None if production else "/api/docs",
+        redoc_url=None if production else "/api/redoc",
+        openapi_url=None if production else "/api/openapi.json",
         generate_unique_id_function=lambda route: route.name,
     )
     app.state.settings = settings
     app.state.login_limiter = SlidingWindowLimiter(settings.login_rate_limit_per_minute)
+    # targeted guessing against one account from one address is throttled harder than the per-address limit
+    app.state.login_account_limiter = SlidingWindowLimiter(max(3, settings.login_rate_limit_per_minute // 2))
     app.state.api_limiter = SlidingWindowLimiter(settings.rate_limit_per_minute)
 
     # ---- middleware (last added = outermost)
@@ -123,6 +129,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         expose_headers=["X-Request-ID", "Content-Disposition"],
         max_age=600,
     )
+    app.add_middleware(BodySizeLimitMiddleware, json_limit=settings.max_json_body_kb * 1024,
+                       upload_limit=settings.max_upload_mb * 1024 * 1024 + 1024 * 1024)  # + multipart framing
     app.add_middleware(RequestContextMiddleware, settings=settings)
 
     # ---- error handlers
@@ -162,7 +170,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return LivenessOut(status="ok")
 
     @app.get("/readyz", response_model=ReadyOut, tags=["ops"])
-    async def readyz(response: Response) -> ReadyOut:
+    async def readyz(request: Request, response: Response) -> ReadyOut:
+        """Readiness. In production an anonymous caller only learns ``ready``; details need a signed-in session."""
         db_ok, current = False, None
         alive = stale = 0
         last_seen = None
@@ -191,6 +200,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         ready = db_ok and mig_ok
         if not ready:
             response.status_code = 503
+        if production:
+            authed = False
+            token = request.cookies.get(SESSION_COOKIE)
+            if token and db_ok:
+                try:
+                    async with sessionmaker()() as s:
+                        authed = await resolve_session(s, token) is not None
+                except Exception:
+                    authed = False
+            if not authed:
+                return ReadyOut(ready=ready)
         return ReadyOut(
             ready=ready, database=db_ok, migration={"current": current, "head": head, "ok": mig_ok},
             workers=WorkerSummary(alive=alive, stale=stale, last_seen_seconds_ago=last_seen), maintenance=maint,
@@ -210,6 +230,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for name in ROUTER_MODULES:
         mod = importlib.import_module(f"app.api.{name}")
         app.include_router(mod.router)
+        for extra in getattr(mod, "extra_routers", ()):
+            app.include_router(extra)
     return app
 
 

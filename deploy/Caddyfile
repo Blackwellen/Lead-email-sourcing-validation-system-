@@ -9,6 +9,10 @@
 	}
 	@api path /api/* /healthz /readyz
 	handle @api {
+		# refuse oversized bodies at the edge (uploads are capped at LEAD_MAX_UPLOAD_MB=50 by the API as well)
+		request_body {
+			max_size 60MB
+		}
 		reverse_proxy api:8000 {
 			flush_interval -1   # needed for Server-Sent Events
 		}

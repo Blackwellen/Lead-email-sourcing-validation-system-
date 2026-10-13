@@ -14,6 +14,14 @@ npm run test:e2e     # Playwright (starts/reuses `npm run dev`; backend NOT requ
 `/api/*` and `/healthz` are proxied to `BACKEND_URL` by `rewrites()` in `next.config.ts`. **The value is baked in at `next build`**: Next writes the rewrites into `.next/routes-manifest.json`, and `next start` / the standalone `server.js` read only that manifest. Changing `BACKEND_URL` on a running production server or container does nothing – rebuild (`BACKEND_URL=http://host:port npm run build`, or `docker build --build-arg BACKEND_URL=…`). The Dockerfile's `ARG BACKEND_URL` (default `http://api:8000`, as used by docker-compose) exists for this reason. In `npm run dev` the value is re-read on every restart.
 
 Dev-only visual QA page: **/design** (every primitive, 404 in production builds).
+Discovery e2e (`e2e/disc-*.spec.ts`, `e2e/security-headers.spec.ts`) run against a REAL backend on DB `lead_fe_d` (API :8104) and a production build (:3104), synthetic example.com fixtures only:
+```bash
+e2e/support/disc-backend.sh setup && e2e/support/disc-backend.sh start     # create/migrate/seed DB, users, disc_seed.py; uvicorn :8104
+BACKEND_URL=http://localhost:8104 npx next build && npx next start -p 3104
+E2E_BASE_URL=http://localhost:3104 E2E_NO_SERVER=1 npx playwright test --workers=1 e2e/disc-*.spec.ts e2e/security-headers.spec.ts
+```
+The older suites can share that backend: `E2E_API=http://localhost:8104 E2E_OPS_DB=lead_fe_d E2E_BIZ_DB=lead_fe_d` (ops/biz helpers default to their own DBs), after loading their fixtures (`biz_seed.py`, `ops-seed.sql`). Counts asserted by some biz/ops tests assume their dedicated DB.
+
 Optional auth e2e: `E2E_ADMIN_EMAIL=… E2E_ADMIN_PASSWORD=… npx playwright test e2e/auth.spec.ts` (needs backend + admin created with `python -m app.cli create-admin`).
 
 ## Layout
@@ -115,6 +123,14 @@ Format helpers (`lib/format.ts`): `formatNumber(n,{approximate,compact})`, `form
 ## Charts
 
 Wrap every Recharts chart in `ChartCard` with an accessible `title`, a `table` fallback (toggle + screen-reader table) and use `chartColor(i)` in order (8 colours, theme-aware, restrained). Don't encode meaning in colour only – add legends/labels. Spread `chartAxisProps`, `chartGridProps`, `chartTooltipStyle` for consistent theming.
+
+## Discovery pages
+
+`components/discovery/**`: `explorer/` (DASH-015 Source Explorer + drawer: configure form derived from the requirements text – the API has no config schema – secrets write-only), `overview/` (DASH-016: overview, effectiveness, scheduler, monitors, similar finder), `network/` (DASH-017: deterministic radial+relaxation SVG layout in `layout.ts`, ≤300 nodes, keyboard roving focus, relationships DataTable fallback), `signals/` (DASH-018), `quality/` (DASH-019 workbench; `idFor()` maps a row to the id each action expects), `completeness-panel.tsx` (also on the business detail page). Shared bits in `shared.tsx`: `NotEnoughData`/`Measured` (render API `null` as "— not enough data", never an estimate), `TriStateBadge` (yes / "No – researched" / in progress / "Not researched yet" – unknown is neutral, never styled like "no"), relation colours + dash patterns + codes, `OrgCombobox`.
+
+## Security headers
+
+`next.config.ts` sends a CSP on every page: `default-src 'self'`, `script-src 'self' 'unsafe-inline'` (App Router inline RSC payload + theme init script; no `unsafe-eval` in production – Zod runs `jitless`, see `app/providers.tsx`), `style-src 'self' 'unsafe-inline'`, `img-src 'self' data: blob:`, `connect-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'`, plus `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`. `?next=` redirects go through `safeNext` (lib/utils.ts): single leading `/`, no backslashes or control characters, resolved against the current origin and required to stay on it.
 
 ## Theming
 

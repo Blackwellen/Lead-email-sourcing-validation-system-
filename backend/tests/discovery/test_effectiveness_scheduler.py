@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import json
 
 import pytest
 from sqlalchemy import select, text
@@ -293,14 +294,13 @@ async def test_fairness_no_starvation_simulation(session):
 
 
 async def test_rebalance_enforces_quotas(session):
+    # quotas are measured in source RECORDS delivered (source_effectiveness.records_seen), exactly like the discover QuotaGuard
     rid = await _make_run(session, source_quotas={"csv_import": 3}, overall_max_work=100)
     await _jobs(session, rid, "csv_import", 10, 50)
     await _jobs(session, rid, "companies_house_bulk", 10, 50)
-    for _ in range(3):
-        await session.execute(text("UPDATE sourcing_jobs SET state='done' WHERE id=(SELECT id FROM sourcing_jobs WHERE run_id=:r AND state='queued' "
-                                   "AND payload->>'adapter_id'='csv_import' LIMIT 1)"), {"r": rid})
+    await record_effect(session, "csv_import", rid, records_seen=3)
     res = await rebalance(session, rid)
-    assert res.cancelled == {"csv_import": 7}
+    assert res.cancelled == {"csv_import": 10}
     left = (await session.execute(text("select count(*) from sourcing_jobs where run_id=:r and state='queued' and payload->>'adapter_id'='csv_import'"),
                                   {"r": rid})).scalar_one()
     assert left == 0
@@ -308,7 +308,35 @@ async def test_rebalance_enforces_quotas(session):
     await _jobs(session, rid3, "csv_import", 6, 50)
     await session.execute(text("UPDATE sourcing_jobs SET state='done' WHERE id IN (SELECT id FROM sourcing_jobs WHERE run_id=:r LIMIT 4)"), {"r": rid3})
     res = await rebalance(session, rid3)
+    assert res.cancelled == {}  # finished jobs are not records: nothing delivered yet
+    await record_effect(session, "csv_import", rid3, records_seen=4)
+    res = await rebalance(session, rid3)
     assert res.cancelled == {"csv_import": 2}
+
+
+async def test_rebalance_quota_never_cancels_downstream_work(session):
+    """Regression (repro_q): discover delivered exactly the overall quota; the resolve / verify work for those records is attributed
+    to the adapter via payload.source_adapter but must NOT count as quota work and must NOT be cancelled."""
+    rid = await _make_run(session, overall_max_work=50)
+    ins = "INSERT INTO sourcing_jobs (run_id, stage, dedupe_key, payload, priority, state) VALUES (:r,:st,:k,CAST(:p AS jsonb),50,:state)"
+    await session.execute(text(ins), {"r": rid, "st": "discover", "k": "adapter:csv_import", "p": '{"adapter_id":"csv_import"}', "state": "done"})
+    await session.execute(text(ins), {"r": rid, "st": "discover", "k": "adapter:csv_import:2", "p": '{"adapter_id":"csv_import"}', "state": "queued"})
+    for i in range(50):
+        await session.execute(text(ins), {"r": rid, "st": "resolve_domain", "k": f"org:{i}", "p": json.dumps({"organisation_id": i, "source_adapter": "csv_import"}),
+                                          "state": "done" if i < 49 else "queued"})
+    for i in range(30):
+        await session.execute(text(ins), {"r": rid, "st": "verify", "k": f"email:{i}", "p": json.dumps({"email_id": i, "source_adapter": "csv_import"}), "state": "queued"})
+    await record_effect(session, "csv_import", rid, records_seen=50)
+    res = await rebalance(session, rid)
+    assert res.cancelled == {"csv_import": 1}  # only the queued DISCOVER job
+    st = dict((await session.execute(text("SELECT stage||':'||state, count(*) FROM sourcing_jobs WHERE run_id=:r GROUP BY 1"), {"r": rid})).all())
+    assert st["verify:queued"] == 30 and st["resolve_domain:queued"] == 1 and st["discover:cancelled"] == 1
+    # under quota: nothing cancelled at all
+    rid2 = await _make_run(session, overall_max_work=500)
+    for i in range(5):
+        await session.execute(text(ins), {"r": rid2, "st": "verify", "k": f"email:{i}", "p": json.dumps({"email_id": i, "source_adapter": "csv_import"}), "state": "done"})
+    await session.execute(text(ins), {"r": rid2, "st": "verify", "k": "email:x", "p": '{"email_id":99,"source_adapter":"csv_import"}', "state": "queued"})
+    assert (await rebalance(session, rid2)).cancelled == {}
 
 
 # --------------------------------------------------------------------------- skip duplicates

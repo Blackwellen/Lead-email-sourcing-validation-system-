@@ -84,7 +84,7 @@ async def test_migrate_creates_schema_from_scratch():
 
         from app.main import create_app
 
-        app = create_app(build_app().state.settings.model_copy(update={"database_url": url, "env": "production"}))
+        app = create_app(build_app().state.settings.model_copy(update={"database_url": url, "env": "production", "cookie_secure": True}))
         from app import db
 
         await db.dispose_engine()
@@ -96,7 +96,8 @@ async def test_migrate_creates_schema_from_scratch():
         try:
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://t") as c:
                 j = (await c.get("/readyz")).json()
-            assert j["ready"] is True and j["migration"]["current"] == j["migration"]["head"] == ver
+            # production: 'ready' requires the DB at the migration head; anonymous callers get no internal detail
+            assert j["ready"] is True and j["migration"] is None and j["workers"] is None
         finally:
             os.environ["LEAD_DATABASE_URL"] = old
             get_settings.cache_clear()

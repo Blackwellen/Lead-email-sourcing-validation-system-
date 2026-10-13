@@ -207,6 +207,38 @@ def _page_reg(url: str) -> str | None:
 
 _ORIGIN_RANK = {"role_speculative": 0, "pattern_inferred": 1, "published": 2, "corroborated": 3}
 
+# --------------------------------------------------------------------------- "live" evidence
+# Evidence that the address is published TODAY: a current (non-archived) observation that is not a speculative permutation.
+# Common Crawl archive rows (``historical``) and permutation guesses (``evidence_type='permutation'``) never count as live.
+NON_LIVE_EVIDENCE_TYPES = ("permutation",)
+
+
+def live_evidence_sql(email_col: str = "e.id") -> str:
+    """SQL ``EXISTS`` fragment: the address has at least one live (non-historical, non-permutation) evidence row."""
+    return (f"EXISTS (SELECT 1 FROM contact_evidence lce JOIN evidence_sources les ON les.id = lce.evidence_id "
+            f"WHERE lce.email_id = {email_col} AND NOT les.historical AND les.evidence_type <> 'permutation')")
+
+
+def nonlive_evidence_sql(email_col: str = "e.id") -> str:
+    """SQL ``EXISTS`` fragment: the address has archive-only or speculative (permutation) evidence."""
+    return (f"EXISTS (SELECT 1 FROM contact_evidence nce JOIN evidence_sources nes ON nes.id = nce.evidence_id "
+            f"WHERE nce.email_id = {email_col} AND (nes.historical OR nes.evidence_type = 'permutation'))")
+
+
+def live_evidence_exists(email_id_col):
+    """SQLAlchemy ``EXISTS`` twin of :func:`live_evidence_sql`."""
+    from sqlalchemy import exists
+
+    return exists().where(ContactEvidence.email_id == email_id_col, ContactEvidence.evidence_id == EvidenceSource.id,
+                          EvidenceSource.historical.is_(False), EvidenceSource.evidence_type.not_in(NON_LIVE_EVIDENCE_TYPES))
+
+
+def nonlive_evidence_exists(email_id_col):
+    from sqlalchemy import exists, or_
+
+    return exists().where(ContactEvidence.email_id == email_id_col, ContactEvidence.evidence_id == EvidenceSource.id,
+                          or_(EvidenceSource.historical.is_(True), EvidenceSource.evidence_type.in_(NON_LIVE_EVIDENCE_TYPES)))
+
 
 async def persist_observations(
     session: AsyncSession,
@@ -218,9 +250,19 @@ async def persist_observations(
     source_adapter: str = "website_crawl",
     licence: str | None = None,
     now: datetime | None = None,
+    archived_at: datetime | None = None,
 ) -> list[tuple[int, bool]]:
-    """Upsert addresses, contacts and evidence. Returns ``[(email_id, created), ...]`` (one per address)."""
+    """Upsert addresses, contacts and evidence. Returns ``[(email_id, created), ...]`` (one per address).
+
+    ``archived_at`` marks the observations as ARCHIVED (e.g. Common Crawl capture time): a new address gets
+    ``first_seen_at = last_seen_at = archived_at``; an existing address is never upgraded in origin (an archive cannot
+    turn a speculative guess into a published address), its ``last_seen_at`` is not bumped and existing evidence context
+    (e.g. a live confirmation) is kept.
+
+    ``contact_evidence.run_id`` keeps the run that FIRST recorded that (address, evidence, method); later runs that re-observe
+    it are attributed through ``run_yield`` instead (see ``exports.filter_conditions``)."""
     now = now or datetime.now(UTC)
+    archive = archived_at is not None
     # ---- the organisation's own domains
     own_regs: set[str] = set()
     if domain_row is not None and domain_row.registrable_domain:
@@ -314,6 +356,8 @@ async def persist_observations(
             origin, needs_review = "published", False  # published by the organisation itself on its own page
         else:
             origin, needs_review = "published", True  # third-party domain, single source: flagged, low reliability
+        if archive:  # archived pages never corroborate each other; an archive-only address always needs review
+            origin, needs_review = "published", True
         role = classify_role(local)
         free = is_free_provider(dom)
         primary = sorted(obs, key=lambda o: -_BASE_RELIABILITY.get(o.method, 0.5))[0]
@@ -352,7 +396,7 @@ async def persist_observations(
             "organisation_id": org_id, "contact_id": contact_id, "email_original": original[:320], "email_normalised": ne,
             "local_part": local[:200], "domain": dom[:255], "registrable_domain": ereg[:255],
             "source_type": primary.method, "origin": origin, "role_type": role, "is_free_provider": free,
-            "needs_review": needs_review, "first_seen_at": now, "last_seen_at": now,
+            "needs_review": needs_review, "first_seen_at": archived_at or now, "last_seen_at": archived_at or now,
         }
         istmt = pg_insert(EmailAddress).values(**vals).on_conflict_do_nothing(index_elements=["email_normalised"]).returning(EmailAddress.id)
         new_id = (await session.execute(istmt)).scalar_one_or_none()
@@ -364,8 +408,8 @@ async def persist_observations(
             if ex is None:
                 ex = (await session.execute(select(EmailAddress).where(EmailAddress.email_normalised == ne))).scalar_one()
             email_id = ex.id
-            upd: dict = {"last_seen_at": now}
-            if _ORIGIN_RANK.get(origin, 0) > _ORIGIN_RANK.get(ex.origin, 0):
+            upd: dict = {"first_seen_at": func.least(EmailAddress.first_seen_at, archived_at)} if archive else {"last_seen_at": now}
+            if not archive and _ORIGIN_RANK.get(origin, 0) > _ORIGIN_RANK.get(ex.origin, 0):
                 upd["origin"] = origin
                 if origin == "corroborated":
                     upd["needs_review"] = False
@@ -391,8 +435,10 @@ async def persist_observations(
                 cev = cev.on_conflict_do_update(
                     constraint="uq_contact_evidence",
                     set_={
-                        "observed_at": now, "context": ctx,
-                        "run_id": func.coalesce(cev.excluded.run_id, ContactEvidence.run_id),
+                        "observed_at": now,
+                        # archive re-observation: existing keys (unconfirmed / confirmed_live_at ...) win over the new context
+                        "context": cev.excluded.context.op("||")(func.coalesce(ContactEvidence.context, cev.excluded.context)) if archive else ctx,
+                        "run_id": func.coalesce(ContactEvidence.run_id, cev.excluded.run_id),
                         "contact_id": func.coalesce(ContactEvidence.contact_id, cev.excluded.contact_id),
                     })
                 await session.execute(cev)

@@ -53,11 +53,12 @@ async def start_run(s: AsyncSession, run_id: int) -> SourcingRun:
     run = await _get(s, run_id)
     if run.status not in ("draft", "scheduled", "failed", "queued"):
         raise RunStateError(f"cannot start a run in state {run.status}")
-    cfg = RunConfig.model_validate(run.configuration_snapshot)
+    cfg = RunConfig.from_snapshot(run.configuration_snapshot)
     run.status = "running"
     run.started_at = run.started_at or datetime.now(UTC)
     run.finished_at = None
     run.stop_reason = None
+    await s.flush()  # jq.enqueue refuses work for runs that are not live: the new status must be visible to it
     await seed_initial_jobs(s, run, cfg)
     await s.flush()
     return run
@@ -88,8 +89,23 @@ async def resume_run(s: AsyncSession, run_id: int) -> SourcingRun:
     if run.status != "paused":
         raise RunStateError(f"cannot resume a run in state {run.status}")
     run.status = "running"
-    run.paused_at = None
+    await _account_paused(s, run)
     return run
+
+
+async def _account_paused(s: AsyncSession, run: SourcingRun) -> None:
+    """Active-runtime accounting (max_runtime_minutes ignores time spent paused): fold the pause into counters.paused_seconds."""
+    if run.paused_at is None:
+        return
+    paused = max(0.0, (datetime.now(UTC) - run.paused_at).total_seconds())
+    c = dict(run.counters or {})
+    if "companies" not in c:  # readers treat counters as the computed snapshot once non-empty: keep it complete
+        c = {**(await compute_counters(s, run.id)), **c}
+        c["progress"] = progress_value(run.target_definition, c)
+        c["target"] = run.target_count
+    c["paused_seconds"] = round(float(c.get("paused_seconds", 0) or 0) + paused, 1)
+    run.counters = c
+    run.paused_at = None
 
 
 async def stop_run(s: AsyncSession, run_id: int, reason: str = "stopped_by_user") -> SourcingRun:
@@ -98,10 +114,17 @@ async def stop_run(s: AsyncSession, run_id: int, reason: str = "stopped_by_user"
     run = await _get(s, run_id)
     if run.status in TERMINAL or run.status in ("draft",):
         raise RunStateError(f"cannot stop a run in state {run.status}")
+    if run.status == "paused":
+        await _account_paused(s, run)
     run.status = "stopping"
     run.stop_reason = run.stop_reason or reason
-    await s.execute(text("UPDATE sourcing_jobs SET state='cancelled', finished_at=now() WHERE run_id=:r AND state IN ('queued')"), {"r": run_id})
+    await cancel_queued(s, run_id)
     return run
+
+
+async def cancel_queued(s: AsyncSession, run_id: int) -> int:
+    r = await s.execute(text("UPDATE sourcing_jobs SET state='cancelled', finished_at=now() WHERE run_id=:r AND state='queued'"), {"r": run_id})
+    return r.rowcount or 0
 
 
 async def retry_failed(s: AsyncSession, run_id: int) -> int:
@@ -124,31 +147,39 @@ async def archive_run(s: AsyncSession, run_id: int) -> SourcingRun:
 
 async def duplicate_run(s: AsyncSession, run_id: int, user_id: int | None) -> SourcingRun:
     src = await _get(s, run_id, for_update=False)
-    cfg = RunConfig.model_validate(src.configuration_snapshot)
+    cfg = RunConfig.from_snapshot(src.configuration_snapshot)
     cfg.name = f"{cfg.name} (copy)"[:200]
     return await create_run(s, cfg, user_id=user_id, status="draft")
 
 
 # ---------------------------------------------------------------- yield counting
+PUBLISHED_ORIGINS = ("published", "corroborated")
+
+
 async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
     """Count an email toward the run if it satisfies the run's qualification rules.
 
-    Uniqueness is enforced by UNIQUE(run_id, unique_key) so concurrent workers can never double count.
-    Returns True when the email was newly counted.
+    Uniqueness is enforced by UNIQUE(run_id, unique_key) so concurrent workers can never double count; the per-company cap
+    is serialised per (run, organisation) with a transaction-scoped advisory lock. Returns True when the email was newly counted.
+
+    "Published" always means origin published/corroborated WITH live evidence: an address whose only evidence is archived
+    (Common Crawl) or speculative (a permutation guess) is never counted as published.
     """
+    from .pipeline.ingest import live_evidence_sql, nonlive_evidence_sql
+
     run = await _get(s, run_id, for_update=False)
-    cfg = RunConfig.model_validate(run.configuration_snapshot)
+    cfg = RunConfig.from_snapshot(run.configuration_snapshot)
     t = cfg.target
     row = (
         await s.execute(
             text(
-                """SELECT e.id, e.organisation_id, e.registrable_domain, e.email_normalised, e.origin, e.role_type, e.confidence,
+                f"""SELECT e.id, e.organisation_id, e.registrable_domain, e.email_normalised, e.origin, e.role_type, e.confidence,
                           e.overall_reachability, e.catch_all_status, e.recipient_evidence_status, e.is_free_provider, e.is_disposable,
                           e.previously_bounced, e.suppressed_at, e.marketing_status, e.syntax_status, e.domain_mail_status, e.contact_id,
                           EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id = ce.evidence_id
                                   WHERE ce.email_id = e.id AND es.historical) AS has_historical,
-                          EXISTS (SELECT 1 FROM contact_evidence ce JOIN evidence_sources es ON es.id = ce.evidence_id
-                                  WHERE ce.email_id = e.id AND NOT es.historical) AS has_live
+                          {live_evidence_sql("e.id")} AS has_live,
+                          {nonlive_evidence_sql("e.id")} AS has_nonlive
                    FROM email_addresses e WHERE e.id=:id"""
             ),
             {"id": email_id},
@@ -160,9 +191,15 @@ async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
         return False
     if row["has_historical"] and not row["has_live"]:
         return False  # archived (Common Crawl) evidence only: unconfirmed until a live crawl re-observes the address
-    if t.published_only and row["origin"] not in ("published", "corroborated"):
+    origin = row["origin"]
+    if origin in PUBLISHED_ORIGINS and row["has_nonlive"] and not row["has_live"]:
+        origin = "role_speculative"  # only speculative (permutation) evidence: it is a guess, whatever the stored origin says
+    published = origin in PUBLISHED_ORIGINS
+    if t.definition.value == "distinct_published_emails" and not published:
+        return False  # the definition itself is "published e-mails" (independent of published_only / allow_inferred)
+    if t.published_only and not published:
         return False
-    if not t.allow_inferred and row["origin"] in ("pattern_inferred", "role_speculative"):
+    if not t.allow_inferred and origin in ("pattern_inferred", "role_speculative"):
         return False
     if t.contact_type == "named" and row["contact_id"] is None:
         return False
@@ -194,8 +231,11 @@ async def record_yield(s: AsyncSession, run_id: int, email_id: int) -> bool:
     elif t.definition.value == "business_email_pairs":
         key = f"pair:{row['organisation_id']}:{row['email_normalised']}"
 
-    # per-company cap (only meaningful when several emails per company may count)
+    # per-company cap (only meaningful when several emails per company may count): count + insert under a per (run, org) lock so
+    # two workers cannot both see "cap - 1" and both insert
     if t.uniqueness.value == "email" and t.definition.value not in ("distinct_email_domains",):
+        await s.execute(text("SELECT pg_advisory_xact_lock(CAST(:r % 2147483647 AS int), CAST(:o % 2147483647 AS int))"),
+                        {"r": run_id, "o": row["organisation_id"] or 0})
         n = (await s.execute(text("SELECT count(*) FROM run_yield WHERE run_id=:r AND organisation_id=:o"), {"r": run_id, "o": row["organisation_id"]})).scalar_one()
         if n >= t.max_contacts_per_company:
             return False
@@ -245,36 +285,54 @@ async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
     if (run.configuration_snapshot or {}).get("system"):
         return None  # hidden system runs (refresh / verification batches / exports) never auto-complete
     c = await compute_counters(s, run_id)
-    cfg = RunConfig.model_validate(run.configuration_snapshot)
+    cfg = RunConfig.from_snapshot(run.configuration_snapshot)
     c["progress"] = progress_value(run.target_definition, c)
     c["target"] = run.target_count
     prev = run.counters or {}
-    if "gap_yield" in prev:  # written by the gap-recovery stage (marginal-yield memory); not a computed counter
-        c["gap_yield"] = prev["gap_yield"]
+    for k in PRESERVED_COUNTERS:  # written by other stages / lifecycle transitions; not computed here
+        if k in prev:
+            c[k] = prev[k]
     run.counters = c
     changed = None
     now = datetime.now(UTC)
     if run.status == "running":
         if c["progress"] >= run.target_count:
             run.status, run.stop_reason = "stopping", "target_reached"
-            await s.execute(text("UPDATE sourcing_jobs SET state='cancelled', finished_at=now() WHERE run_id=:r AND state='queued'"), {"r": run_id})
+            await cancel_queued(s, run_id)
             changed = "stopping"
-        elif cfg.target.max_runtime_minutes and run.started_at and (now - run.started_at).total_seconds() > cfg.target.max_runtime_minutes * 60:
+        elif cfg.target.max_runtime_minutes and run.started_at and active_runtime_s(run, now) > cfg.target.max_runtime_minutes * 60:
             run.status, run.stop_reason = "stopping", "max_runtime"
-            await s.execute(text("UPDATE sourcing_jobs SET state='cancelled', finished_at=now() WHERE run_id=:r AND state='queued'"), {"r": run_id})
+            await cancel_queued(s, run_id)
             changed = "stopping"
         elif cfg.target.max_work_jobs and (c["q_done"] + c["q_failed"]) >= cfg.target.max_work_jobs:
             run.status, run.stop_reason = "stopping", "work_budget"
-            await s.execute(text("UPDATE sourcing_jobs SET state='cancelled', finished_at=now() WHERE run_id=:r AND state='queued'"), {"r": run_id})
+            await cancel_queued(s, run_id)
             changed = "stopping"
         elif c["q_queued"] == 0 and c["q_leased"] == 0:
             run.status, run.finished_at = "completed", now
             run.stop_reason = "sources_exhausted" if c["progress"] < run.target_count else "target_reached"
             changed = "completed"
     if run.status == "stopping" and c["q_leased"] == 0:
+        # children enqueued by jobs that were still in flight when the run stopped are cancelled too (jq.enqueue already refuses
+        # new work for a stopping run; this sweeps anything that raced the status change)
+        await cancel_queued(s, run_id)
         run.status, run.finished_at = "completed", now
         changed = "completed"
     return changed
+
+
+PRESERVED_COUNTERS = ("gap_yield", "paused_seconds")
+
+
+def active_runtime_s(run: SourcingRun, now: datetime | None = None) -> float:
+    """Seconds the run has actually been running: wall time since start minus accumulated (and current) paused time."""
+    now = now or datetime.now(UTC)
+    if run.started_at is None:
+        return 0.0
+    paused = float((run.counters or {}).get("paused_seconds", 0) or 0)
+    if run.paused_at is not None:
+        paused += max(0.0, (now - run.paused_at).total_seconds())
+    return max(0.0, (now - run.started_at).total_seconds() - paused)
 
 
 async def start_due_scheduled(s: AsyncSession) -> list[int]:
@@ -291,5 +349,8 @@ async def run_is_active(s: AsyncSession, run_id: int | None) -> bool:
     return st == "running"
 
 
-async def active_run_ids(s: AsyncSession) -> list[int]:
-    return list((await s.execute(select(SourcingRun.id).where(SourcingRun.status.in_(("running", "stopping"))))).scalars().all())
+async def active_run_ids(s: AsyncSession, *, include_system: bool = True) -> list[int]:
+    q = select(SourcingRun.id).where(SourcingRun.status.in_(("running", "stopping")))
+    if not include_system:
+        q = q.where(SourcingRun.configuration_snapshot["system"].astext.is_distinct_from("true"))
+    return list((await s.execute(q.order_by(SourcingRun.id))).scalars().all())

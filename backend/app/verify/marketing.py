@@ -52,7 +52,10 @@ def effective_policy(settings: Any, country: str | None) -> dict[str, Any]:
     group = "GB" if cc in UK_CODES else ("EU" if cc in EU_EEA_CH else "default")
     key = cc if cc in custom else group
     base = dict(DEFAULT_MARKETING_POLICY.get(key, DEFAULT_MARKETING_POLICY.get(group, DEFAULT_MARKETING_POLICY["default"])))
-    base.update(custom.get(key, {}) or {})
+    row = custom.get(key, {}) or {}
+    if hasattr(row, "model_dump"):
+        row = row.model_dump()
+    base.update(row)
     return base
 
 
@@ -84,8 +87,35 @@ def _matches_suppression(email: Any, org: Any, s: Any) -> bool:
     return False
 
 
-def marketing_decision(email_row: Any, org: Any, suppressions: Iterable[Any], settings: Any = None) -> MarketingDecision:
-    """Full decision with a human-readable reason. See :func:`marketing_status`."""
+_MISSING = object()
+
+
+def _eligibility_blocker(email_row: Any, live_evidence: bool | None) -> str | None:
+    """Why an address may NOT be 'eligible' whatever the policy says (None = no blocker).
+
+    Eligible requires a published (or corroborated) address with live evidence (not archive-only, not a permutation guess) that
+    is not technically invalid, has not bounced before and is not a disposable mailbox. Fields the caller does not provide
+    (plain objects in unit tests) are not checked; :func:`app.verify.pipeline.verify_email` always provides all of them."""
+    origin = _get(email_row, "origin", _MISSING)
+    if origin is not _MISSING and origin not in ("published", "corroborated"):
+        return f"origin '{origin}' is not a published address"
+    if live_evidence is False:
+        return "no live evidence (archived or speculative evidence only)"
+    if _get(email_row, "overall_reachability", None) == "invalid":
+        return "address is technically invalid"
+    if _get(email_row, "previously_bounced", False):
+        return "address bounced before"
+    if _get(email_row, "is_disposable", False):
+        return "disposable mailbox"
+    return None
+
+
+def marketing_decision(email_row: Any, org: Any, suppressions: Iterable[Any], settings: Any = None, *,
+                       live_evidence: bool | None = None) -> MarketingDecision:
+    """Full decision with a human-readable reason. See :func:`marketing_status`.
+
+    ``live_evidence`` (False = the address rests on archived / speculative evidence only) gates 'eligible' together with the
+    address's origin, reachability, bounce and disposable flags."""
     hits = [s for s in suppressions if _matches_suppression(email_row, org, s)]
     if hits:
         if any((_get(s, "reason") in ("opt_out", "objection")) for s in hits):
@@ -110,9 +140,14 @@ def marketing_decision(email_row: Any, org: Any, suppressions: Iterable[Any], se
         outcome = "needs_review"
     if outcome == "eligible" and not pol.get("allow_eligible"):
         return MarketingDecision("needs_review", why + "; 'eligible' requires allow_eligible in operator policy")
+    if outcome == "eligible":
+        blocker = _eligibility_blocker(email_row, live_evidence)
+        if blocker:
+            return MarketingDecision("needs_review", f"{why}; not eligible: {blocker}")
     return MarketingDecision(outcome, f"{why} [country policy: {country or 'default'}]")
 
 
-def marketing_status(email_row: Any, org: Any, suppressions: Iterable[Any], settings: Any = None) -> str:
+def marketing_status(email_row: Any, org: Any, suppressions: Iterable[Any], settings: Any = None, *,
+                     live_evidence: bool | None = None) -> str:
     """One of eligible|needs_review|consent_required|opted_out|suppressed|not_permitted (not legal advice)."""
-    return marketing_decision(email_row, org, suppressions, settings).status
+    return marketing_decision(email_row, org, suppressions, settings, live_evidence=live_evidence).status

@@ -8,6 +8,7 @@ import time
 import uuid
 
 from prometheus_client import Counter, Histogram
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from .config import Settings
@@ -86,6 +87,73 @@ class RequestContextMiddleware:
             HTTP_SECONDS.labels(route).observe(dur)
             if path not in ("/healthz", "/metrics"):
                 log.info(mask_pii(f"{scope.get('method')} {path} -> {status_holder['s']} {dur * 1000:.1f}ms rid={rid}"))
+
+
+class _BodyTooLarge(StarletteHTTPException):
+    """Raised from ``receive``; an HTTPException so FastAPI's body parsing re-raises it and it renders as a 413."""
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(413, f"The request body is larger than the {_human(limit)} limit.")
+
+
+def _human(n: int) -> str:
+    return f"{n // (1024 * 1024)} MB" if n >= 1024 * 1024 else f"{max(1, n // 1024)} KB"
+
+
+class BodySizeLimitMiddleware:
+    """Refuse oversized request bodies before anything parses them (FastAPI parses JSON bodies before running the auth
+    dependencies, so without this an anonymous client can make the API buffer and decode arbitrarily large JSON).
+
+    ``multipart/form-data`` (file uploads) may be up to ``upload_limit`` bytes, everything else up to ``json_limit``.
+    A declared ``Content-Length`` above the limit is refused immediately; bodies without one (chunked) are counted as
+    they stream in and the request is aborted with 413 once the limit is crossed."""
+
+    def __init__(self, app: ASGIApp, json_limit: int, upload_limit: int):
+        self.app = app
+        self.json_limit = json_limit
+        self.upload_limit = upload_limit
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope.get("method") in ("GET", "HEAD", "OPTIONS"):
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope.get("headers") or [])
+        ctype = headers.get(b"content-type", b"").decode("latin-1").lower()
+        limit = self.upload_limit if ctype.startswith("multipart/form-data") else self.json_limit
+        declared = headers.get(b"content-length", b"").decode("latin-1").strip()
+
+        async def refuse() -> None:
+            start, body = _json_error(413, "payload_too_large", f"The request body is larger than the {_human(limit)} limit.", [(b"connection", b"close")])
+            await send(start)
+            await send(body)
+
+        if declared:
+            if not declared.isdigit() or int(declared) > limit:
+                await refuse()
+                return
+        seen = 0
+        started = False
+
+        async def limited_receive() -> Message:
+            nonlocal seen
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > limit:
+                    raise _BodyTooLarge(limit)
+            return message
+
+        async def tracking_send(message: Message) -> None:
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracking_send)
+        except _BodyTooLarge:
+            if not started:
+                await refuse()
 
 
 class RateLimitMiddleware:

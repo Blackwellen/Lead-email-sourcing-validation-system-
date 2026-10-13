@@ -312,6 +312,19 @@ async def import_taxonomy(request: Request, file: UploadFile = File(...), dry_ru
 
     for slug in clean:
         visit(slug)
+    by_id = {c.id: c for c in existing.values()}
+
+    def creates_cycle(cat: Category, parent: Category | None) -> bool:
+        """Would ``cat.parent_id = parent.id`` close a loop through EXISTING rows (walks the current ancestor chain)?"""
+        hops = 0
+        node = parent
+        while node is not None and hops <= len(by_id) + 1:
+            if node.id == cat.id:
+                return True
+            node = by_id.get(node.parent_id) if node.parent_id is not None else None
+            hops += 1
+        return node is not None  # chain longer than the table: already cyclic
+
     for item in ordered:
         parent = existing.get(item["parent_slug"]) if item["parent_slug"] else None
         c = existing.get(item["slug"])
@@ -321,8 +334,13 @@ async def import_taxonomy(request: Request, file: UploadFile = File(...), dry_ru
             session.add(c)
             await session.flush()
             existing[c.slug] = c
+            by_id[c.id] = c
             created += 1
         else:
+            if creates_cycle(c, parent):
+                await session.rollback()
+                raise ApiError(422, "invalid_taxonomy", f"Category '{item['slug']}' cannot be placed under '{item['parent_slug']}': that category is already "
+                               f"below '{item['slug']}', so this would create a cycle. Nothing was imported.")
             c.name, c.level, c.enabled = item["name"], level, item["enabled"]
             c.parent_id = parent.id if parent else None
             for f in LIST_FIELDS:
