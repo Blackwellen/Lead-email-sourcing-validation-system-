@@ -6,7 +6,7 @@ query-service limits (60 s per query, polite request rates).  Pagination is LIMI
 with GROUP BY ?item, so each organisation appears once; a 429/503 is honoured via Retry-After with a bounded
 number of waits, after which the run stops (checkpointed).
 
-Class selection comes from ``query.extra['wikidata_classes']`` (list of QIDs, subclass-closure applied) or the
+Direct instances (P31) are matched by default; set config ``subclasses: true`` for the P279* closure. Class selection comes from ``query.extra['wikidata_classes']`` (list of QIDs, subclass-closure applied) or the
 adapter config; default is Q4830453 (business).  There is deliberately no category->QID mapping in the taxonomy:
 operators choose classes explicitly.
 """
@@ -45,30 +45,37 @@ _QID = re.compile(r"^Q[1-9]\d{0,12}$")
 _CC = re.compile(r"^[A-Z]{2}$")
 
 
-def build_query(country: str, classes: list[str], *, limit: int, offset: int, active_only: bool = True) -> str:
+def build_query(country: str, classes: list[str], *, limit: int, offset: int, active_only: bool = True, subclasses: bool = False) -> str:
+    """SPARQL for one page.  The paginated sub-select only identifies items (cheap); labels/optionals are joined after.
+
+    ``subclasses=True`` follows ``P279*`` (expensive on big classes such as 'business'; may hit the 60 s limit).
+    """
     if not _CC.match(country):
         raise ValueError("country must be an ISO alpha-2 code")
     if not classes or not all(_QID.match(c) for c in classes):
         raise ValueError("classes must be Wikidata QIDs")
     values = " ".join(f"wd:{c}" for c in classes)
     active = "FILTER NOT EXISTS { ?item wdt:P576 [] . }" if active_only else ""
+    cls_path = "wdt:P31/wdt:P279*" if subclasses else "wdt:P31"
     return f"""SELECT ?item (SAMPLE(?lbl) AS ?label) (SAMPLE(?site) AS ?website) (SAMPLE(?hqLbl) AS ?hq)
  (SAMPLE(?coord) AS ?coords) (SAMPLE(?em) AS ?email) (SAMPLE(?ph) AS ?phone)
 WHERE {{
-  VALUES ?cls {{ {values} }}
-  ?item wdt:P31/wdt:P279* ?cls .
+  {{ SELECT ?item WHERE {{
+      VALUES ?cls {{ {values} }}
+      ?item {cls_path} ?cls .
+      ?item wdt:P17 ?ctry . ?ctry wdt:P297 "{country}" .
+      ?item wdt:P856 [] .
+      {active}
+    }} ORDER BY ?item LIMIT {int(limit)} OFFSET {int(offset)} }}
   ?item wdt:P856 ?site .
-  ?item wdt:P17 ?ctry . ?ctry wdt:P297 "{country}" .
   ?item rdfs:label ?lbl . FILTER(LANG(?lbl) = "en")
-  {active}
   OPTIONAL {{ ?item wdt:P159 ?hqItem . ?hqItem rdfs:label ?hqLbl . FILTER(LANG(?hqLbl) = "en") }}
   OPTIONAL {{ ?item wdt:P625 ?coord . }}
   OPTIONAL {{ ?item wdt:P968 ?em . }}
   OPTIONAL {{ ?item wdt:P1329 ?ph . }}
 }}
 GROUP BY ?item
-ORDER BY ?item
-LIMIT {int(limit)} OFFSET {int(offset)}"""
+ORDER BY ?item"""
 
 
 _POINT = re.compile(r"Point\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)")
@@ -128,7 +135,7 @@ class WikidataAdapter(SourceAdapter):
         supports_radius=True,
         attribution=ATTRIBUTION,
         live_verified=False,
-        notes="Optional. Coverage is skewed to larger/notable organisations. query.wikidata.org not exercised from the sandbox.",
+        notes="Optional. Coverage is skewed to larger/notable organisations. At build time the endpoint answered a trivial ASK query but the real page query timed out (65 s) through the sandbox proxy, so the query shape is UNVERIFIED; narrow classes if WDQS times out.",
     )
 
     def _ua(self) -> str:
@@ -185,7 +192,8 @@ class WikidataAdapter(SourceAdapter):
                 cc = query.countries[ci].upper()
                 offset = off0 if ci == ci0 else 0
                 while True:
-                    data = await self._fetch(client, build_query(cc, classes, limit=page, offset=offset, active_only=query.active_only))
+                    data = await self._fetch(client, build_query(cc, classes, limit=page, offset=offset, active_only=query.active_only,
+                                                       subclasses=bool(self.config.get("subclasses", False))))
                     rows = data.get("results", {}).get("bindings", [])
                     for j, b in enumerate(rows):
                         rec = binding_to_record(b, cc, observed)
