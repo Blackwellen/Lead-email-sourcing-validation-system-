@@ -1,0 +1,111 @@
+# Lead Intelligence Platform — small VPS / Oracle Cloud / local Linux.
+# Usage: cp .env.example .env && edit secrets, then: docker compose up -d --build
+name: lead-intel
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lead
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: lead
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lead -d lead"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=200", "-c", "synchronous_commit=on"]
+    networks: [internal]
+
+  migrate:
+    build: ./backend
+    restart: "no"
+    command: ["python", "-m", "app.cli", "migrate"]
+    environment: &appenv
+      LEAD_DATABASE_URL: postgresql+asyncpg://lead:${POSTGRES_PASSWORD}@db:5432/lead
+      LEAD_SECRET_KEY: ${LEAD_SECRET_KEY:?set LEAD_SECRET_KEY (32+ random chars)}
+      LEAD_ENV: production
+      LEAD_COOKIE_SECURE: "true"
+      LEAD_CORS_ORIGINS: ${PUBLIC_URL:-https://localhost}
+      LEAD_CONTACT_EMAIL: ${LEAD_CONTACT_EMAIL:-}
+      LEAD_SMTP_DIAGNOSTICS_ENABLED: ${LEAD_SMTP_DIAGNOSTICS_ENABLED:-false}
+      LEAD_SMTP_HELO_HOST: ${LEAD_SMTP_HELO_HOST:-}
+      LEAD_SMTP_MAIL_FROM: ${LEAD_SMTP_MAIL_FROM:-}
+      LEAD_SMTP_AUTHORISED_DOMAINS: ${LEAD_SMTP_AUTHORISED_DOMAINS:-}
+      LEAD_INITIAL_ADMIN_EMAIL: ${LEAD_INITIAL_ADMIN_EMAIL:-}
+      LEAD_INITIAL_ADMIN_PASSWORD: ${LEAD_INITIAL_ADMIN_PASSWORD:-}
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [internal]
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment: *appenv
+    volumes: [appdata:/data]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    networks: [internal]
+    deploy: {resources: {limits: {memory: 1g}}}
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+      args: {WITH_BROWSER: "${WITH_BROWSER:-0}"}
+    restart: always          # crash => restart; leases make interrupted jobs recoverable
+    stop_grace_period: 40s   # lets in-flight jobs commit on SIGTERM
+    environment:
+      <<: *appenv
+      LEAD_WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-8}
+      LEAD_WORKER_MAX_RSS_MB: ${WORKER_MAX_RSS_MB:-1200}
+    volumes: [appdata:/data]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    networks: [internal, egress]
+    deploy: {resources: {limits: {memory: 1536m}}}
+
+  web:
+    build:
+      context: ./frontend
+      args: {BACKEND_URL: "http://api:8000"}
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://api:8000
+    depends_on: [api]
+    networks: [internal]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    depends_on: [web, api]
+    networks: [internal, egress]
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: lead
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: lead
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - backups:/backups
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [internal]
+
+networks:
+  internal: {internal: false}
+  egress: {}
+volumes: {pgdata: {}, appdata: {}, caddy_data: {}, backups: {}}

@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libxml2 libxslt1.1 && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml ./
+RUN python - <<'PY'
+import tomllib, subprocess, sys
+deps = tomllib.load(open("pyproject.toml","rb"))["project"]["dependencies"]
+subprocess.check_call([sys.executable, "-m", "pip", "install", *deps])
+PY
+# OPTIONAL: JS rendering / OSM pbf parsing. Build with --build-arg WITH_BROWSER=1 to include Playwright Chromium.
+ARG WITH_BROWSER=0
+RUN if [ "$WITH_BROWSER" = "1" ]; then pip install playwright && playwright install --with-deps chromium; fi
+RUN pip install osmium || echo "osmium wheel unavailable: OSM pbf parsing disabled (XML/GeoJSON still work)"
+COPY . .
+RUN useradd -r -u 10001 lead && mkdir -p /data && chown -R lead /data /app
+USER lead
+ENV LEAD_DATA_DIR=/data LEAD_EXPORT_DIR=/data/exports
+CMD ["python", "-m", "app.worker"]

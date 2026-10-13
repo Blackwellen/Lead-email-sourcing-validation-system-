@@ -1,0 +1,28 @@
+[project]
+name = "lead-intel"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi", "uvicorn[standard]", "pydantic>=2", "pydantic-settings", "sqlalchemy[asyncio]>=2", "asyncpg",
+  "alembic", "httpx", "selectolax", "lxml", "dnspython", "email-validator", "tldextract", "pypdf",
+  "prometheus-client", "argon2-cffi", "pyotp", "openpyxl", "python-multipart", "psutil", "itsdangerous",
+  "aiosmtplib", "pycountry", "cryptography",
+]
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "aiosmtpd", "ruff", "mypy", "pytest-cov"]
+browser = ["playwright"]
+osm = ["osmium"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = ["live: needs real internet (skipped by default)"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B008"]
