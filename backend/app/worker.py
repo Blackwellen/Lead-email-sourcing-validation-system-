@@ -266,6 +266,9 @@ class Worker:
                 n = await jq.reap_expired(s, self.settings.max_job_attempts)
                 if n:
                     log.warning("recovered %d expired leases", n)
+                # workers killed without a clean shutdown leave a heartbeat row: keep it visible (stale) for a day, then drop it
+                await s.execute(text("DELETE FROM worker_heartbeats WHERE last_seen_at < now() - interval '1 day'"))
+                await s.commit()
                 try:
                     await runs.start_due_scheduled(s)
                     await s.commit()
