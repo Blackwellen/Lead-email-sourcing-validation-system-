@@ -204,7 +204,7 @@ def notice_to_records(n: dict[str, Any]) -> tuple[list[BusinessRecord], str | No
             attribution=ATTRIBUTION,
             observed_at=datetime.now(UTC),
             raw={
-                "publication_number": n.get("publication-number"), "cpv": cpvs[:20], "industries": industries, "buyer": buyer,
+                "publication_number": n.get("publication-number"), "award_date": decision or pub, "cpv": cpvs[:20], "industries": industries, "buyer": buyer,
                 "award_key": f"{n.get('publication-number')}|{w['identifier'] or w['name']}", "winner_inference": inference,
                 "identifiers": ([{"type": "vat_or_national_id", "value": w["identifier"]}] if w["identifier"] else []),
                 "relationships": ([{"relation": "supplier_of", "counterparty": {"name": buyer, "role": "buyer"},

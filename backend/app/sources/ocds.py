@@ -210,7 +210,7 @@ def build_unit_record(
         category_hint="procurement_winner",
         source_url=url,
         raw={
-            "ocid": rel.get("ocid"), "release_id": rel.get("id"), "award_key": f"{award.get('id')}|{unit.supplier_ref.get('id') or name}",
+            "ocid": rel.get("ocid"), "release_id": rel.get("id"), "award_date": adate, "award_key": f"{award.get('id')}|{unit.supplier_ref.get('id') or name}",
             "cpv": cpv[:20], "industries": industries, "buyer": buyer.get("name"), "buyer_id": buyer.get("id"),
             "identifiers": ([{"type": "company_number", "value": cn}] if cn and cc == "GB" else []),
             "relationships": ([{

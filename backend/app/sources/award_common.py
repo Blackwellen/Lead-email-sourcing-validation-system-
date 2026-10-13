@@ -62,6 +62,9 @@ def supplier_key(rec: BusinessRecord) -> str | None:
 
 
 def _year_of(rec: BusinessRecord) -> int | None:
+    ad = rec.raw.get("award_date")
+    if ad and len(str(ad)) >= 4 and str(ad)[:4].isdigit():
+        return int(str(ad)[:4])
     sigs = rec.raw.get("signals") or []
     for s in sigs:
         occ = s.get("occurred_at")
@@ -135,6 +138,8 @@ def merge_supplier(rows: list[tuple[str, dict[str, Any]]], total: int, years: in
             if c not in cpvs:
                 cpvs.append(c)
     rec = BusinessRecord(**{**newest, "raw": dict(newest.get("raw") or {})})
+    if not rec.source_url:
+        rec.source_url = next((d.get("source_url") for _ts, d in rows if d.get("source_url")), None)
     rec.raw.update(signals=signals, industries=industries, cpv=cpvs[:30], award_count=total, award_years=years)
     return rec
 
@@ -162,11 +167,11 @@ async def drive_awards(
         async for rec, _cp in source(None):
             rec.adapter_id = adapter_id
             sk = supplier_key(rec)
-            sigs = rec.raw.get("signals") or []
-            if sk is None or not sigs:
+            if sk is None:
                 continue
-            ts = str(sigs[0].get("occurred_at") or "")
-            akey = str(rec.raw.get("award_key") or sigs[0].get("source_url") or ts)
+            sigs = rec.raw.get("signals") or []
+            ts = str(rec.raw.get("award_date") or (sigs[0].get("occurred_at") if sigs else "") or "")
+            akey = str(rec.raw.get("award_key") or (sigs[0].get("source_url") if sigs else "") or ts)
             spill.add(sk, akey, ts, _year_of(rec), rec)
             stats["units"] = stats.get("units", 0) + 1
         after = (checkpoint or {}).get("skey") if checkpoint and checkpoint.get("agg") else None

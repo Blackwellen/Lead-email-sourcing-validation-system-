@@ -108,6 +108,11 @@ class Worker:
             async with sessionmaker()() as s:
                 await jq.complete(s, job.id)
                 await s.commit()
+        except jq.Requeue as e:
+            outcome = "requeue"
+            async with sessionmaker()() as s:
+                await jq.requeue(s, job.id, e.delay_s)
+                await s.commit()
         except jq.RetryableError as e:
             outcome = "retry"
             await self._record_fail(job, e, True, e.code, e.delay_s)
@@ -220,7 +225,8 @@ def main():  # pragma: no cover
     from . import pipeline  # noqa: F401  (registers handlers)
 
     setup_logging()
-    w = Worker()
+    stages = [x for x in os.environ.get("LEAD_WORKER_STAGES", "").split(",") if x] or None
+    w = Worker(stages=stages)
     mem = os.environ.get("LEAD_WORKER_MAX_RSS_MB")
     w.max_rss_mb = float(mem) if mem else None
 
@@ -234,4 +240,7 @@ def main():  # pragma: no cover
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
+    # re-import under the canonical name: handlers register against app.worker.HANDLERS, not __main__.HANDLERS
+    from app.worker import main as _canonical_main
+
+    _canonical_main()

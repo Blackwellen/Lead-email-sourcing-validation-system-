@@ -97,7 +97,7 @@ def row_to_record(r: dict[str, Any]) -> BusinessRecord | None:
         attribution=ATTRIBUTION,
         observed_at=datetime.now(UTC),
         raw={
-            "uei": uei, "naics": ncode or None, "naics_text": naics.get("description"), "psc": psc.get("code"),
+            "uei": uei, "award_date": adate, "naics": ncode or None, "naics_text": naics.get("description"), "psc": psc.get("code"),
             "industries": [sector] if sector else [], "cpv": [], "award_key": str(internal or r.get("Award ID")),
             "recipient_url": f"https://www.usaspending.gov/recipient/{r['recipient_id']}" if r.get("recipient_id") else None,
             "identifiers": ([{"type": "uei", "value": uei}] if uei else []),

@@ -182,7 +182,7 @@ def test_pdf_pages_tables_and_limits():
                     "Bolt Ltd | sales@bolt.co.uk | 01632 960005", "", "Questions? write to help@acme.co.uk Tel: 01632 960006"], pages=2)
     recs = parse_document(pdf, "s.pdf")
     locs = [r.locator for r in recs]
-    assert locs[:3] == ["page 1, line 3", "page 1, line 4", "page 1, line 6"]
+    assert locs[:3] == ["page 1, line 3", "page 1, line 4", "page 1, line 5"]  # line numbers count lines of the EXTRACTED page text (blank lines vanish)
     assert recs[0].fields["company"] == "Acme Ltd" and recs[0].fields["email"] == "info@acme.co.uk" and recs[0].fields["phone"] == "01632 960004"
     assert recs[2].fields["email"] == "help@acme.co.uk" and recs[2].fields["phone"].startswith("01632 960006")
     assert any(l.startswith("page 2") for l in locs)
@@ -208,7 +208,7 @@ async def test_persist_document_records_idempotent_and_linked(session):
     recs = parse_document(CSV.encode(), "suppliers.csv")
     s = await persist_document_records(session, recs, source_url="https://example.test/files/suppliers.csv", adapter="document_import",
                                        default_country="GB")
-    assert s.records == 4 and s.stored == 4 and s.linked == 4 and s.orgs_created == 4 and s.emails == 4
+    assert (s.records, s.stored, s.linked, s.unlinked, s.orgs_created, s.emails) == (4, 4, 3, 1, 3, 3)  # the formula-company row has no usable organisation
     rows = (await session.execute(select(DocumentRecord).order_by(DocumentRecord.locator))).scalars().all()
     assert [r.locator for r in rows] == ["row 2", "row 4", "row 5", "row 6"]
     assert all(r.file_sha256 == recs[0].file_sha256 and r.doc_type == "csv" and r.parser_version for r in rows)

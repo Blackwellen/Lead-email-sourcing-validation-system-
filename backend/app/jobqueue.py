@@ -38,6 +38,21 @@ class PermanentError(Exception):
         self.code = code
 
 
+class Requeue(Exception):
+    """Put the job back without consuming an attempt (run paused, backpressure, cooperative yield)."""
+
+    def __init__(self, delay_s: float = 2.0):
+        super().__init__("requeue")
+        self.delay_s = delay_s
+
+
+async def requeue(s: AsyncSession, job_id: int, delay_s: float) -> None:
+    await s.execute(
+        text("UPDATE sourcing_jobs SET state='queued', attempts=GREATEST(attempts-1,0), leased_until=NULL, worker_id=NULL, next_attempt_at=now()+make_interval(secs => :d) WHERE id=:id"),
+        {"d": delay_s, "id": job_id},
+    )
+
+
 async def enqueue(
     s: AsyncSession,
     *,

@@ -87,7 +87,7 @@ ALIASES: dict[str, set[str]] = {
     "given_name": {"first name", "firstname", "given name", "forename", "first"},
     "family_name": {"last name", "lastname", "surname", "family name", "last"},
     "email": {"email", "e mail", "email address", "e mail address", "mail", "contact email", "emailaddress", "email 1", "email 2",
-              "work email", "business email", "email1", "email2"},
+              "work email", "business email", "email1", "email2", "emails", "email addresses", "e mails"},
     "phone": {"phone", "telephone", "tel", "mobile", "phone number", "telephone number", "tel no", "contact number", "cell", "tel number"},
     "website": {"website", "web", "url", "site", "web address", "homepage", "web site", "domain", "company website", "www", "website url"},
     "address": {"address", "street", "street address", "address line 1", "registered address", "location", "address 1", "full address"},
@@ -181,15 +181,15 @@ def _resolve_name_role(colmap: dict[int, str], sample: list[list[Any]]) -> dict[
     if not cols or {"company", "given_name", "family_name"} & set(colmap.values()):
         return colmap
     vals = [str(r[cols[0]]) for r in sample if cols[0] < len(r) and r[cols[0]]]
-    if _name_is_person(vals):
-        return colmap
+    if "email" in colmap.values() and "website" not in colmap.values() and _name_is_person(vals):
+        return colmap  # a people list with e-mail addresses
     out = dict(colmap)
     out[cols[0]] = "company"
     return out
 
 
 def _row_record(doc_type: str, sha: str, fname: str | None, locator: str, cells: list[Any], colmap: dict[int, str],
-                headers: list[Any], coords: list[str] | None = None) -> ExtractedRecord | None:
+                headers: list[Any], coords: list[str] | None = None, drop_warns: list[str] | None = None) -> ExtractedRecord | None:
     raw: dict[str, list[str]] = {}
     warns: list[str] = []
     flocs: dict[str, str] = {}
@@ -203,6 +203,8 @@ def _row_record(doc_type: str, sha: str, fname: str | None, locator: str, cells:
             flocs.setdefault(f, where)
     fields = _normalise_fields(raw)
     if not any(k in fields for k in ("emails", "company", "name", "website", "phone")):
+        if drop_warns is not None:
+            drop_warns.extend(warns)  # keep the reason a row produced nothing
         return None
     shown = {norm_header(headers[i]) or f"col{i + 1}": str(cells[i])[:120] for i in colmap if i < len(cells) and cells[i] not in (None, "")}
     return ExtractedRecord(doc_type, locator, fields, sha, fname, flocs, {"row": shown}, warns)
@@ -321,7 +323,7 @@ def _parse_csv(data, sha, fname, lim, deadline, warns, **_):
         return []
     colmap = _resolve_name_role(colmap, sample)
     for line_no, row in rows:
-        rec = _row_record("csv", sha, fname, f"row {line_no}", row, colmap, headers)
+        rec = _row_record("csv", sha, fname, f"row {line_no}", row, colmap, headers, None, warns)
         if rec:
             out.append(rec)
     return out
@@ -392,7 +394,7 @@ def _parse_xlsx(data, sha, fname, lim, deadline, warns, **_):
             colmap = _resolve_name_role(colmap, sample)
             last = _col_letter(max(len(headers) - 1, 0))
             for r_idx, vals, coords in rows:
-                rec = _row_record("xlsx", sha, fname, f"{ws.title}!A{r_idx}:{last}{r_idx}", vals, colmap, headers, coords)
+                rec = _row_record("xlsx", sha, fname, f"{ws.title}!A{r_idx}:{last}{r_idx}", vals, colmap, headers, coords, warns)
                 if rec:
                     out.append(rec)
     finally:
@@ -709,7 +711,7 @@ def _parse_pdf(data, sha, fname, lim, deadline, warns, **_):
                     continue
             if headers is not None:
                 if len(cells) >= max(2, len(headers) - 1) and len(cells) <= len(headers) + 1:
-                    rec = _row_record("pdf", sha, fname, f"page {pno + 1}, line {ln}", cells, colmap, headers)
+                    rec = _row_record("pdf", sha, fname, f"page {pno + 1}, line {ln}", cells, colmap, headers, None, warns)
                     if rec:
                         out.append(rec)
                         consumed.add(ln)
