@@ -137,7 +137,7 @@ async def persist_discovered(session: AsyncSession, rec: BusinessRecord, adapter
         ref = (rec.source_ref or "")[:280]
         for i in idents:
             key = (str(i["type"]), str(i["value"]))
-            if key in known or not ref:
+            if key in known or not ref or any(kt == key[0] and kv.endswith(":" + key[1]) for kt, kv in known):  # resolver values are country-prefixed
                 continue
             await _upsert_link(session, org_id, adapter_id, f"{ref}#{key[0]}"[:300], key[0][:30], key[1], str(i.get("basis", "identifier"))[:40],
                                float(i.get("confidence", 0.9)), "linked", None, {"companion_of": ref})

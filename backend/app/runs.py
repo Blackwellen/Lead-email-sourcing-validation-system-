@@ -248,6 +248,9 @@ async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
     cfg = RunConfig.model_validate(run.configuration_snapshot)
     c["progress"] = progress_value(run.target_definition, c)
     c["target"] = run.target_count
+    prev = run.counters or {}
+    if "gap_yield" in prev:  # written by the gap-recovery stage (marginal-yield memory); not a computed counter
+        c["gap_yield"] = prev["gap_yield"]
     run.counters = c
     changed = None
     now = datetime.now(UTC)
