@@ -75,6 +75,10 @@ def _make_update(name: str, model: type[BaseModel]):
         await save_section(session, name, body)
         await audit(session, user, "settings.update", "settings", name, {"section": name, "values": body.model_dump(mode="json")})
         await session.commit()
+        if name == "validation":  # marketing policy is cached by the verifier
+            from ..verify.pipeline import invalidate_marketing_policy_cache
+
+            invalidate_marketing_policy_cache()
         return body
 
     endpoint.__annotations__ = {"body": model, "user": User, "session": AsyncSession}

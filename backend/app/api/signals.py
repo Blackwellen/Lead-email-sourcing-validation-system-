@@ -13,7 +13,17 @@ from ..db import get_session
 from ..models import BusinessSignal, Organisation
 from ..security import ApiError, require_role
 from ..sources.signals_util import SIGNAL_TYPES
-from .common import Page, SortSpec, apply_keyset, capped_count, clean_q, country_code, csv_strs, escape_like, finish_page
+from .common import (
+    Page,
+    SortSpec,
+    apply_keyset,
+    capped_count,
+    clean_q,
+    country_code,
+    csv_strs,
+    escape_like,
+    finish_page,
+)
 from .filters import category_subtree
 
 router = APIRouter(prefix="/api/signals", tags=["signals"], dependencies=[Depends(require_role("viewer"))])

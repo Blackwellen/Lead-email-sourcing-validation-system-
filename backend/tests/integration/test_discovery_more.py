@@ -101,10 +101,10 @@ async def test_gap_recovery_budget_and_marginal_yield(tmp_path, web, monkeypatch
 async def test_historical_contact_counts_only_after_live_confirmation(tmp_path, web, monkeypatch, session):
     from datetime import UTC, datetime
 
+    from discovery_sources.fixtures import make_warc_member
+
     from app.pipeline import discovery_stages
     from app.sources.commoncrawl import UrlHit, parse_warc_record
-
-    from discovery_sources.fixtures import make_warc_member
 
     H = "fixtureestateagents.co.uk"
     live = {"/": "<html><head><title>Fixture Estate Agents Ltd</title></head><body><h1>Fixture Estate Agents Ltd</h1><a href='/contact'>c</a>"

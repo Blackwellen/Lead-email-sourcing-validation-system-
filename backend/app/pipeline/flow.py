@@ -25,12 +25,19 @@ from ..discovery import strategy as strat
 from ..discovery.completeness import refresh_completeness
 from ..discovery.effectiveness import MAX_COUNTERS  # noqa: F401  (re-exported for tests)
 from ..discovery.scheduler import should_skip_expensive_work
-from ..models import Contact, ContactEvidence, EmailAddress, EvidenceSource, Organisation, OrganisationDomain, OrganisationSource
+from ..models import (
+    Contact,
+    ContactEvidence,
+    EmailAddress,
+    EvidenceSource,
+    Organisation,
+    OrganisationDomain,
+    OrganisationSource,
+)
 from ..run_config import RunConfig
 from ..sources.base import BusinessRecord
 from ..sources.signals_util import MissingSourceUrl, record_signal
 from ..worker import JobContext
-from . import runtime
 from .ingest import normalise_email, persist_observations
 
 if TYPE_CHECKING:  # resolution imports app.pipeline.identity: import it lazily to avoid a package-init cycle
@@ -105,7 +112,7 @@ class Persisted:
     signals_new: int = 0
     signals_dropped: int = 0
     links_new: int = 0
-    resolution: "Resolution | None" = None
+    resolution: Resolution | None = None
 
 
 async def persist_discovered(session: AsyncSession, rec: BusinessRecord, adapter_id: str, run_id: int | None,

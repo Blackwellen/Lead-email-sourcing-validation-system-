@@ -25,8 +25,8 @@ from sources.fixtures import ch_row, write_ch_zip  # noqa: E402
 pytestmark = pytest.mark.asyncio
 H1, H2 = "fixtureestateagents.co.uk", "partnerwidgets.co.uk"
 
-HOME = f"""<html><head><title>Fixture Estate Agents Ltd</title>
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"JobPosting","title":"Lettings Negotiator","datePosted":"2026-09-20","validThrough":"2027-12-31"}}</script>
+HOME = """<html><head><title>Fixture Estate Agents Ltd</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"JobPosting","title":"Lettings Negotiator","datePosted":"2026-09-20","validThrough":"2027-12-31"}</script>
 </head><body><h1>Fixture Estate Agents Ltd</h1><p>Manchester lettings.</p>
 <footer>Fixture Estate Agents Ltd. Registered in England and Wales No. 99999991. M1 1AA</footer>
 <a href="/contact">Contact</a> <a href="/partners">Partners</a> <a href="/files/staff.csv">Staff directory</a></body></html>"""

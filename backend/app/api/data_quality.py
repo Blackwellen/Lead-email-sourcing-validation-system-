@@ -49,7 +49,7 @@ SUBJECT_OF_ACTION = {
 }
 CAP = 100_000
 A, B = aliased(Organisation), aliased(Organisation)
-L, D, E, O = OrganisationRecordLink, OrganisationDomain, EmailAddress, Organisation
+L, D, E, O = OrganisationRecordLink, OrganisationDomain, EmailAddress, Organisation  # noqa: E741
 SORT = {"id": SortSpec(literal(0), "int")}  # replaced per query (the sort column is the subject id)
 
 

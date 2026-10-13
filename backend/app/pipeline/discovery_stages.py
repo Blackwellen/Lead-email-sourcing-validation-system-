@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import json
 import logging
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -324,7 +325,7 @@ async def cc_lookup(ctx: JobContext) -> None:
                         await ctx.session.execute(text(
                             "UPDATE contact_evidence ce SET context = COALESCE(ce.context,'{}'::jsonb) || CAST(:p AS jsonb) FROM evidence_sources es "
                             "WHERE es.id = ce.evidence_id AND es.historical AND ce.email_id = :e"),
-                            {"p": '{"unconfirmed": false, "confirmed_live_at": "%s"}' % datetime.now(UTC).isoformat(), "e": r.email_id})
+                            {"p": json.dumps({"unconfirmed": False, "confirmed_live_at": datetime.now(UTC).isoformat()}), "e": r.email_id})
                         confirmed_now += 1
             await ctx.checkpoint({"hits": len(hits), "pages_fetched": len(cands), "historical_emails": stored, "already_live": confirmed_now})
             await flow.finish_org(ctx, org_id)

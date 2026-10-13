@@ -79,7 +79,7 @@ async def build_query(ctx: JobContext, cfg: RunConfig) -> DiscoveryQuery:
 @handler("discover")
 async def discover(ctx: JobContext) -> None:
     rp, run_id = await _plan(ctx)
-    cfg, plan = rp.cfg, rp.plan
+    cfg = rp.cfg
     p = ctx.job.payload
     adapter_id = p["adapter_id"]
     from ..models import SourceAdapterState
@@ -131,7 +131,7 @@ async def discover(ctx: JobContext) -> None:
             batch[k] = 0
 
     try:
-        async with measured(ctx, adapter_id) as m:
+        async with measured(ctx, adapter_id):
             try:
                 rem = quota.remaining()
                 if rem is not None:

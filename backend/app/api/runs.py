@@ -248,7 +248,7 @@ def _snapshot_cfg(run: SourcingRun) -> tuple[RunConfig | None, list[FieldError]]
     from pydantic import ValidationError
 
     try:
-        return RunConfig.model_validate(run.configuration_snapshot), []
+        return RunConfig.from_snapshot(run.configuration_snapshot), []  # stored snapshots: backward compatible
     except ValidationError as e:
         return None, [FieldError(field=".".join(str(p) for p in x["loc"]), message=str(x["msg"]).removeprefix("Value error, ")) for x in e.errors()]
 

@@ -27,9 +27,9 @@ from ..system_runs import new_system_run
 from .common import Ok, Page, SortSpec, apply_keyset, capped_count, finish_page
 from .contacts import ContactRow, _base_from, contact_rows, mask_pii_list
 from .dashboard import _from, _sample_pct, _scaled
-from .runs import JobRow, job_row, page_jobs
 from .filters import ContactFilterSpec, build_conditions, contact_filters
 from .registry import require
+from .runs import JobRow, job_row, page_jobs
 from .uploads import read_limited, sniff
 
 log = logging.getLogger("api.verification")

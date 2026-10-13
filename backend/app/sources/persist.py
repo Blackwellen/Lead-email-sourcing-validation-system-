@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from functools import lru_cache
 from datetime import UTC, datetime
+from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import case, func, literal, literal_column
