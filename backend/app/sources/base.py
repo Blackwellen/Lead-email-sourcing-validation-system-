@@ -84,6 +84,14 @@ class AdapterInfo:
     attribution: str = ""
     live_verified: bool = False  # True only if live access has actually been exercised
     notes: str = ""
+    # --- catalogue metadata (additive; consumed by sources.catalogue_full / the Source Explorer)
+    cost: str = "free"  # free | free_registration | paid
+    credentials: str = "none"  # none | optional | required
+    credentials_note: str = ""
+    refresh_frequency: str = ""  # e.g. 'monthly', 'weekly', 'daily', 'continuous', 'static'
+    access_method: str = ""  # bulk_file | api | manual_import | restricted ('' = derived by the catalogue)
+    industries: tuple[str, ...] = ()  # relevance tags; ('*',) = industry-agnostic
+    allowed_usage: str = ""  # one-line statement of what the licence/terms allow
 
     def __post_init__(self) -> None:
         if self.source_type not in SOURCE_TYPES:
@@ -234,6 +242,9 @@ _REGISTRY: dict[str, type[SourceAdapter]] = {}
 ADAPTER_MODULES = (
     "companies_house_bulk", "osm_geofabrik", "csv_import", "wikidata", "search_providers",
     "directory_catalogue", "pseudo",
+    # discovery sources (DISC-01..08)
+    "charity_commission", "ocds", "gleif", "eu_ted", "usaspending", "abn_lookup", "commoncrawl", "industry_directories",
+    "exhibitors", "new_registrations",
 )
 _loaded = False
 

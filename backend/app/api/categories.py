@@ -94,11 +94,11 @@ class SynonymsIn(BaseModel):
         return list(dict.fromkeys(s.strip() for s in v if s and s.strip()))
 
 
-class MergeIn(BaseModel):
+class CategoryMergeIn(BaseModel):
     target_id: int
 
 
-class MergeOut(BaseModel):
+class CategoryMergeOut(BaseModel):
     source_id: int
     target_id: int
     businesses_moved: int
@@ -214,22 +214,30 @@ async def list_categories(include_disabled: bool = True, session: AsyncSession =
     return _build_tree(cats, await _counts(session))
 
 
-@router.get("/export", response_class=Response, responses={200: {"content": {"application/json": {}, "text/csv": {}}}})
-async def export_taxonomy(format: str = Query("json", pattern="^(json|csv)$"), session: AsyncSession = Depends(get_session)):
+async def build_taxonomy_rows(session: AsyncSession) -> list[dict[str, Any]]:
     cats = list((await session.execute(select(Category).order_by(Category.id))).scalars())
     slug_of = {c.id: c.slug for c in cats}
-    rows = [{"slug": c.slug, "name": c.name, "parent_slug": slug_of.get(c.parent_id), "level": c.level, "enabled": c.enabled,
+    return [{"slug": c.slug, "name": c.name, "parent_slug": slug_of.get(c.parent_id), "level": c.level, "enabled": c.enabled,
              **{f: list(getattr(c, f) or []) for f in LIST_FIELDS}} for c in cats]
-    if format == "json":
-        return Response(json.dumps({"categories": rows}, indent=2), media_type="application/json", headers={"Content-Disposition": 'attachment; filename="taxonomy.json"'})
+
+
+def taxonomy_to_csv(rows: list[dict[str, Any]]) -> str:
+    from ..exports import csv_safe
+
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["slug", "name", "parent_slug", "level", "enabled", *LIST_FIELDS])
     for r in rows:
-        from ..exports import csv_safe
-
         w.writerow([csv_safe(r["slug"]), csv_safe(r["name"]), r["parent_slug"] or "", r["level"], str(r["enabled"]).lower(), *("|".join(csv_safe(x) for x in r[f]) for f in LIST_FIELDS)])
-    return Response(buf.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="taxonomy.csv"'})
+    return buf.getvalue()
+
+
+@router.get("/export", response_class=Response, responses={200: {"content": {"application/json": {}, "text/csv": {}}}})
+async def export_taxonomy(format: str = Query("json", pattern="^(json|csv)$"), session: AsyncSession = Depends(get_session)):
+    rows = await build_taxonomy_rows(session)
+    if format == "json":
+        return Response(json.dumps({"categories": rows}, indent=2), media_type="application/json", headers={"Content-Disposition": 'attachment; filename="taxonomy.json"'})
+    return Response(taxonomy_to_csv(rows), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="taxonomy.csv"'})
 
 
 @router.post("/import", response_model=ImportOut)
@@ -422,8 +430,8 @@ async def enable_category(category_id: int, user: User = Depends(require_role("a
     return await _set_enabled(session, user, category_id, True)
 
 
-@router.post("/{category_id}/merge", response_model=MergeOut)
-async def merge_category(category_id: int, body: MergeIn, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> MergeOut:
+@router.post("/{category_id}/merge", response_model=CategoryMergeOut)
+async def merge_category(category_id: int, body: CategoryMergeIn, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> CategoryMergeOut:
     src = await _get(session, category_id)
     tgt = await _get(session, body.target_id)
     if src.id == tgt.id:
@@ -438,7 +446,7 @@ async def merge_category(category_id: int, body: MergeIn, user: User = Depends(r
     src.enabled, src.merged_into_id = False, tgt.id
     await audit(session, user, "category.merge", "category", src.id, {"into": tgt.id, "businesses": moved})
     await session.commit()
-    return MergeOut(source_id=src.id, target_id=tgt.id, businesses_moved=moved, children_moved=kids, runs_updated=runs)
+    return CategoryMergeOut(source_id=src.id, target_id=tgt.id, businesses_moved=moved, children_moved=kids, runs_updated=runs)
 
 
 @router.delete("/{category_id}", response_model=Ok)

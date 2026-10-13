@@ -131,6 +131,9 @@ class Organisation(Base, TimestampMixin):
         Index("ix_org_company_number", "country_code", "company_number", postgresql_where=text("company_number is not null")),
         Index("ix_org_country_region_city", "country_code", "region", "city"),
         Index("ix_org_name_trgm_prefix", text("lower(legal_name) text_pattern_ops")),
+        Index("ix_org_trading_prefix", text("lower(trading_name) text_pattern_ops")),  # DISC-12 resolution lookups
+        Index("ix_org_country_postcode", "country_code", "postal_code"),
+        Index("ix_org_sic_gin", "sic_codes", postgresql_using="gin"),  # DISC-07 lookalike pre-filter
     )
 
 
@@ -548,9 +551,13 @@ class OrganisationRecordLink(Base):
     match_confidence: Mapped[float] = mapped_column(Float, default=0.5, server_default=sa_text("0.5"))
     status: Mapped[str] = mapped_column(String(16), default="linked", server_default=sa_text("'linked'"))  # linked|review|rejected
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now())
+    # review/rejected links: the OTHER organisation record the source record was found to resemble (DISC-12)
+    candidate_org_id: Mapped[int | None] = mapped_column(ForeignKey("organisations.id", ondelete="CASCADE"), index=True)
+    detail: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=sa_text("'{}'::jsonb"))
     __table_args__ = (
         UniqueConstraint("organisation_id", "source_adapter", "source_ref", name="uq_orglink"),
         Index("ix_orglink_ident", "identifier_type", "identifier_value"),
+        Index("ix_orglink_status", "status", "id"),
     )
 
 
@@ -624,6 +631,10 @@ class OrganisationCompleteness(Base):
     campaign_eligibility: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
     recently_checked: Mapped[str] = mapped_column(String(12), default="unknown", server_default=sa_text("'unknown'"))
     gap_steps_tried: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default=sa_text("'[]'::jsonb"))  # DISC-13 memory
+    # DISC-13: per-attempt log [{step, at, outcome, yield, requests}] and ladder state (additive)
+    gap_log: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, server_default=sa_text("'[]'::jsonb"))
+    gap_exhausted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    needs_review: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_text("false"))
     score: Mapped[int] = mapped_column(Integer, default=0, server_default=sa_text("0"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now(), onupdate=_now())
 
@@ -649,7 +660,11 @@ class SourceEffectiveness(Base):
     peak_rss_mb: Mapped[float] = mapped_column(Float, default=0.0, server_default=sa_text("0"))
     priority_score: Mapped[float] = mapped_column(Float, default=1.0, server_default=sa_text("1"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=_now(), onupdate=_now())
-    __table_args__ = (UniqueConstraint("adapter_id", "run_id", name="uq_srceff"),)
+    __table_args__ = (
+        UniqueConstraint("adapter_id", "run_id", name="uq_srceff"),
+        # run_id NULL = all-time row; NULLs are distinct in a plain unique constraint, so add a partial index
+        Index("uq_srceff_global", "adapter_id", unique=True, postgresql_where=text("run_id is null")),
+    )
 
 
 class MonitorSchedule(Base):

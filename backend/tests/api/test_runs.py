@@ -202,3 +202,18 @@ async def test_system_runs_are_hidden(operator_client):
         await s.commit()
     assert (await c.get("/api/runs")).json()["items"] == []
     assert (await c.get(f"/api/runs/{rid}")).status_code == 404
+
+
+async def test_run_organisations_listing(operator_client):
+    c = operator_client
+    run = await create(c, "start")
+    async with sessionmaker()() as s:
+        ids = [await seed_org(s, f"Org {i}") for i in range(5)]
+        for i, o in enumerate(ids):
+            await s.execute(text("INSERT INTO run_organisations (run_id, organisation_id, stage) VALUES (:r,:o,:s)"), {"r": run["id"], "o": o, "s": "discovered" if i < 3 else "crawled"})
+        await s.commit()
+    j = (await c.get(f"/api/runs/{run['id']}/organisations?limit=2")).json()
+    assert [x["name"] for x in j["items"]] == ["Org 0", "Org 1"] and j["next_cursor"]
+    j2 = (await c.get(f"/api/runs/{run['id']}/organisations", params={"limit": 10, "cursor": j["next_cursor"]})).json()
+    assert len(j2["items"]) == 3
+    assert [x["stage"] for x in (await c.get(f"/api/runs/{run['id']}/organisations?stage=crawled")).json()["items"]] == ["crawled", "crawled"]

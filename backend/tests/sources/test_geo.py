@@ -161,7 +161,7 @@ def test_source_availability_gb_is_honest():
     assert av["osm_geofabrik"]["status"] == "ready" and "europe/great-britain" in av["osm_geofabrik"]["notes"]
     assert av["wikidata"]["status"] == "needs_config" and av["brave_search"]["status"] == "needs_config"
     assert av["dir_yell"]["status"] == "not_permitted" and av["dir_gas_safe"]["status"] == "permission_required"
-    assert av["dir_fsa_fhrs"]["status"] == "not_implemented"
+    assert av["dir_oscr"]["status"] == "not_implemented" and av["fsa_fhrs"]["status"] == "needs_config"
     assert av["company_websites"]["status"] == "info_only"
     assert not any(a["live_verified"] for a in av.values() if a["adapter_id"] in ("companies_house_bulk", "osm_geofabrik"))
     prios = [a["priority"] for a in source_availability("GB")]

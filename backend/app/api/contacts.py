@@ -187,7 +187,7 @@ class RevalidateIn(BaseModel):
     mode: Literal["fast", "deep"] = "fast"
 
 
-class BulkIn(BaseModel):
+class ContactBulkIn(BaseModel):
     action: Literal["revalidate", "mark_needs_review", "clear_needs_review", "suppress", "unsuppress", "export"]
     ids: list[int] = Field(min_length=1, max_length=10000)
     reason: Literal["opt_out", "objection", "bounce", "complaint", "manual", "legal"] = "manual"
@@ -197,7 +197,7 @@ class BulkIn(BaseModel):
     export_preset: str = "full_intelligence"
 
 
-class BulkOut(BaseModel):
+class ContactBulkOut(BaseModel):
     action: str
     requested: int
     affected: int
@@ -486,8 +486,8 @@ async def unsuppress_contact(contact_id: int, body: UnsuppressIn, user: User = D
     return SuppressionResult(entry_id=None, emails_affected=n, scope=body.scope)
 
 
-@contacts_router.post("/bulk", response_model=BulkOut)
-async def bulk_contacts(body: BulkIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> BulkOut:
+@contacts_router.post("/bulk", response_model=ContactBulkOut)
+async def bulk_contacts(body: ContactBulkIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> ContactBulkOut:
     ids = sorted(set(body.ids))
     emails = (await session.execute(select(E.id, E.email_normalised).where(E.id.in_(ids)))).all()
     found = [r[0] for r in emails]
@@ -512,7 +512,7 @@ async def bulk_contacts(body: BulkIn, user: User = Depends(require_role("operato
         export_id, affected = ex.id, len(found)
     await audit(session, user, f"contact.bulk_{body.action}", "email", None, {"requested": len(ids), "affected": affected})
     await session.commit()
-    return BulkOut(action=body.action, requested=len(ids), affected=affected, export_id=export_id)
+    return ContactBulkOut(action=body.action, requested=len(ids), affected=affected, export_id=export_id)
 
 
 # --------------------------------------------------------------------------- deletion (admin)

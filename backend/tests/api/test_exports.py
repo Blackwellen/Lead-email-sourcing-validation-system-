@@ -259,10 +259,13 @@ asyncio.run(main(sys.argv[1]))
 def _run_child(export_id: int) -> tuple[str, int, str]:
     import subprocess
     import sys
+    import time
 
+    t0 = time.time()
     out = subprocess.run([sys.executable, "-c", CHILD, str(export_id)], capture_output=True, text=True, timeout=600, cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
     assert out.returncode == 0, out.stderr[-2000:]
     status, rows, path = out.stdout.split()
+    print("child", export_id, round(time.time() - t0, 1), "s")
     return status, int(rows), path
 
 

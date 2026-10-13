@@ -46,7 +46,7 @@ class Restriction(BaseModel):
     message: str
 
 
-class EstimateOut(BaseModel):
+class RunEstimateOut(BaseModel):
     valid: bool
     errors: list[FieldError] = Field(default_factory=list)
     infra: dict[str, Any] = Field(default_factory=dict)
@@ -148,10 +148,10 @@ BROWSER_WORKER_MB = 400
 BYTES_PER_RESULT_ROW = 2048
 
 
-async def estimate_config(session: AsyncSession, raw: dict[str, Any], settings: Settings) -> EstimateOut:
+async def estimate_config(session: AsyncSession, raw: dict[str, Any], settings: Settings) -> RunEstimateOut:
     cfg, v = await validate_config(session, raw, settings)
     if cfg is None or not v.valid:
-        return EstimateOut(valid=False, errors=v.errors, warnings=v.warnings)
+        return RunEstimateOut(valid=False, errors=v.errors, warnings=v.warnings)
     perf = cfg.performance
     http_conc = perf.http_concurrency or PRESET_CONCURRENCY[perf.preset]
     procs_needed = math.ceil(http_conc / max(1, settings.worker_concurrency))
@@ -219,7 +219,7 @@ async def estimate_config(session: AsyncSession, raw: dict[str, Any], settings: 
         f"Result storage is approximated at {BYTES_PER_RESULT_ROW} bytes per qualified row.",
         "No duration is estimated before a run starts; run ETAs are computed from observed throughput once the run is executing.",
     ]
-    return EstimateOut(
+    return RunEstimateOut(
         valid=True,
         infra={
             "effective_http_concurrency": http_conc, "worker_processes_needed": procs_needed, "worker_processes_online": int(alive),

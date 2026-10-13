@@ -207,15 +207,21 @@ async def _batches(session: AsyncSession, f: ExportFilters, limit: int) -> Async
     last = None
     produced = 0
     while produced < limit:
-        stmt = select(*_select_cols()).select_from(_from()).where(*conds)
-        if last is not None:
-            stmt = stmt.where(key > last)
+        n = min(BATCH, limit - produced)
         if f.uniqueness == "email":
+            stmt = select(*_select_cols()).select_from(_from()).where(*conds)
+            if last is not None:
+                stmt = stmt.where(key > last)
             stmt = stmt.order_by(E.id)
         else:
+            # pick the best row per key first (cheap columns only), then fetch the heavy columns for just those rows
             quality = case((E.origin.in_(("published", "corroborated")), 0), else_=1)
-            stmt = stmt.ext(distinct_on(key)).order_by(key, quality, E.confidence.desc(), E.id)
-        rows = (await session.execute(stmt.limit(min(BATCH, limit - produced)))).all()
+            inner = select(E.id).select_from(_from()).where(*conds)
+            if last is not None:
+                inner = inner.where(key > last)
+            inner = inner.ext(distinct_on(key)).order_by(key, quality, E.confidence.desc(), E.id).limit(n).correlate(None)
+            stmt = select(*_select_cols()).select_from(_from()).where(E.id.in_(inner.scalar_subquery())).order_by(key)
+        rows = (await session.execute(stmt.limit(n))).all()
         if not rows:
             return
         produced += len(rows)

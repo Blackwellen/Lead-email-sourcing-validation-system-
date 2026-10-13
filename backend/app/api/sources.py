@@ -31,7 +31,7 @@ SECRET_KEY_RE = re.compile(r"(key|secret|token|password|passwd|credential)", re.
 _totals_cache: dict[str, Any] = {"t": 0.0, "v": None}
 
 
-class HealthOut(BaseModel):
+class SourceHealthOut(BaseModel):
     ok: bool | None = None
     status: str = "unknown"
     message: str = ""
@@ -65,7 +65,7 @@ class SourceOut(BaseModel):
     last_error: str | None = None
     total_businesses: int = 0
     total_published_emails: int = 0
-    health: HealthOut = Field(default_factory=HealthOut)
+    health: SourceHealthOut = Field(default_factory=SourceHealthOut)
 
 
 class PriorityIn(BaseModel):
@@ -104,11 +104,11 @@ async def _totals(session: AsyncSession) -> tuple[dict[str, int], dict[str, int]
     return biz, em
 
 
-async def _health_of(session: AsyncSession, aid: str) -> HealthOut:
+async def _health_of(session: AsyncSession, aid: str) -> SourceHealthOut:
     h = await get_setting(session, f"source_health.{aid}", None)
     if not h:
-        return HealthOut()
-    return HealthOut(ok=h.get("ok"), status=h.get("status", "unknown"), message=h.get("message", ""), checked_at=datetime.fromisoformat(h["checked_at"]) if h.get("checked_at") else None)
+        return SourceHealthOut()
+    return SourceHealthOut(ok=h.get("ok"), status=h.get("status", "unknown"), message=h.get("message", ""), checked_at=datetime.fromisoformat(h["checked_at"]) if h.get("checked_at") else None)
 
 
 async def build_sources(session: AsyncSession) -> list[SourceOut]:
@@ -232,8 +232,8 @@ async def set_source_config(adapter_id: str, body: ConfigIn, request: Request, u
     return await _one(session, adapter_id)
 
 
-@router.post("/{adapter_id}/health", response_model=HealthOut)
-async def refresh_source_health(adapter_id: str, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> HealthOut:
+@router.post("/{adapter_id}/health", response_model=SourceHealthOut)
+async def refresh_source_health(adapter_id: str, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> SourceHealthOut:
     base = optional("app.sources.base")
     if base is None:
         raise ApiError(501, "not_available", "The source registry is not available in this deployment.")
@@ -253,7 +253,7 @@ async def refresh_source_health(adapter_id: str, user: User = Depends(require_ro
     await set_setting(session, f"source_health.{adapter_id}", res)
     await audit(session, user, "source.health_refresh", "source", adapter_id, {"status": res["status"]})
     await session.commit()
-    return HealthOut(ok=res["ok"], status=res["status"], message=res["message"], checked_at=datetime.fromisoformat(res["checked_at"]))
+    return SourceHealthOut(ok=res["ok"], status=res["status"], message=res["message"], checked_at=datetime.fromisoformat(res["checked_at"]))
 
 
 @router.post("/upload", response_model=UploadOut, status_code=201)

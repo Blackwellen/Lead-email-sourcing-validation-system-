@@ -158,4 +158,7 @@ async def seed_bulk_emails(session, n: int, org_id: int | None = None) -> int:
                   'user' || g, 'bulk' || (g % 997) || '.example.com', 'bulk' || (g % 997) || '.example.com', 'website', 'published', 50 + (g % 50), 'deliverable', 'eligible', 'valid', 'accepts_mail', now()
            FROM generate_series(1, :n) g"""), {"n": n, "orgs": max(1, n // 5)})
     await session.commit()
+    await session.execute(text("ANALYZE email_addresses"))  # fresh bulk loads have no statistics yet (autovacuum would do this)
+    await session.execute(text("ANALYZE organisations"))
+    await session.commit()
     return org_id

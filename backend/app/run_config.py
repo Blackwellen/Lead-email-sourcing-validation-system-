@@ -63,6 +63,57 @@ class PerformanceSpec(BaseModel):
     resume_existing: bool = True
 
 
+SOURCE_CATEGORIES = (
+    "bulk_open_data", "industry_registers", "licensed_directories", "procurement",
+    "company_websites", "common_crawl", "documents", "network_expansion",
+)
+
+
+class NetworkSpec(BaseModel):
+    """DISC-06 business-network expansion controls."""
+
+    enabled: bool = False
+    max_depth: int = Field(1, ge=1, le=3)
+    source_budget: int = Field(50, ge=1, le=100_000)  # max page fetches per seed organisation
+
+
+class SignalsSpec(BaseModel):
+    """DISC-09 business-signal detection controls (empty ``types`` = all types)."""
+
+    enabled: bool = False
+    types: list[str] = Field(default_factory=list)
+    freshness_days: int = Field(180, ge=1, le=3650)
+
+
+class DiscoverySpec(BaseModel):
+    """Operator controls for the discovery-intelligence engines and the smart source scheduler.
+
+    Every field has a conservative default so existing run snapshots (which lack ``discovery``) keep working.
+    """
+
+    strategy: Literal["fast", "balanced", "deep", "custom"] = "balanced"
+    source_categories: list[Literal[
+        "bulk_open_data", "industry_registers", "licensed_directories", "procurement",
+        "company_websites", "common_crawl", "documents", "network_expansion",
+    ]] = Field(default_factory=lambda: ["bulk_open_data", "industry_registers", "company_websites"])
+    contact_discovery: Literal["published_only", "published_plus_corroborated", "include_inferred"] = "published_only"
+    business_scope: Literal["new_only", "refresh_existing", "both"] = "new_only"
+    network: NetworkSpec = Field(default_factory=NetworkSpec)
+    signals: SignalsSpec = Field(default_factory=SignalsSpec)
+    source_quotas: dict[str, int] = Field(default_factory=dict)  # adapter id or source category -> max work units
+    overall_max_work: int | None = Field(None, ge=1)
+    fallback_research: Literal["stop_if_no_website", "try_other_sources", "flag_for_review"] = "stop_if_no_website"
+    search_budget: int = Field(0, ge=0, le=50)  # search-provider queries allowed per company (0 = none)
+
+    @model_validator(mode="after")
+    def _check(self):
+        for k, v in self.source_quotas.items():
+            if v < 0:
+                raise ValueError(f"source quota for {k!r} must be >= 0")
+        self.source_categories = list(dict.fromkeys(self.source_categories))
+        return self
+
+
 class RunConfig(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     destination_category_id: int | None = None
@@ -83,6 +134,7 @@ class RunConfig(BaseModel):
     performance: PerformanceSpec = Field(default_factory=PerformanceSpec)
     schedule_at: str | None = None  # ISO timestamp
     crawl_max_pages: int = Field(12, ge=1, le=100)
+    discovery: DiscoverySpec = Field(default_factory=DiscoverySpec)
 
     @model_validator(mode="after")
     def _check(self):

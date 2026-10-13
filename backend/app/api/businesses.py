@@ -143,7 +143,7 @@ class DomainDecisionIn(BaseModel):
     note: str | None = Field(None, max_length=500)
 
 
-class BulkIn(BaseModel):
+class BusinessBulkIn(BaseModel):
     action: Literal["add_to_category", "queue_refresh", "export"]
     ids: list[int] = Field(min_length=1, max_length=5000)
     category_id: int | None = None
@@ -151,7 +151,7 @@ class BulkIn(BaseModel):
     export_preset: str = "full_intelligence"
 
 
-class BulkOut(BaseModel):
+class BusinessBulkOut(BaseModel):
     action: str
     requested: int
     affected: int
@@ -159,12 +159,12 @@ class BulkOut(BaseModel):
     jobs_queued: int | None = None
 
 
-class MergeIn(BaseModel):
+class BusinessMergeIn(BaseModel):
     primary_id: int
     duplicate_ids: list[int] = Field(min_length=1, max_length=50)
 
 
-class MergeOut(BaseModel):
+class BusinessMergeOut(BaseModel):
     primary_id: int
     merged: list[int]
     domains_moved: int
@@ -373,11 +373,11 @@ async def enqueue_refresh(session: AsyncSession, org_ids: list[int]) -> int:
     return n
 
 
-@router.post("/bulk", response_model=BulkOut)
-async def bulk_businesses(body: BulkIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> BulkOut:
+@router.post("/bulk", response_model=BusinessBulkOut)
+async def bulk_businesses(body: BusinessBulkIn, user: User = Depends(require_role("operator")), session: AsyncSession = Depends(get_session)) -> BusinessBulkOut:
     ids = sorted(set(body.ids))
     found = list((await session.execute(select(Org.id).where(Org.id.in_(ids), Org.merged_into_id.is_(None)))).scalars())
-    out = BulkOut(action=body.action, requested=len(ids), affected=0)
+    out = BusinessBulkOut(action=body.action, requested=len(ids), affected=0)
     if body.action == "add_to_category":
         if body.category_id is None or await session.get(Category, body.category_id) is None:
             raise ApiError(422, "invalid_category", "Choose an existing category.")
@@ -396,8 +396,8 @@ async def bulk_businesses(body: BulkIn, user: User = Depends(require_role("opera
     return out
 
 
-@router.post("/merge", response_model=MergeOut)
-async def merge_businesses(body: MergeIn, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> MergeOut:
+@router.post("/merge", response_model=BusinessMergeOut)
+async def merge_businesses(body: BusinessMergeIn, user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_session)) -> BusinessMergeOut:
     dups = sorted(set(body.duplicate_ids) - {body.primary_id})
     if not dups:
         raise ApiError(422, "invalid_merge", "Choose at least one duplicate different from the primary business.")
@@ -436,6 +436,6 @@ async def merge_businesses(body: MergeIn, user: User = Depends(require_role("adm
         await session.execute(text("UPDATE organisations SET merged_into_id=:p, category_id=NULL WHERE id=:d"), {"p": p, "d": dup})
     await audit(session, user, "business.merge", "organisation", p, {"duplicates": dups, **stats})
     await session.commit()
-    return MergeOut(primary_id=p, merged=dups, domains_moved=stats["domains"], contacts_moved=stats["contacts"], emails_moved=stats["emails"])
+    return BusinessMergeOut(primary_id=p, merged=dups, domains_moved=stats["domains"], contacts_moved=stats["contacts"], emails_moved=stats["emails"])
 
 

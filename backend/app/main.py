@@ -38,7 +38,7 @@ _HTTP_CODES = {
 }
 
 
-class HealthOut(BaseModel):
+class LivenessOut(BaseModel):
     status: str
 
 
@@ -78,6 +78,11 @@ def _alembic_head() -> str | None:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+    if settings.env == "production":
+        if settings.secret_key.startswith("change-me") or len(settings.secret_key) < 32:
+            raise RuntimeError("LEAD_SECRET_KEY must be set to a unique value of at least 32 characters in production")
+        if not settings.cookie_secure:
+            log.warning("LEAD_COOKIE_SECURE is false in production: session cookies will be sent over plain HTTP")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -151,9 +156,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return _err(500, "internal_error", f"Something went wrong on our side. Quote request id {rid} if you contact support.")
 
     # ---- ops endpoints
-    @app.get("/healthz", response_model=HealthOut, tags=["ops"])
-    async def healthz() -> HealthOut:
-        return HealthOut(status="ok")
+    @app.get("/healthz", response_model=LivenessOut, tags=["ops"])
+    async def healthz() -> LivenessOut:
+        return LivenessOut(status="ok")
 
     @app.get("/readyz", response_model=ReadyOut, tags=["ops"])
     async def readyz(response: Response) -> ReadyOut:

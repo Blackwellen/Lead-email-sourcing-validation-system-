@@ -32,7 +32,7 @@ from ..security import SESSION_COOKIE, ApiError, app_settings, audit, require_ro
 from ..system_runs import not_system_filter
 from .common import Ok, Page, SortSpec, apply_keyset, check_enum, clean_q, finish_page, prefix_pattern
 from .contacts import ContactRow, contact_rows
-from .runs_support import EstimateOut, FieldError, ValidateOut, estimate_config, validate_config
+from .runs_support import FieldError, RunEstimateOut, ValidateOut, estimate_config, validate_config
 
 log = logging.getLogger("api.runs")
 router = APIRouter(prefix="/api/runs", tags=["runs"], dependencies=[Depends(require_role("viewer"))])
@@ -283,8 +283,8 @@ async def validate_run_config(payload: dict[str, Any], request: Request, session
     return out
 
 
-@router.post("/estimate", response_model=EstimateOut, dependencies=[Depends(require_role("operator"))])
-async def estimate_run(payload: dict[str, Any], request: Request, session: AsyncSession = Depends(get_session)) -> EstimateOut:
+@router.post("/estimate", response_model=RunEstimateOut, dependencies=[Depends(require_role("operator"))])
+async def estimate_run(payload: dict[str, Any], request: Request, session: AsyncSession = Depends(get_session)) -> RunEstimateOut:
     return await estimate_config(session, payload, app_settings(request))
 
 

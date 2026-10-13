@@ -93,7 +93,7 @@ class BatchUploadOut(BaseModel):
     unmatched_sample: list[str]
 
 
-class EstimateIn(BaseModel):
+class VerificationEstimateIn(BaseModel):
     mode: Literal["fast", "deep", "custom"] = "fast"
     options: dict[str, Any] = Field(default_factory=dict)
     filters: ContactFilterSpec | None = None
@@ -101,7 +101,7 @@ class EstimateIn(BaseModel):
     count: int | None = Field(None, ge=1, le=100_000_000)
 
 
-class EstimateOut(BaseModel):
+class VerificationEstimateOut(BaseModel):
     mode: str
     addresses: int | None
     addresses_capped: bool = False
@@ -221,8 +221,8 @@ async def verification_history(
 
 
 # --------------------------------------------------------------------------- estimate
-@router.post("/estimate", response_model=EstimateOut, dependencies=[Depends(require_role("operator"))])
-async def estimate_verification(body: EstimateIn, request: Request, session: AsyncSession = Depends(get_session)) -> EstimateOut:
+@router.post("/estimate", response_model=VerificationEstimateOut, dependencies=[Depends(require_role("operator"))])
+async def estimate_verification(body: VerificationEstimateIn, request: Request, session: AsyncSession = Depends(get_session)) -> VerificationEstimateOut:
     pipe = require("app.verify.pipeline", "Verification cost estimation")
     n, capped = body.count, False
     if n is None:
@@ -243,7 +243,7 @@ async def estimate_verification(body: EstimateIn, request: Request, session: Asy
     st = app_settings(request)
     if (opts.smtp or opts.catch_all) and not st.smtp_diagnostics_enabled:
         warnings.append("SMTP diagnostics are not enabled on this deployment; SMTP and catch-all stages will be skipped.")
-    return EstimateOut(mode=body.mode, addresses=n, addresses_capped=capped, cost=cost, warnings=warnings)
+    return VerificationEstimateOut(mode=body.mode, addresses=n, addresses_capped=capped, cost=cost, warnings=warnings)
 
 
 # --------------------------------------------------------------------------- batches

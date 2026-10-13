@@ -59,7 +59,7 @@ async def test_catalogue_adapters_raise_not_permitted(entry_id):
 
 
 async def test_open_dataset_without_adapter_is_unavailable_not_permitted():
-    a = get_adapter("dir_fsa_fhrs")
+    a = get_adapter("dir_oscr")
     with pytest.raises(AdapterUnavailable):
         async for _ in a.iter_businesses(DiscoveryQuery()):
             pass
