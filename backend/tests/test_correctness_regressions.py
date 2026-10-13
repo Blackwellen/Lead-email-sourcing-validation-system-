@@ -300,9 +300,10 @@ async def test_max_runtime_ignores_paused_time(session):
     await s.flush()
     await jq.enqueue(s, run_id=rid, stage="crawl", dedupe_key="keep")
     await runs.resume_run(s, rid)
-    assert 1400 <= run.counters["paused_seconds"] <= 1600 and "companies" in run.counters
+    assert 1400 <= runs.paused_seconds(run.counters) <= 1600 and "companies" in run.counters
     assert await runs.evaluate_run(s, rid) is None and run.status == "running"  # 5 active minutes < 10
-    run.counters = {**run.counters, "paused_seconds": 0}
+    assert runs.paused_seconds(run.counters) >= 1400  # evaluate_run kept the lifecycle bookkeeping
+    run.counters = {**run.counters, "lifecycle": {"paused_seconds": 0}}
     await s.flush()
     assert await runs.evaluate_run(s, rid) in ("stopping", "completed") and run.stop_reason == "max_runtime"
 

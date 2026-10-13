@@ -93,17 +93,27 @@ async def resume_run(s: AsyncSession, run_id: int) -> SourcingRun:
     return run
 
 
+def paused_seconds(counters: dict[str, Any] | None) -> float:
+    c = counters or {}
+    life = c.get("lifecycle") if isinstance(c.get("lifecycle"), dict) else {}
+    return float(life.get("paused_seconds", c.get("paused_seconds", 0)) or 0)
+
+
 async def _account_paused(s: AsyncSession, run: SourcingRun) -> None:
-    """Active-runtime accounting (max_runtime_minutes ignores time spent paused): fold the pause into counters.paused_seconds."""
+    """Active-runtime accounting (max_runtime_minutes ignores time spent paused): fold the pause into
+    ``counters.lifecycle.paused_seconds``. The counters dict is merged, never replaced, and is kept a complete computed snapshot
+    (readers treat a non-empty dict as the computed counters)."""
     if run.paused_at is None:
         return
     paused = max(0.0, (datetime.now(UTC) - run.paused_at).total_seconds())
     c = dict(run.counters or {})
-    if "companies" not in c:  # readers treat counters as the computed snapshot once non-empty: keep it complete
+    if "companies" not in c:
         c = {**(await compute_counters(s, run.id)), **c}
         c["progress"] = progress_value(run.target_definition, c)
         c["target"] = run.target_count
-    c["paused_seconds"] = round(float(c.get("paused_seconds", 0) or 0) + paused, 1)
+    total = round(paused_seconds(c) + paused, 1)
+    c.pop("paused_seconds", None)
+    c["lifecycle"] = {**(c.get("lifecycle") if isinstance(c.get("lifecycle"), dict) else {}), "paused_seconds": total}
     run.counters = c
     run.paused_at = None
 
@@ -272,11 +282,12 @@ async def compute_counters(s: AsyncSession, run_id: int) -> dict[str, Any]:
 
 
 def progress_value(definition: str, c: dict[str, Any]) -> int:
-    return {
-        "distinct_companies": c["companies"],
-        "companies_with_domains": c["companies_with_domains"],
-        "distinct_email_domains": c["qualified"],
-    }.get(definition, c["qualified"])
+    c = c or {}
+    return int({
+        "distinct_companies": c.get("companies", 0),
+        "companies_with_domains": c.get("companies_with_domains", 0),
+        "distinct_email_domains": c.get("qualified", 0),
+    }.get(definition, c.get("qualified", 0)) or 0)
 
 
 async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
@@ -321,7 +332,7 @@ async def evaluate_run(s: AsyncSession, run_id: int) -> str | None:
     return changed
 
 
-PRESERVED_COUNTERS = ("gap_yield", "paused_seconds")
+PRESERVED_COUNTERS = ("gap_yield", "lifecycle", "paused_seconds")  # (top-level paused_seconds: written by an earlier build)
 
 
 def active_runtime_s(run: SourcingRun, now: datetime | None = None) -> float:
@@ -329,7 +340,7 @@ def active_runtime_s(run: SourcingRun, now: datetime | None = None) -> float:
     now = now or datetime.now(UTC)
     if run.started_at is None:
         return 0.0
-    paused = float((run.counters or {}).get("paused_seconds", 0) or 0)
+    paused = paused_seconds(run.counters)
     if run.paused_at is not None:
         paused += max(0.0, (now - run.paused_at).total_seconds())
     return max(0.0, (now - run.started_at).total_seconds() - paused)
